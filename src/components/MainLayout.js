@@ -1,0 +1,117 @@
+import React, { useState } from 'react';
+import { Layout, Menu, Avatar, Button } from 'antd';
+import {
+  QuestionCircleOutlined,
+  DatabaseOutlined,
+  SettingOutlined,
+  UserOutlined,
+  LeftOutlined,
+  RightOutlined,
+} from '@ant-design/icons';
+import { useNavigate, Routes, Route } from 'react-router-dom';
+import QuestionAssistant from '../pages/QuestionAssistant';
+import DataCenter from '../pages/DataCenter';
+import PermissionConfig from '../pages/PermissionConfig';
+import './MainLayout.css';
+
+const { Sider, Content } = Layout;
+
+const MainLayout = () => {
+  const [selectedKey, setSelectedKey] = useState('question');
+  const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
+
+  const menuItems = [
+    {
+      key: 'question',
+      icon: <QuestionCircleOutlined />,
+      label: '问数助手',
+      path: '/question',
+    },
+    {
+      key: 'data',
+      icon: <DatabaseOutlined />,
+      label: '数据中心',
+      path: '/data',
+    },
+    {
+      key: 'permission',
+      icon: <SettingOutlined />,
+      label: '权限配置',
+      path: '/permission',
+    },
+  ];
+
+  const handleMenuClick = ({ key }) => {
+    const item = menuItems.find((menu) => menu.key === key);
+    if (item) {
+      setSelectedKey(key);
+      navigate(item.path);
+    }
+  };
+
+  const toggleCollapsed = () => {
+    setCollapsed(!collapsed);
+  };
+
+  return (
+    <Layout className="main-layout">
+      <Sider 
+        width={260} 
+        collapsedWidth={80}
+        collapsed={collapsed}
+        className="sidebar"
+        trigger={null}
+      >
+        <div className="sidebar-content">
+          <div className="sidebar-header">
+            <h1 className="sidebar-title">
+              {collapsed ? 'JST' : '金盘科技问数智能体'}
+            </h1>
+          </div>
+
+          <div className="divider-with-button">
+            <div className="divider-line"></div>
+          </div>
+
+          <div className="menu-section">
+            <Menu
+              mode="inline"
+              selectedKeys={[selectedKey]}
+              onClick={handleMenuClick}
+              items={menuItems}
+              className="menu"
+              inlineCollapsed={collapsed}
+            />
+          </div>
+          
+          <div className="user-section">
+            <Avatar size={40} icon={<UserOutlined />} className="user-avatar" />
+            {!collapsed && <span className="user-name">jst admin</span>}
+          </div>
+        </div>
+      </Sider>
+      
+      <Button
+        type="text"
+        icon={collapsed ? <RightOutlined /> : <LeftOutlined />}
+        onClick={toggleCollapsed}
+        className="collapse-btn-overlay"
+      />
+      
+      <Layout>
+        <Content className="main-content">
+          <Routes>
+            <Route path="/" element={<QuestionAssistant />} />
+            <Route path="/question" element={<QuestionAssistant />} />
+            <Route path="/data" element={<DataCenter />} />
+            <Route path="/permission" element={<PermissionConfig />} />
+          </Routes>
+        </Content>
+      </Layout>
+    </Layout>
+  );
+};
+
+export default MainLayout;
+
