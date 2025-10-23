@@ -66,7 +66,7 @@ const MainLayout = () => {
         <div className="sidebar-content">
           <div className="sidebar-header">
             <h1 className="sidebar-title">
-              {collapsed ? 'JST' : '金盘科技问数智能体'}
+              {collapsed ? 'JST' : '金盘问数智能体'}
             </h1>
           </div>
 
