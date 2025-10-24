@@ -1,0 +1,635 @@
+/* 标签切换 */
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.tab-button {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tab-button:hover {
+  color: #1890ff;
+}
+
+.tab-button.active {
+  color: #1890ff;
+  border-bottom-color: #1890ff;
+  font-weight: 500;
+}
+
+/* 通用部分 */
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 16px;
+  margin-top: 24px;
+}
+
+.section-title:first-child {
+  margin-top: 0;
+}
+
+/* 文件上传区域 */
+.upload-area {
+  margin-bottom: 24px;
+}
+
+.upload-label {
+  display: block;
+  cursor: pointer;
+}
+
+.upload-placeholder {
+  border: 2px dashed #d9d9d9;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  background: #fafafa;
+  transition: all 0.3s;
+}
+
+.upload-placeholder:hover {
+  border-color: #1890ff;
+  background: #f0f8ff;
+}
+
+.upload-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.upload-hint {
+  font-size: 12px;
+  color: #999;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.uploaded-file {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f5f5f5;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  gap: 12px;
+}
+
+.file-icon {
+  font-size: 28px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.excel-icon {
+  overflow: visible;
+}
+
+.excel-icon svg {
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.file-name {
+  flex: 1;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+}
+
+.remove-file-btn {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: all 0.3s;
+}
+
+.remove-file-btn:hover {
+  color: #ff4d4f;
+}
+
+.file-check {
+  color: #52c41a;
+  font-size: 20px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* 导入方式选择 */
+.import-mode-selector {
+  display: flex;
+  gap: 24px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.mode-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+}
+
+.mode-option input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.mode-option span {
+  user-select: none;
+}
+
+/* 新建表配置 */
+.table-config-section {
+  padding: 16px;
+  background: #f0f8ff;
+  border: 1px solid #d0e8ff;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.config-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.config-label {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.config-input {
+  flex: 1;
+  max-width: 500px;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.config-input:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.config-input:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* 已有表选择器 */
+.existing-table-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #f0f8ff;
+  border: 1px solid #d0e8ff;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.existing-table-selector label {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.table-select {
+  flex: 1;
+  max-width: 400px;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  background: #fff;
+}
+
+.table-select:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+/* 主键冲突处理选择器 */
+.conflict-strategy-selector {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.strategy-label {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.strategy-options {
+  display: flex;
+  gap: 24px;
+}
+
+.strategy-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+}
+
+.strategy-option input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.strategy-option span {
+  user-select: none;
+}
+
+/* 解析提示 */
+.parsing-hint {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+  background: #fafafa;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.parsing-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+/* 字段配置表格 */
+.fields-table {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  background: white;
+}
+
+.table-header,
+.table-row {
+  display: grid;
+  grid-template-columns: 40px 1.5fr 2fr 3fr;
+  gap: 16px;
+  align-items: center;
+  padding: 12px;
+}
+
+.table-header {
+  background: #fafafa;
+  font-weight: 500;
+  font-size: 13px;
+  color: #333;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.table-row {
+  border-bottom: 1px solid #f0f0f0;
+  background: #fff;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-row:hover {
+  background: #fafafa;
+}
+
+.col-drag {
+  color: #999;
+  cursor: move;
+  text-align: center;
+}
+
+.required {
+  color: #ff4d4f;
+  margin-right: 4px;
+}
+
+.info-icon {
+  color: #999;
+  margin-left: 4px;
+  cursor: help;
+}
+
+.col-name input,
+.col-description input {
+  width: 100%;
+  padding: 6px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.col-name input[readonly] {
+  background-color: #f5f5f5;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.col-description input:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.col-name input:focus,
+.col-description input:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.col-name input[readonly]:focus {
+  border-color: #d9d9d9;
+  box-shadow: none;
+}
+
+.col-description input:disabled:focus {
+  border-color: #d9d9d9;
+  box-shadow: none;
+}
+
+.col-type-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.type-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.type-select {
+  flex: 1;
+  min-width: 120px;
+  padding: 6px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  background: #fff;
+}
+
+.type-select:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.type-select:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.type-param {
+  width: 70px;
+  padding: 6px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.type-param:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.type-param:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.param-separator {
+  color: #999;
+  font-size: 14px;
+}
+
+
+/* 操作按钮 */
+.action-buttons {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.save-btn {
+  padding: 10px 24px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.save-btn:hover {
+  background: #40a9ff;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+}
+
+/* 已有表列表 */
+.tables-section {
+  margin-top: 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.empty-hint {
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+/* 表格列表容器 */
+.table-list-container {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  overflow: hidden;
+  background: white;
+}
+
+.table-list-header {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #fafafa;
+  font-weight: 500;
+  font-size: 13px;
+  color: #333;
+  border-bottom: 2px solid #e8e8e8;
+}
+
+.table-list-body {
+  background: white;
+}
+
+.table-list-row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s;
+}
+
+.table-list-row:last-child {
+  border-bottom: none;
+}
+
+.table-list-row:hover {
+  background: #fafafa;
+}
+
+.list-col-name {
+  color: #333;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.list-col-time {
+  color: #666;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+}
+
+.list-col-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.list-action-btn {
+  padding: 6px;
+  border: 1px solid #d9d9d9;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.list-action-btn svg {
+  display: block;
+}
+
+.list-action-btn:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.list-action-btn.clear-btn:hover {
+  background: #fff7e6;
+  border-color: #faad14;
+  color: #faad14;
+}
+
+.list-action-btn.delete-btn:hover {
+  background: #fff1f0;
+  border-color: #ff4d4f;
+  color: #ff4d4f;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .fields-table {
+    overflow-x: auto;
+  }
+  
+  .table-header,
+  .table-row {
+    min-width: 900px;
+  }
+  
+  .table-list-container {
+    overflow-x: auto;
+  }
+  
+  .table-list-header,
+  .table-list-row {
+    min-width: 800px;
+  }
+}
+
