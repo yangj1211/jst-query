@@ -1,0 +1,91 @@
+.query-result-wrapper {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.result-params-header {
+  background-color: #f0f5ff;
+  padding: 8px 12px;
+  border-bottom: 1px solid #d6e4ff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.expand-btn {
+  color: #335b8c;
+  font-size: 13px;
+  padding: 0;
+  font-weight: 500;
+}
+
+.expand-btn .anticon {
+  font-size: 10px;
+  color: #335b8c;
+}
+
+.header-action-btn {
+  color: #555;
+  font-size: 13px;
+  padding: 0;
+}
+.header-action-btn:hover {
+  color: #1677ff;
+}
+.header-action-btn .anticon {
+  font-size: 16px;
+  color: #555;
+}
+.header-action-btn:hover .anticon {
+  color: #1677ff;
+}
+
+
+.params-details {
+  padding: 12px 16px;
+  background-color: #f7f9fc;
+  border-bottom: 1px solid #e8e8e8;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.6;
+}
+
+.params-details strong {
+  color: #333;
+}
+
+.result-content {
+  padding: 16px;
+}
+
+.table-wrapper {
+  position: relative;
+}
+
+.table-actions {
+  position: absolute;
+  top: -36px;
+  right: 0;
+  z-index: 1;
+}
+
+.export-btn.ant-btn-sm {
+  color: #888;
+}
+
+.export-btn.ant-btn-sm:hover {
+  color: #1677ff;
+  border-color: #1677ff;
+}
+
+.summary-text {
+  margin-bottom: 16px;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.query-result-container .ant-table-wrapper {
+  border-radius: 6px;
+  overflow: hidden;
+}

@@ -1,0 +1,128 @@
+.parameter-form-container {
+  background-color: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  max-width: 600px;
+  width: 100%;
+}
+
+.parameter-form-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 24px;
+}
+
+.form-header-icon svg {
+  display: block;
+}
+
+.parameter-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-item {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.form-label {
+  font-size: 14px;
+  color: #555;
+  width: 100px;
+  flex-shrink: 0;
+  padding-top: 5px;
+}
+
+.form-input {
+  width: 100%;
+}
+
+.period-type-switch {
+  margin-bottom: 12px;
+}
+
+.relative-time-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.relative-preset-select {
+  flex-shrink: 0;
+  width: 100px !important;
+}
+
+.last-n-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-grow: 1;
+}
+
+.simple-time-display {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-grow: 1;
+  padding: 5px 0;
+  gap: 16px;
+}
+
+.year-tags {
+  display: flex;
+  gap: 4px;
+}
+
+.modify-time-btn {
+  padding: 0;
+  height: auto;
+  line-height: 1;
+}
+
+.full-time-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+
+.last-n-picker .ant-input-number {
+  width: 70px;
+}
+
+.comparison-options {
+  margin-top: 8px;
+}
+
+.scope-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.branch-select {
+  margin-top: 8px;
+}
+
+.parameter-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.submit-button {
+  min-width: 120px;
+}

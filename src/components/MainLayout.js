@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Layout, Menu, Avatar, Button } from 'antd';
 import {
@@ -8,10 +9,11 @@ import {
   LeftOutlined,
   RightOutlined,
 } from '@ant-design/icons';
-import { useNavigate, Routes, Route } from 'react-router-dom';
+import { useNavigate, Routes, Route, useLocation } from 'react-router-dom';
 import QuestionAssistant from '../pages/QuestionAssistant';
 import DataCenter from '../pages/DataCenter';
 import PermissionConfig from '../pages/PermissionConfig';
+import DocumentSearch from '../pages/DocumentSearch';
 import './MainLayout.css';
 
 const { Sider, Content } = Layout;
@@ -20,6 +22,52 @@ const MainLayout = () => {
   const [selectedKey, setSelectedKey] = useState('question');
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // 假设路由结构为 /question, /document, /data, /permission
+  const [activeTab, setActiveTab] = useState('question');
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (tab === 'question') {
+      navigate('/question');
+    } else if (tab === 'document') {
+      navigate('/document');
+    }
+  };
+
+
+  const renderContent = () => {
+    // 简单的路由逻辑
+    if (location.pathname.startsWith('/data')) {
+      return <DataCenter />;
+    }
+    if (location.pathname.startsWith('/permission')) {
+      return <PermissionConfig />;
+    }
+    // 默认显示问数助手相关的布局
+    return (
+      <>
+        <div className="main-tabs">
+          <button
+            className={`main-tab-button ${activeTab === 'question' ? 'active' : ''}`}
+            onClick={() => handleTabChange('question')}
+          >
+            问数
+          </button>
+          <button
+            className={`main-tab-button ${activeTab === 'document' ? 'active' : ''}`}
+            onClick={() => handleTabChange('document')}
+          >
+            单据检索
+          </button>
+        </div>
+        <div className="main-tab-content">
+          {activeTab === 'question' ? <QuestionAssistant /> : <DocumentSearch />}
+        </div>
+      </>
+    );
+  };
 
   const menuItems = [
     {
@@ -101,12 +149,7 @@ const MainLayout = () => {
       
       <Layout>
         <Content className="main-content">
-          <Routes>
-            <Route path="/" element={<QuestionAssistant />} />
-            <Route path="/question" element={<QuestionAssistant />} />
-            <Route path="/data" element={<DataCenter />} />
-            <Route path="/permission" element={<PermissionConfig />} />
-          </Routes>
+          {renderContent()}
         </Content>
       </Layout>
     </Layout>
