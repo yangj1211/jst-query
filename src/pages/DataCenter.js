@@ -12,25 +12,27 @@ const DataCenter = () => {
       id: 1, 
       name: '测试表1',
       description: '用户信息表',
-      fieldCount: 3, 
+      fieldCount: 3,
+      rowCount: 1523,
       createTime: '2025-10-20 10:30:00',
       updateTime: '2025-10-20 10:30:00',
       fields: [
-        { id: 1, name: '用户ID', type: 'int', description: '主键' },
-        { id: 2, name: '用户名', type: 'varchar', length: 100, description: '' },
-        { id: 3, name: '创建时间', type: 'datetime', datetimePrecision: 0, description: '' }
+        { id: 1, name: '用户ID', type: 'int', unique: true, description: '主键' },
+        { id: 2, name: '用户名', type: 'varchar', length: 100, unique: false, description: '' },
+        { id: 3, name: '创建时间', type: 'datetime', datetimePrecision: 0, unique: false, description: '' }
       ]
     },
     { 
       id: 2, 
       name: '测试表2',
       description: '订单数据表',
-      fieldCount: 2, 
+      fieldCount: 2,
+      rowCount: 8942,
       createTime: '2025-10-21 14:20:00',
       updateTime: '2025-10-21 14:20:00',
       fields: [
-        { id: 1, name: '订单编号', type: 'varchar', length: 50, description: '订单唯一标识' },
-        { id: 2, name: '金额', type: 'decimal', precision: 10, scale: 2, description: '订单金额' }
+        { id: 1, name: '订单编号', type: 'varchar', length: 50, unique: true, description: '订单唯一标识' },
+        { id: 2, name: '金额', type: 'decimal', precision: 10, scale: 2, unique: false, description: '订单金额' }
       ]
     }
   ]);
@@ -39,6 +41,10 @@ const DataCenter = () => {
   const [conflictStrategy, setConflictStrategy] = useState('fail'); // 'fail', 'skip', 'overwrite'
   const [tableName, setTableName] = useState(''); // 表名
   const [tableDescription, setTableDescription] = useState(''); // 表描述
+  const [viewingTableId, setViewingTableId] = useState(null); // 当前查看详情的表ID
+  const [searchKeyword, setSearchKeyword] = useState(''); // 搜索关键词
+  const [currentPage, setCurrentPage] = useState(1); // 当前页码
+  const [pageSize] = useState(10); // 每页显示条数
 
   // 获取要显示的字段列表（根据导入模式决定）
   const getDisplayFields = () => {
@@ -106,6 +112,7 @@ const DataCenter = () => {
               precision: 10,
               scale: 2,
               datetimePrecision: 0,
+              unique: false,
               description: ''
             }));
           
@@ -140,9 +147,17 @@ const DataCenter = () => {
 
   // 更新字段
   const handleUpdateField = (id, key, value) => {
-    setFields(fields.map(field => 
-      field.id === id ? { ...field, [key]: value } : field
-    ));
+    setFields(fields.map(field => {
+      if (field.id === id) {
+        const updatedField = { ...field, [key]: value };
+        // 如果修改类型为文本或日期，自动取消唯一性
+        if (key === 'type' && (value === 'varchar' || value === 'datetime')) {
+          updatedField.unique = false;
+        }
+        return updatedField;
+      }
+      return field;
+    }));
   };
 
   // 保存表结构
@@ -167,6 +182,7 @@ const DataCenter = () => {
       name: tableName.trim(),
       description: tableDescription.trim(),
       fieldCount: fields.length,
+      rowCount: 0, // 新建表初始行数为0
       createTime: now,
       updateTime: now,
       fields: fields
@@ -193,6 +209,88 @@ const DataCenter = () => {
     if (window.confirm('确定要删除这个表吗？')) {
       setSavedTables(savedTables.filter(table => table.id !== id));
     }
+  };
+
+  // 查看表详情
+  const handleViewTable = (id) => {
+    setViewingTableId(id);
+    setCurrentPage(1); // 重置页码
+  };
+
+  // 返回表列表
+  const handleBackToList = () => {
+    setViewingTableId(null);
+  };
+
+  // 获取字段类型显示文本
+  const getFieldTypeDisplay = (field) => {
+    switch (field.type) {
+      case 'varchar':
+        return '文本';
+      case 'int':
+        return '整数';
+      case 'text':
+        return '文本';
+      case 'decimal':
+        return '小数';
+      case 'datetime':
+        return '日期';
+      default:
+        return field.type;
+    }
+  };
+
+  // 根据搜索关键词过滤表列表
+  const getFilteredTables = () => {
+    if (!searchKeyword.trim()) {
+      return savedTables;
+    }
+    return savedTables.filter(table => 
+      table.name.toLowerCase().includes(searchKeyword.toLowerCase())
+    );
+  };
+
+  // 生成抽样数据（模拟）
+  const generateSampleData = (table, count = 100) => {
+    const data = [];
+    for (let i = 1; i <= count; i++) {
+      const row = { _id: i };
+      table.fields.forEach(field => {
+        switch (field.type) {
+          case 'int':
+            row[field.name] = Math.floor(Math.random() * 10000);
+            break;
+          case 'varchar':
+          case 'text':
+            row[field.name] = `示例数据${i}`;
+            break;
+          case 'decimal':
+            row[field.name] = (Math.random() * 10000).toFixed(2);
+            break;
+          case 'datetime':
+            const date = new Date(2025, 0, 1);
+            date.setDate(date.getDate() + i);
+            row[field.name] = date.toISOString().slice(0, 19).replace('T', ' ');
+            break;
+          default:
+            row[field.name] = `数据${i}`;
+        }
+      });
+      data.push(row);
+    }
+    return data;
+  };
+
+  // 获取当前页的数据
+  const getCurrentPageData = (data) => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return data.slice(startIndex, endIndex);
+  };
+
+  // 计算总页数
+  const getTotalPages = (totalCount) => {
+    return Math.ceil(totalCount / pageSize);
   };
 
   return (
@@ -232,7 +330,24 @@ const DataCenter = () => {
                     style={{ display: 'none' }}
                   />
                   <div className="upload-placeholder">
-                    <span className="upload-icon">📁</span>
+                    <div className="upload-icon excel-icon">
+                      <svg viewBox="0 0 48 48" width="48" height="48">
+                        {/* 文档背景 */}
+                        <path d="M8 2h24l8 8v34a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#E8E8E8"/>
+                        {/* 文档折角 */}
+                        <path d="M32 2v6a2 2 0 0 0 2 2h6z" fill="#D0D0D0"/>
+                        {/* Excel 绿色标识 */}
+                        <rect x="24" y="24" width="18" height="18" rx="2" fill="#1D6F42"/>
+                        {/* X 字母 */}
+                        <text x="33" y="37" fontSize="12" fontWeight="bold" fill="#fff" textAnchor="middle">X</text>
+                        {/* 表格线条 */}
+                        <line x1="27" y1="28" x2="39" y2="28" stroke="#fff" strokeWidth="0.5" opacity="0.6"/>
+                        <line x1="27" y1="31" x2="39" y2="31" stroke="#fff" strokeWidth="0.5" opacity="0.6"/>
+                        <line x1="27" y1="34" x2="39" y2="34" stroke="#fff" strokeWidth="0.5" opacity="0.6"/>
+                        <line x1="30" y1="25" x2="30" y2="41" stroke="#fff" strokeWidth="0.5" opacity="0.6"/>
+                        <line x1="36" y1="25" x2="36" y2="41" stroke="#fff" strokeWidth="0.5" opacity="0.6"/>
+                      </svg>
+                    </div>
                     <div>点击上传或拖拽文件到这里</div>
                     <div className="upload-hint">
                       支持上传单个不超过200MB的xlsx/xls格式文件
@@ -322,7 +437,26 @@ const DataCenter = () => {
             {importMode === 'existing' && (
               <>
                 <div className="existing-table-selector">
-                  <label>选择目标表：</label>
+                  <label>
+                    选择目标表：
+                    <span 
+                      className="info-tip-icon"
+                      data-tooltip='默认导入模式为"追加"。若需覆盖现有表数据，请先在表列表中清空该表的数据，再重新导入。'
+                    >
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 16 16" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="1.5"
+                      >
+                        <circle cx="8" cy="8" r="7"/>
+                        <line x1="8" y1="7" x2="8" y2="11" strokeLinecap="round"/>
+                        <circle cx="8" cy="4.5" r="0.5" fill="currentColor"/>
+                      </svg>
+                    </span>
+                  </label>
                   <select
                     className="table-select"
                     value={selectedTableId || ''}
@@ -382,6 +516,7 @@ const DataCenter = () => {
                 <div className="col-drag"></div>
                 <div className="col-name"><span className="required">*</span> 字段名称</div>
                 <div className="col-type-wrapper"><span className="required">*</span> 字段类型</div>
+                <div className="col-unique">是否唯一</div>
                 <div className="col-description">字段描述</div>
               </div>
               {/* 根据模式显示字段行 */}
@@ -404,74 +539,27 @@ const DataCenter = () => {
                         onChange={(e) => handleUpdateField(field.id, 'type', e.target.value)}
                         disabled={importMode === 'existing'}
                       >
-                        <option value="varchar">VARCHAR</option>
-                        <option value="int">INT</option>
-                        <option value="text">TEXT</option>
-                        <option value="decimal">DECIMAL</option>
-                        <option value="datetime">DATETIME</option>
+                        <option value="varchar">文本</option>
+                        <option value="int">整数</option>
+                        <option value="decimal">小数</option>
+                        <option value="datetime">日期</option>
                       </select>
-                      
-                      {/* VARCHAR 类型显示长度输入框 */}
-                      {field.type === 'varchar' && (
-                        <input
-                          type="number"
-                          className="type-param"
-                          value={field.length || 255}
-                          onChange={(e) => handleUpdateField(field.id, 'length', parseInt(e.target.value) || 255)}
-                          min="1"
-                          max="65535"
-                          disabled={importMode === 'existing'}
-                        />
-                      )}
-                      
-                      {/* DECIMAL 类型显示精度和小数位数 */}
-                      {field.type === 'decimal' && (
-                        <>
-                          <input
-                            type="number"
-                            className="type-param"
-                            value={field.precision || 10}
-                            onChange={(e) => handleUpdateField(field.id, 'precision', parseInt(e.target.value) || 10)}
-                            min="1"
-                            max="65"
-                            placeholder="精度"
-                            disabled={importMode === 'existing'}
-                          />
-                          <span className="param-separator">,</span>
-                          <input
-                            type="number"
-                            className="type-param"
-                            value={field.scale || 2}
-                            onChange={(e) => handleUpdateField(field.id, 'scale', parseInt(e.target.value) || 2)}
-                            min="0"
-                            max="30"
-                            placeholder="小数"
-                            disabled={importMode === 'existing'}
-                          />
-                        </>
-                      )}
-                      
-                      {/* DATETIME 类型显示精度 */}
-                      {field.type === 'datetime' && (
-                        <input
-                          type="number"
-                          className="type-param"
-                          value={field.datetimePrecision !== undefined ? field.datetimePrecision : 0}
-                          onChange={(e) => handleUpdateField(field.id, 'datetimePrecision', parseInt(e.target.value) || 0)}
-                          min="0"
-                          max="6"
-                          placeholder="精度"
-                          disabled={importMode === 'existing'}
-                        />
-                      )}
                     </div>
+                  </div>
+                  <div className="col-unique">
+                    <input
+                      type="checkbox"
+                      checked={(field.type !== 'varchar' && field.type !== 'datetime') && (field.unique || false)}
+                      onChange={(e) => handleUpdateField(field.id, 'unique', e.target.checked)}
+                      disabled={importMode === 'existing' || field.type === 'varchar' || field.type === 'datetime'}
+                    />
                   </div>
                   <div className="col-description">
                     <input
                       type="text"
                       value={field.description || ''}
                       onChange={(e) => handleUpdateField(field.id, 'description', e.target.value)}
-                      placeholder="请输入"
+                      placeholder={importMode === 'existing' ? '' : '请输入'}
                       disabled={importMode === 'existing'}
                     />
                   </div>
@@ -495,7 +583,7 @@ const DataCenter = () => {
         )}
 
         {/* 已有表列表 */}
-        {activeTab === 'tables' && (
+        {activeTab === 'tables' && !viewingTableId && (
           <div className="tables-section">
             {savedTables.length === 0 ? (
               <div className="empty-state">
@@ -504,20 +592,56 @@ const DataCenter = () => {
                 <div className="empty-hint">请先上传文件并配置表结构</div>
               </div>
             ) : (
-              <div className="table-list-container">
-                <div className="table-list-header">
-                  <div className="list-col-name">表名</div>
-                  <div className="list-col-time">创建时间</div>
-                  <div className="list-col-time">最近更新时间</div>
-                  <div className="list-col-actions">操作</div>
+              <>
+                {/* 搜索框 */}
+                <div className="table-search-bar">
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="搜索表名..."
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                  />
+                  {searchKeyword && (
+                    <button 
+                      className="clear-search-btn"
+                      onClick={() => setSearchKeyword('')}
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
-                <div className="table-list-body">
-                  {savedTables.map((table) => (
-                    <div key={table.id} className="table-list-row">
-                      <div className="list-col-name">{table.name}</div>
-                      <div className="list-col-time">{table.createTime}</div>
-                      <div className="list-col-time">{table.updateTime}</div>
-                      <div className="list-col-actions">
+
+                {getFilteredTables().length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">🔍</div>
+                    <div>未找到匹配的表</div>
+                    <div className="empty-hint">请尝试其他搜索关键词</div>
+                  </div>
+                ) : (
+                  <div className="table-list-container">
+                    <div className="table-list-header">
+                      <div className="list-col-name">表名</div>
+                      <div className="list-col-desc">表描述</div>
+                      <div className="list-col-time">创建时间</div>
+                      <div className="list-col-time">最近更新时间</div>
+                      <div className="list-col-actions">操作</div>
+                    </div>
+                    <div className="table-list-body">
+                      {getFilteredTables().map((table) => (
+                        <div key={table.id} className="table-list-row">
+                          <div className="list-col-name">
+                            <span 
+                              className="table-name-link"
+                              onClick={() => handleViewTable(table.id)}
+                            >
+                              {table.name}
+                            </span>
+                          </div>
+                          <div className="list-col-desc">{table.description || '-'}</div>
+                          <div className="list-col-time">{table.createTime}</div>
+                          <div className="list-col-time">{table.updateTime}</div>
+                          <div className="list-col-actions">
                         <button 
                           className="list-action-btn clear-btn"
                           onClick={() => handleClearTable(table.id)}
@@ -545,9 +669,139 @@ const DataCenter = () => {
                   ))}
                 </div>
               </div>
+                )}
+              </>
             )}
           </div>
         )}
+
+        {/* 表详情页面 */}
+        {activeTab === 'tables' && viewingTableId && (() => {
+          const table = savedTables.find(t => t.id === viewingTableId);
+          if (!table) return null;
+          
+          return (
+            <div className="table-detail-section">
+              <button className="back-btn" onClick={handleBackToList}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M11 1L4 8l7 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                返回
+              </button>
+              <div className="detail-header">
+                <div className="detail-title">
+                  <h3>{table.name}</h3>
+                  {table.description && <p className="detail-description">{table.description}</p>}
+                </div>
+              </div>
+
+              <div className="detail-stats">
+                <div className="stat-item">
+                  <span className="stat-label">表行数：</span>
+                  <span className="stat-value">{table.rowCount || 0}</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">字段数：</span>
+                  <span className="stat-value">{table.fieldCount}</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">创建时间：</span>
+                  <span className="stat-value">{table.createTime}</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">更新时间：</span>
+                  <span className="stat-value">{table.updateTime}</span>
+                </div>
+              </div>
+
+              <div className="detail-fields">
+                <h4>字段列表</h4>
+                <div className="detail-fields-table">
+                  <div className="detail-table-header">
+                    <div className="detail-col-name">字段名</div>
+                    <div className="detail-col-type">字段类型</div>
+                    <div className="detail-col-unique">是否唯一</div>
+                    <div className="detail-col-desc">字段描述</div>
+                  </div>
+                  <div className="detail-table-body">
+                    {table.fields.map((field) => (
+                      <div key={field.id} className="detail-table-row">
+                        <div className="detail-col-name">{field.name}</div>
+                        <div className="detail-col-type">{getFieldTypeDisplay(field)}</div>
+                        <div className="detail-col-unique">{field.unique ? '是' : '否'}</div>
+                        <div className="detail-col-desc">{field.description || '-'}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 抽样数据 */}
+              <div className="detail-sample-data">
+                <h4>抽样数据（共100条）</h4>
+                <div className="sample-data-table-wrapper">
+                  <table className="sample-data-table">
+                    <thead>
+                      <tr>
+                        {table.fields.map((field) => (
+                          <th key={field.id}>{field.name}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const sampleData = generateSampleData(table, 100);
+                        const currentPageData = getCurrentPageData(sampleData);
+                        return currentPageData.map((row) => (
+                          <tr key={row._id}>
+                            {table.fields.map((field) => (
+                              <td key={field.id}>{row[field.name]}</td>
+                            ))}
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 分页 */}
+                <div className="pagination">
+                  <button 
+                    className="page-btn"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(1)}
+                  >
+                    首页
+                  </button>
+                  <button 
+                    className="page-btn"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                  >
+                    上一页
+                  </button>
+                  <span className="page-info">
+                    第 {currentPage} 页 / 共 {getTotalPages(100)} 页
+                  </span>
+                  <button 
+                    className="page-btn"
+                    disabled={currentPage === getTotalPages(100)}
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                  >
+                    下一页
+                  </button>
+                  <button 
+                    className="page-btn"
+                    disabled={currentPage === getTotalPages(100)}
+                    onClick={() => setCurrentPage(getTotalPages(100))}
+                  >
+                    末页
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
