@@ -6,7 +6,6 @@ import PermissionConfig from './pages/PermissionConfig';
 import UserManagement from './pages/UserManagement';
 import RolePermission from './pages/RolePermission';
 import DocumentSearch from './pages/DocumentSearch';
-import SalesDocumentSearch from './pages/SalesDocumentSearch';
 import Dashboard from './pages/Dashboard';
 import './App.css';
 

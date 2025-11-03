@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Button, Checkbox, Tag, Avatar, Input, List, Tooltip, Pagination, Modal, Table } from 'antd';
+import { Button, Checkbox, Tag, Input, List, Tooltip, Pagination, Modal, Table } from 'antd';
 import { 
   SyncOutlined, 
-  LeftOutlined, 
   RightOutlined, 
   PlusOutlined, 
   PaperClipOutlined, 
