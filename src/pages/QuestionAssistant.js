@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './PageStyle.css';
 import './QuestionAssistant.css';
-import ParameterForm from '../components/ParameterForm';
 import dayjs from 'dayjs';
 import QueryResult from '../components/QueryResult'; // 引入查询结果组件
 import ThinkingProcess from '../components/ThinkingProcess';
+import QueryConfigModal from '../components/QueryConfigModal';
+import CombinedThinking from '../components/CombinedThinking';
 
 /**
  * 问数助手页面组件
@@ -24,8 +25,29 @@ const QuestionAssistant = () => {
 
   // 对话相关状态
   const [conversations, setConversations] = useState([
-    { id: 1, title: '关于销售额的查询', time: formatDateTime(new Date()), messages: [] },
-    { id: 2, title: '用户数据分析', time: formatDateTime(new Date(Date.now() - 3600000)), messages: [] }
+    // 今天的对话
+    { id: 1, title: '今年销售额最高的三个行业是什么？为什么？', time: formatDateTime(new Date()), messages: [], pinned: true },
+    { id: 2, title: '我们1-6月不同产品收入是多少', time: formatDateTime(new Date(Date.now() - 2 * 3600000)), messages: [] },
+    { id: 3, title: '分析一下本月销售情况', time: formatDateTime(new Date(Date.now() - 4 * 3600000)), messages: [] },
+    
+    // 昨天的对话
+    { id: 4, title: '我们前十大客户是什么？金额是什么？占比多少', time: formatDateTime(new Date(Date.now() - 24 * 3600000)), messages: [] },
+    { id: 5, title: '今年A产品收入增长多少？', time: formatDateTime(new Date(Date.now() - 26 * 3600000)), messages: [], pinned: true },
+    
+    // 最近7天内
+    { id: 6, title: '最近三年不同产品和地区的销售额', time: formatDateTime(new Date(Date.now() - 3 * 24 * 3600000)), messages: [] },
+    { id: 7, title: '对比今年和去年的销售数据', time: formatDateTime(new Date(Date.now() - 5 * 24 * 3600000)), messages: [] },
+    { id: 8, title: '华东区域销售情况分析', time: formatDateTime(new Date(Date.now() - 6 * 24 * 3600000)), messages: [] },
+    
+    // 最近30天内
+    { id: 9, title: '第一季度产品线收入对比', time: formatDateTime(new Date(Date.now() - 15 * 24 * 3600000)), messages: [] },
+    { id: 10, title: '客户流失率分析', time: formatDateTime(new Date(Date.now() - 20 * 24 * 3600000)), messages: [] },
+    { id: 11, title: '各分公司业绩排名', time: formatDateTime(new Date(Date.now() - 25 * 24 * 3600000)), messages: [] },
+    
+    // 更早的对话
+    { id: 12, title: '2024年全年销售总结', time: formatDateTime(new Date(Date.now() - 45 * 24 * 3600000)), messages: [] },
+    { id: 13, title: '上半年利润率分析', time: formatDateTime(new Date(Date.now() - 60 * 24 * 3600000)), messages: [] },
+    { id: 14, title: '新产品市场反馈调研', time: formatDateTime(new Date(Date.now() - 90 * 24 * 3600000)), messages: [] }
   ]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -33,9 +55,25 @@ const QuestionAssistant = () => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [editingConversationId, setEditingConversationId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
-  const [isClarifying, setIsClarifying] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState('');
   const messagesEndRef = useRef(null);
+
+  // 配置弹窗状态
+  const [configVisible, setConfigVisible] = useState(false);
+  const [configGlobal, setConfigGlobal] = useState({});
+  const [configPerConv, setConfigPerConv] = useState({});
+
+  // 槽位填充状态（自然语言）
+  const [expectTime, setExpectTime] = useState(false);
+  const [expectMetric, setExpectMetric] = useState(false);
+  const [expectDimensions, setExpectDimensions] = useState(false); // 期待维度
+  const [expectMetrics, setExpectMetrics] = useState(false); // 期待指标（复数）
+  const [pendingParams, setPendingParams] = useState({});
+
+  const getEffectiveConfig = () => {
+    const convCfg = configPerConv[activeConversationId] || {};
+    return { ...configGlobal, ...convCfg };
+  };
 
   // 滚动到底部
   const scrollToBottom = () => {
@@ -81,7 +119,7 @@ const QuestionAssistant = () => {
     setMessages([]);
   };
 
-  // 发送消息
+  // 发送消息（含槽位应答）
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
 
@@ -92,208 +130,1651 @@ const QuestionAssistant = () => {
       time: formatDateTime(new Date())
     };
 
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+    const base = [...messages, userMessage];
+    setMessages(base);
+
+    // 如果当前在等待用户补充槽位
+    if (expectTime || expectMetric || expectDimensions || expectMetrics) {
+      const reply = inputValue.trim();
+      console.log('💬 用户补充信息:', reply);
+      console.log('📦 当前 pendingParams:', pendingParams);
+
+      const parsed = preParseQuestion(reply);
+      const nextParams = { ...pendingParams };
+
+      // 一次性解析用户回复中的所有信息
+      
+      // 1. 解析时间
+      if (/(本月|上月|今年|去年|最近.*月|\d{4}年)/.test(reply)) {
+        const timeMatch = reply.match(/(本月|上月|今年|去年|最近.*月|\d{4}年)/);
+        if (timeMatch) {
+          nextParams.timeRangeText = timeMatch[0];
+          console.log('⏰ 解析到时间:', timeMatch[0]);
+        }
+      }
+      
+      // 2. 解析维度
+      const dimensionsFromReply = [];
+      if (reply.includes('产品') || reply.includes('产品线')) dimensionsFromReply.push('product');
+      if (reply.includes('行业')) dimensionsFromReply.push('industry');
+      if (reply.includes('分公司') || reply.includes('公司')) dimensionsFromReply.push('company');
+      if (reply.includes('地区') || reply.includes('区域')) dimensionsFromReply.push('region');
+      if (dimensionsFromReply.length > 0) {
+        nextParams.dimensions = dimensionsFromReply;
+        console.log('📊 解析到维度:', dimensionsFromReply);
+      }
+      
+      // 3. 解析指标
+      const metricsFromReply = [];
+      if (reply.includes('订单') || reply.includes('数量')) metricsFromReply.push('订单数量');
+      if (reply.includes('销售') || reply.includes('金额') || reply.includes('收入')) metricsFromReply.push('销售金额');
+      if (reply.includes('利润')) metricsFromReply.push('利润');
+      if (reply.includes('客户') || reply.includes('用户')) metricsFromReply.push('客户数');
+      if (metricsFromReply.length > 0) {
+        nextParams.metrics = metricsFromReply;
+        console.log('📈 解析到指标:', metricsFromReply);
+      }
+
+      // 如果本轮回复里顺带包含了另一个要素，也顺便填上
+      if (!nextParams.metric && parsed.params.metric) {
+        nextParams.metric = parsed.params.metric;
+      }
+
+      setPendingParams(nextParams);
+      setInputValue('');
+
+      // 检查还缺什么信息
+      const missingInfo = [];
+      if (!nextParams.timeRangeText) missingInfo.push('时间范围');
+      if (!nextParams.dimensions || nextParams.dimensions.length === 0) missingInfo.push('分析维度');
+      if (!nextParams.metrics || nextParams.metrics.length === 0) missingInfo.push('关注指标');
+      
+      console.log('🔍 解析结果:', nextParams);
+      console.log('📋 缺失信息:', missingInfo);
+      
+      // 如果还有缺失信息，继续追问
+      if (missingInfo.length > 0) {
+        let followUpQuestion = '请继续补充以下信息：\n';
+        if (missingInfo.includes('时间范围')) {
+          followUpQuestion += '• 时间范围（例如：本月、上月、今年、2024年等）\n';
+        }
+        if (missingInfo.includes('分析维度')) {
+          followUpQuestion += '• 分析维度（例如：产品线、行业、分公司、地区等，可选择多个）\n';
+        }
+        if (missingInfo.includes('关注指标')) {
+          followUpQuestion += '• 关注指标（例如：订单数量、销售金额、利润、客户数等，可选择多个）';
+        }
+        
+        ask(followUpQuestion.trim());
+        // 保持期待状态
+        setExpectTime(!nextParams.timeRangeText);
+        setExpectDimensions(!nextParams.dimensions || nextParams.dimensions.length === 0);
+        setExpectMetrics(!nextParams.metrics || nextParams.metrics.length === 0);
+        return;
+      }
+
+      // 槽位补齐，发起查询
+      console.log('✅ 所有信息已齐全，开始查询，参数:', nextParams, '问题:', pendingQuestion);
+      setExpectTime(false);
+      setExpectMetric(false);
+      setExpectDimensions(false);
+      setExpectMetrics(false);
+      proceedWithQuery(nextParams, base, pendingQuestion);
+      return;
+    }
+
     const question = inputValue;
     setInputValue('');
 
     // 更新对话列表中的消息
     setConversations(conversations.map(c => 
       c.id === activeConversationId 
-        ? { ...c, messages: newMessages, title: question.substring(0, 20) }
+        ? { ...c, messages: base, title: question.substring(0, 20) }
         : c
     ));
 
-    // 意图识别与参数预解析
-    const { clarified, params } = preParseQuestion(question);
+    console.log('🔍 用户提问:', question);
+
+    // 检测是否为复合问题（同时包含查询和分析）
+    const hasQuery = /(查询|统计|查看|显示|是什么|哪些|多少|排名|前.+大|最高|最低)/.test(question);
+    const hasAnalysis = /(分析|原因|为什么)/.test(question);
+    const isCompositeQuestion = hasQuery && hasAnalysis;
+
+    // 检测是否为同比/环比查询（包含"同比增长多少"、"上升多少"这类问题）
+    const isYoYQuery = (/(同比|环比)/.test(question) || /(上升|下降|增长|减少)(多少|了多少|幅度)/.test(question)) && 
+                       !/(分析|原因|为什么)/.test(question);
     
-    if (!clarified) {
-      setIsClarifying(true);
+    // 检测是否为分析类问题（需要深度分析的问题），但要排除复合问题
+    const isAnalysisQuestion = /(原因|为什么|分析一下)/.test(question) && 
+                               !/(同比|环比|上升多少|下降多少|增长多少)/.test(question) &&
+                               !isCompositeQuestion; // 排除复合问题
+    
+    console.log('📋 问题类型:', { isYoYQuery, isAnalysisQuestion, isCompositeQuestion, messagesCount: base.length });
+    
+    // 如果是同比/环比查询
+    if (isYoYQuery) {
+      // 查找上一轮结果（如果有的话）
+      let previousResult = null;
+      for (let i = base.length - 1; i >= 0; i--) {
+        if (base[i].type === 'result' && base[i].data) {
+          previousResult = base[i];
+          break;
+        }
+      }
+      
+      // 无论是否有上一轮结果，都标记为同比查询
+      proceedWithQuery({ isYoYQuery: true, previousResultMessage: previousResult }, base, question);
+      return;
+    }
+    
+    // 检测是否为多维度分析请求（模糊分析请求）
+    const isMultiDimensionAnalysis = /(分析.*销售|销售.*分析|分析.*情况)/.test(question) && 
+                                      !/(产品|地区|行业|分公司)/.test(question) && // 没有明确维度
+                                      !/(本月|上月|今年|去年|\d+年)/.test(question); // 没有明确时间
+    
+    if (isMultiDimensionAnalysis) {
+      // 触发多轮追问：一次性提醒所有需要的信息
       setPendingQuestion(question);
-      // 将预解析的参数传递给表单
-      // 注意：这里需要一个机制来传递params
-      return; 
+      setPendingParams({});
+      setExpectTime(true);
+      setExpectDimensions(true);
+      setExpectMetrics(true);
+      ask('为了更准确地回答，请补充以下信息：\n1. 时间范围（例如：本月、上月、今年、2024年等）\n2. 分析维度（例如：产品线、行业、分公司、地区等，可选择多个）\n3. 关注指标（例如：订单数量、销售金额、利润、客户数等，可选择多个）');
+      return;
+    }
+    
+    // 如果是分析类问题，检查是否有上一轮结果
+    if (isAnalysisQuestion) {
+      console.log('✅ 识别为分析类问题');
+      let hasPreviousResult = false;
+      for (let i = base.length - 1; i >= 0; i--) {
+        if (base[i].type === 'result' && base[i].data) {
+          hasPreviousResult = true;
+          console.log('✅ 找到上一轮结果，索引:', i);
+          break;
+        }
+      }
+      
+      // 如果有上一轮结果，直接进行分析，不需要补充参数
+      if (hasPreviousResult) {
+        console.log('✅ 有上一轮结果，开始分析');
+        proceedWithQuery({}, base, question);
+        return;
+      } else {
+        // 如果没有上一轮结果，提示用户先进行查询
+        console.log('❌ 没有上一轮结果，提示用户');
+        ask('请先进行一次查询，我才能为您分析原因。例如，您可以先问："今年A产品的收入是多少？"或"今年销售额最高的三个行业是什么？"');
+        setInputValue('');
+        return;
+      }
     }
 
-    // 模拟AI回复
+    // 意图识别
+    const { clarified, params, needTime, needMetric } = preParseQuestion(question);
+    
+    // 检测是否为Top N查询（Top N查询不需要强制要求时间范围，默认为当前/最新数据）
+    const isTopNQuery = /前(\d+|[一二三四五六七八九十]+)大?(客户|供应商|产品|地区)/.test(question);
+
+    if (!clarified) {
+      setPendingQuestion(question);
+      setPendingParams(params);
+      
+      // Top N查询不需要时间，跳过时间追问
+      if (needTime && !isTopNQuery) {
+        setExpectTime(true);
+        ask('为了更准确地回答，请补充时间范围（例如：本月、上月、最近三个月、2024年等）。');
+        return;
+      }
+      
+      // Top N查询通常有默认指标（金额/销售额），如果缺少指标且不是Top N查询才追问
+      if (needMetric && !isTopNQuery) {
+        setExpectMetric(true);
+        ask('您想关注哪个指标？例如：销售额、利润、用户数、订单数，或直接输入您关注的指标。');
+        return;
+      }
+    }
+
+    proceedWithQuery(params, base, question);
+  };
+
+  // 发送一个AI的提问文本
+  const ask = (text) => {
+    const askMsg = {
+      id: Date.now(),
+      sender: 'ai',
+      type: 'text',
+      text,
+      time: formatDateTime(new Date())
+    };
+    setMessages(prev => [...prev, askMsg]);
+  };
+
+  const proceedWithQuery = (params, baseMessages, originalQuestion) => {
+    // 创建合并的思考过程消息
+    const combinedId = `combined_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // 分析问题，识别意图
+    const question = originalQuestion || '查询';
+    
+    // 检测是否为复合问题（同时包含查询和分析）
+    const hasQuery = /(查询|统计|查看|显示|是什么|哪些|多少|排名|前.+大|最高|最低)/.test(question);
+    const hasAnalysis = /(分析|原因|为什么)/.test(question);
+    const isCompositeQuestion = hasQuery && hasAnalysis;
+    
+    // 检测是否为单纯的分析类问题（深度分析，不包括同比/环比查询）
+    const isAnalysis = !isCompositeQuestion && 
+                       (/(原因|为什么|分析一下)/.test(question) && 
+                        !/(同比|环比|上升多少|下降多少|增长多少)/.test(question));
+    
+    // 如果是单纯分析类问题，查找上一次的查询结果
+    let previousResult = null;
+    if (isAnalysis) {
+      // 从后往前查找最近一次type为'result'的消息
+      for (let i = baseMessages.length - 1; i >= 0; i--) {
+        if (baseMessages[i].type === 'result' && baseMessages[i].data) {
+          previousResult = baseMessages[i].data;
+          console.log('🔍 找到上一轮结果，索引:', i, '数据:', previousResult);
+          break;
+        }
+      }
+      if (!previousResult) {
+        console.log('❌ 没有找到上一轮结果，messages长度:', baseMessages.length);
+      }
+    }
+    
+    const intentData = analyzeIntents(question, params, isCompositeQuestion);
+    const thinkingSteps = generateThinkingSteps(question, params, isCompositeQuestion);
+    
+    // 提取相关数据信息
+    const dataInfo = {
+      time: intentData.time || '',
+      metrics: intentData.metrics || [],
+      dimensions: intentData.dimensions || []
+    };
+    
+    // 获取当前有效配置
+    const currentConfig = getEffectiveConfig();
+    
+    // 处理数据来源
+    let sourceDisplay = '全部数据';
+    if (currentConfig.sourceMode === 'tables') {
+      const tables = currentConfig.selectedTables || [];
+      sourceDisplay = tables.length > 0 ? `指定表（${tables.join('、')}）` : '指定表（0个）';
+    } else if (currentConfig.sourceMode === 'files') {
+      const files = currentConfig.selectedFiles || [];
+      sourceDisplay = files.length > 0 ? `指定文件（${files.join('、')}）` : '指定文件（0个）';
+    }
+    
+    // 处理数据范围
+    let scopeDisplay = '集团总数据';
+    if (currentConfig.scopeType === 'branches') {
+      const branches = currentConfig.selectedBranches || [];
+      scopeDisplay = branches.length > 0 ? `指定分公司（${branches.join('、')}）` : '指定分公司（）';
+    }
+    
+    // 处理数据口径
+    const caliberDisplay = currentConfig.caliber === 'external' ? '对外披露用（法口）' : '内部管理用（管口）';
+    
+    const configDisplay = {
+      source: sourceDisplay,
+      scope: scopeDisplay,
+      caliber: caliberDisplay
+    };
+    
+    const combinedMessage = {
+      id: combinedId,
+      sender: 'ai',
+      type: 'combined',
+      intentData: { ...intentData, status: 'loading' },
+      config: configDisplay,
+      dataInfo: dataInfo,
+      steps: thinkingSteps.map(step => ({ ...step, status: 'loading' })),
+      isComplete: false,
+      time: formatDateTime(new Date())
+    };
+    
+    setMessages(prev => [...baseMessages, combinedMessage]);
+
+    // 阶段1: 意图识别完成
     setTimeout(() => {
-      const aiMessage = {
-        id: Date.now() + 1,
-        type: 'ai',
-        content: '这是一个模拟回复。实际使用时将调用AI接口获取真实回答。',
+      setMessages(prev => prev.map(m => {
+        if (m.id === combinedId) {
+          return {
+            ...m,
+            intentData: { ...m.intentData, status: 'done' }
+          };
+        }
+        return m;
+      }));
+    }, 800);
+
+    // 阶段2: 逐步完成思考步骤
+    thinkingSteps.forEach((step, index) => {
+      setTimeout(() => {
+        setMessages(prev => prev.map(m => {
+          if (m.id === combinedId) {
+            const newSteps = [...m.steps];
+            newSteps[index] = { ...newSteps[index], status: 'done' };
+            return {
+              ...m,
+              steps: newSteps,
+              isComplete: index === thinkingSteps.length - 1
+            };
+          }
+          return m;
+        }));
+      }, 1200 + 400 * (index + 1));
+    });
+
+    // 阶段3: 显示结果
+    setTimeout(() => {
+      let resultData;
+      
+      if (isCompositeQuestion) {
+        // 复合问题：生成查询结果并同时进行分析
+        resultData = generateMockResult(question, params, true); // 传入true表示需要分析
+      } else if (isAnalysis && previousResult) {
+        // 单纯分析问题：基于上一次结果
+        resultData = generateAnalysisFromPreviousResult(question, params, previousResult);
+      } else {
+        // 单纯查询问题：生成查询结果
+        resultData = generateMockResult(question, params, false);
+      }
+      
+      const aiResponseMessage = {
+        id: `result_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        sender: 'ai',
+        type: 'result',
+        data: {
+          params: params,
+          ...resultData
+        },
         time: formatDateTime(new Date())
       };
-      setMessages([...newMessages, aiMessage]);
-      
-      // 更新对话列表
-      setConversations(conversations.map(c => 
-        c.id === activeConversationId 
-          ? { ...c, messages: [...newMessages, aiMessage] }
-          : c
-      ));
-    }, 500);
+      setMessages(prev => [...prev, aiResponseMessage]);
+      setPendingQuestion('');
+      setPendingParams({});
+    }, 1200 + 400 * thinkingSteps.length + 500);
+  };
+
+  /**
+   * 分析问题，识别意图
+   */
+  const analyzeIntents = (question, params, isCompositeQuestion = false) => {
+    // 识别维度
+    const dimensionList = [];
+    const dimensionText = [];
+    if (question.includes('产品') || question.includes('品类')) {
+      dimensionList.push('product');
+      dimensionText.push('产品');
+    }
+    if (question.includes('地区') || question.includes('区域')) {
+      dimensionList.push('region');
+      dimensionText.push('地区');
+    }
+    
+    // 识别指标
+    const metric = params.metric || '销售额';
+    
+    // 识别时间
+    const timeText = params.timeRangeText || '今年每月';
+    
+    // 构建意图描述
+    let description = '';
+    if (isCompositeQuestion) {
+      // 复合问题：同时包含查询和分析
+      if (dimensionList.length > 0) {
+        const dimStr = dimensionText.join('和');
+        description = `查询${timeText}按${dimStr}维度统计的${metric}数据，并分析变化原因`;
+      } else {
+        description = `查询${timeText}的${metric}趋势数据，并分析变化原因`;
+      }
+    } else {
+      // 单一意图
+      if (dimensionList.length > 0) {
+        const dimStr = dimensionText.join('和');
+        description = `查询${timeText}按${dimStr}维度统计的${metric}数据`;
+      } else {
+        description = `查询${timeText}的${metric}趋势数据`;
+      }
+    }
+    
+    // 收集所有相关指标（中文）
+    const allMetrics = [
+      metric,
+      '单单价',
+      '客单价',
+      '埋效',
+      '销售数量',
+      '毛利额',
+      '人效',
+      '折扣率',
+      '竿单价',
+      '产品销售价格'
+    ];
+    
+    // 收集所有维度
+    const allDimensions = [];
+    if (dimensionList.length > 0) {
+      if (dimensionList.includes('product')) {
+        allDimensions.push('产品');
+      }
+      if (dimensionList.includes('region')) {
+        allDimensions.push('地区');
+      }
+    } else {
+      allDimensions.push('产品', '地区');
+    }
+    
+    return {
+      description,
+      time: timeText,  // 添加时间字段
+      metrics: allMetrics,
+      dimensions: allDimensions,
+      status: 'loading'
+    };
+  };
+
+  /**
+   * 生成思考步骤 - 优化的4步或5步流程
+   */
+  const generateThinkingSteps = (question, params, isCompositeQuestion = false) => {
+    // 识别维度
+    const dimensionList = [];
+    if (question.includes('产品') || question.includes('品类')) {
+      dimensionList.push('产品');
+    }
+    if (question.includes('地区') || question.includes('区域')) {
+      dimensionList.push('地区');
+    }
+    
+    const metric = params.metric || '销售额';
+    const timeText = params.timeRangeText || '今年每月';
+
+    // 将“最近N年”规范化为具体年份列表（仅用于问题改写展示）
+    const normalizeTimeForRewrite = (text) => {
+      if (!text) return text;
+      const match = text.match(/最近(\d+|[一二三四五六七八九十]+)年/);
+      if (match) {
+        const numStr = match[1];
+        const numMap = { 一:1, 二:2, 三:3, 四:4, 五:5, 六:6, 七:7, 八:8, 九:9, 十:10 };
+        const n = parseInt(numStr, 10) || numMap[numStr] || 0;
+        if (n > 0) {
+          const currentYear = new Date().getFullYear();
+          const start = currentYear - (n - 1);
+          const years = Array.from({ length: n }, (_, i) => `${start + i}年`);
+          return years.join('、');
+        }
+      }
+      return text;
+    };
+    const rewrittenTimeText = normalizeTimeForRewrite(timeText);
+    
+    const normalizedDims = dimensionList.length > 0 ? `按${dimensionList.join('、')}维度` : '';
+    
+    let steps;
+    if (isCompositeQuestion) {
+      // 复合问题：包含查询和分析两个意图
+      steps = [
+        {
+          description: `问题改写：将用户问题标准化为"查询${rewrittenTimeText}${normalizedDims}的${metric}，并分析变化原因"`
+        },
+        { 
+          description: `问题拆解：识别出两个意图 - ①查询数据：时间范围（${timeText}）${dimensionList.length > 0 ? `、业务维度（${dimensionList.join('、')}）` : ''}和分析指标（${metric}）；②分析原因：基于查询结果分析变化趋势和影响因子`,
+          showDetails: true
+        },
+        { 
+          description: `数据定位：销售数据表（actual_amount, order_date）、订单明细表（quantity, product_id）、产品主数据（product_name, category）、组织架构表（region_name, branch_name）`
+        },
+        { 
+          description: `查询与计算：基于时间/维度条件生成SQL，按维度分组并聚合计算${metric}；补齐缺失时间点、对空值补0，计算同比/环比与占比并输出小数位格式化结果`
+        },
+        { 
+          description: `因子分析：对查询结果进行多维分解，计算数量、价格、结构对${metric}变化的贡献度；识别关键维度的影响权重`
+        },
+        { 
+          description: `生成结果：整理计算结果，生成数据表格并输出分析报告（概览、因子影响、维度影响、结论）`
+        }
+      ];
+    } else {
+      // 单一问题：只查询或只分析
+      steps = [
+        {
+          description: `问题改写：将用户问题标准化为"查询${rewrittenTimeText}${normalizedDims}的${metric}"`
+        },
+        { 
+          description: `问题拆解：识别时间范围（${timeText}）${dimensionList.length > 0 ? `、业务维度（${dimensionList.join('、')}）` : ''}和分析指标（${metric}）`,
+          showDetails: true
+        },
+        { 
+          description: `数据定位：销售数据表（actual_amount, order_date）、订单明细表（quantity, product_id）、产品主数据（product_name, category）、组织架构表（region_name, branch_name）`
+        },
+        { 
+          description: `查询与计算：基于时间/维度条件生成SQL，按维度分组并聚合计算${metric}；补齐缺失时间点、对空值补0，计算同比/环比与占比并输出小数位格式化结果`
+        },
+        { 
+          description: `生成结果：整理计算结果，生成数据表格和分析洞察`
+        }
+      ];
+    }
+    
+    return steps;
   };
 
   // 前端模拟的意图预解析函数
   const preParseQuestion = (question) => {
-    let params = {};
-    let clarified = true;
+    const params = {};
 
-    // 检查时间意图
-    if (question.includes('本月')) {
-      params.mainRelativePreset = 'this_month';
-    } else if (question.includes('最近三年')) {
-      params.mainRelativePreset = 'last_n';
-      params.mainRelativeLastN = 3;
-      params.mainRelativeUnit = 'year';
-      params.lockedUnit = 'year'; // 锁定单位为年
-      params.periodMode = 'recent'; // “最近”包含当前周期
-    } else if (question.includes('过去三年')) {
-      params.mainRelativePreset = 'last_n';
-      params.mainRelativeLastN = 3;
-      params.mainRelativeUnit = 'year';
-      params.lockedUnit = 'year'; // 锁定单位为年
-      params.periodMode = 'past'; // “过去”为完整历史周期
-    } else if (question.includes('今年第一季度')) {
-      params.mainRelativePreset = 'this_quarter';
-    }
-    // ... 可以添加更多时间解析规则
-
-    // 检查是否需要对比
-    if (question.includes('对比') || question.includes('vs')) {
-      params.addComparison = true;
-      if (question.includes('去年同期')) {
-        params.comparisonType = 'same_period_last_year';
-      } else {
-        params.comparisonType = 'previous_period';
+    // ===== 增强的时间识别 =====
+    // 统一单位片段（允许"个月"）
+    const unit = '(天|周|个?月|季度|季|年)';
+    const timeRegexList = [
+      /(\d+)\s*[-~到至]\s*(\d+)\s*月/,                                     // 1-6月、1到6月
+      /(今年|本年|当年)/,                                                   // 今年、本年、当年
+      new RegExp(`(本|这|当)${unit}`),                                  // 本月、本季度
+      new RegExp(`(上上|上)(周|个?月|季度|季|年)`),                       // 上月、上上月、上季度
+      new RegExp(`过去[一二三四五六七八九十]+${unit}`),                    // 过去三年（中文数字）
+      new RegExp(`过去\\s*\\d+${unit}`),                                // 过去 3 年（阿拉伯数字）
+      new RegExp(`最近[一二三四五六七八九十]+${unit}`),                    // 最近三个月（中文数字）
+      new RegExp(`近[一二三四五六七八九十]+${unit}`),                      // 近三个月（中文数字）
+      new RegExp(`最近\\s*\\d+${unit}`),                                // 最近 3 个月（阿拉伯数字）
+      new RegExp(`近\\s*\\d+${unit}`),                                  // 近 3 个月
+      /\d{4}\s*年/,                                                       // 2024年
+      /Q[1-4]/i,                                                           // Q1-Q4
+      /(第?一|第?二|第?三|第?四)季度/,                                       // 第一季度
+      /(去年同期|同比|环比)/                                              // 去年同期/同比/环比
+    ];
+    
+    // 提取时间文本
+    let timeText = null;
+    for (const re of timeRegexList) {
+      const match = question.match(re);
+      if (match) {
+        timeText = match[0];
+        break;
       }
     }
-
-    // 检查范围和口径是否明确 (简单模拟)
-    if (!question.includes('集团') && !question.includes('分公司')) {
-      clarified = false; // 范围不明确
+    const needTime = !timeText;
+    if (timeText) {
+      params.timeRangeText = timeText;
     }
-    if (!question.includes('管口') && !question.includes('法口')) {
-      clarified = false; // 口径不明确
+
+    // ===== 增强的指标识别 =====
+    const metricSynonyms = [
+      { core: '销售额', words: ['销售额', '销售', '销售收入', '营业额', '营收', '收入'] },
+      { core: '利润', words: ['利润', '毛利', '净利', '盈利'] },
+      { core: '用户数', words: ['用户数', '用户', '活跃用户', '新增用户', 'DAU', 'MAU'] },
+      { core: '订单数', words: ['订单数', '订单', '单量', '成交单量', '订单量'] },
+    ];
+    let metricFound = '';
+    for (const m of metricSynonyms) {
+      if (m.words.some((w) => question.includes(w))) {
+        metricFound = m.core;
+        break;
+      }
+    }
+    const needMetric = !metricFound;
+    if (metricFound) params.metric = metricFound;
+
+    const clarified = !needTime && !needMetric;
+    return { clarified, params, needTime, needMetric };
+  };
+
+  /**
+   * 生成同比/环比结果
+   */
+  const generateYoYResult = (question, previousResultMessage) => {
+    const isYoY = question.includes('同比') || /(上升|下降|增长)/.test(question); // 上升/下降默认为同比
+    const compareType = isYoY ? '同比' : '环比';
+    
+    // 检查是否问题本身就包含了完整的查询信息（如：今年A产品收入增长多少？）
+    const hasCompleteInfo = /([A-Z]产品|行业|地区).*?(收入|销售额|利润).*?(增长|上升|下降)/.test(question) ||
+                            /(增长|上升|下降).*?(收入|销售额|利润).*?多少/.test(question);
+    
+    // 如果问题包含完整信息，直接从问题生成结果
+    if (hasCompleteInfo) {
+      return generateYoYFromQuestion(question, compareType, isYoY);
     }
     
-    // 如果有任何一个参数不明确，都需要用户确认
-    if (Object.keys(params).length > 0 && !clarified) {
-        // 即使部分参数明确，但只要有不明确的，就需要澄清
-        clarified = false;
+    // 否则，如果有上一轮结果，从中提取数据
+    if (previousResultMessage && previousResultMessage.data) {
+      const previousData = previousResultMessage.data;
+      if (previousData.resultBlocks && previousData.resultBlocks.length > 0) {
+        return generateYoYFromPreviousResult(previousData, question, compareType, isYoY);
+      }
     }
+    
+    // 如果没有上一轮结果，从问题中直接提取并生成同比数据
+    return generateYoYFromQuestion(question, compareType, isYoY);
+  };
+  
+  /**
+   * 从上一轮结果生成同比数据
+   */
+  const generateYoYFromPreviousResult = (previousData, question, compareType, isYoY) => {
+    
+    const firstBlock = previousData.resultBlocks[0];
+    const tableData = firstBlock.tableData;
+    
+    // 识别是单个值还是多维度数据
+    if (tableData.dataSource.length === 1 && tableData.columns.length === 2) {
+      // 单个值场景（如：2025年风能行业的收入）
+      const currentValue = tableData.dataSource[0][tableData.columns[1].dataIndex];
+      const previousValue = Math.round(currentValue / (1 + (Math.random() * 0.3 - 0.1))); // 模拟去年数据
+      const growth = (((currentValue - previousValue) / previousValue) * 100).toFixed(2);
+      const growthAbs = Math.abs(growth);
+      
+      const metric = tableData.columns[1].title.replace(' (万元)', '');
+      const summary = `${compareType}${growth > 0 ? '增长' : '下降'}${growthAbs}%。今年${metric}为${currentValue}万元，${isYoY ? '去年同期' : '上期'}为${previousValue}万元。`;
+      
+      const columns = [
+        { title: '项目', dataIndex: 'item', key: 'item', width: 150 },
+        { title: `本期${metric}（万元）`, dataIndex: 'current', key: 'current', align: 'right', width: 150 },
+        { title: `${isYoY ? '去年同期' : '上期'}${metric}（万元）`, dataIndex: 'previous', key: 'previous', align: 'right', width: 150 },
+        { title: `${compareType}增长额（万元）`, dataIndex: 'diff', key: 'diff', align: 'right', width: 150 },
+        { title: `${compareType}增长率`, dataIndex: 'growthRate', key: 'growthRate', align: 'right', width: 120 }
+      ];
+      
+      const diff = currentValue - previousValue;
+      
+      const dataSource = [{
+        key: '1',
+        item: tableData.dataSource[0][tableData.columns[0].dataIndex],
+        current: currentValue,
+        previous: previousValue,
+        diff: diff,
+        growthRate: `${growth}%`
+      }];
+      return {
+        summary,
+        resultBlocks: [{
+          title: `${compareType}增长分析`,
+          description: '',
+          sources: [
+            { type: 'database', name: '业务数据库-销售汇总表', fullPath: 'sales_db.sales_summary' },
+            { type: 'database', name: '财务系统-收入明细', fullPath: 'finance_db.revenue_detail' }
+          ],
+          tableData: {
+            columns,
+            dataSource,
+            scroll: { x: 720 }
+          }
+        }],
+        analysis: undefined  // 第一轮只返回表格，不返回分析
+      };
+    }
+    
+    // 多维度数据场景（暂不处理）
+    return {
+      summary: '多维度数据的同比分析功能开发中。',
+      resultBlocks: [],
+      analysis: undefined
+    };
+  };
+  
+  /**
+   * 从问题中直接提取信息生成同比数据
+   */
+  const generateYoYFromQuestion = (question, compareType, isYoY) => {
+    // 提取产品名称
+    const productMatch = question.match(/([A-Z]产品|[A-Z]产品线)/);
+    const productName = productMatch ? productMatch[1] : '产品';
+    
+    // 提取年份
+    const yearMatch = question.match(/(\d{4})年|今年|本年/);
+    const currentYear = yearMatch ? (yearMatch[1] ? parseInt(yearMatch[1]) : new Date().getFullYear()) : new Date().getFullYear();
+    const previousYear = currentYear - 1;
+    
+    // 提取指标
+    const metric = question.includes('收入') ? '收入' : '销售额';
+    
+    // 生成模拟数据
+    const currentValue = 3200;
+    const previousValue = Math.round(currentValue / 1.16); // 假设增长16%
+    const diff = currentValue - previousValue;
+    const growth = ((diff / previousValue) * 100).toFixed(2);
+    const growthAbs = Math.abs(growth);
+    
+    const summary = `${compareType}${growth > 0 ? '增长' : '下降'}${growthAbs}%。${currentYear}年${metric}为${currentValue}万元，${previousYear}年为${previousValue}万元。`;
+    
+    const columns = [
+      { title: '项目', dataIndex: 'item', key: 'item', width: 150 },
+      { title: `${currentYear}年${metric}（万元）`, dataIndex: 'current', key: 'current', align: 'right', width: 150 },
+      { title: `${previousYear}年${metric}（万元）`, dataIndex: 'previous', key: 'previous', align: 'right', width: 150 },
+      { title: `${compareType}增长额（万元）`, dataIndex: 'diff', key: 'diff', align: 'right', width: 150 },
+      { title: `${compareType}增长率`, dataIndex: 'growthRate', key: 'growthRate', align: 'right', width: 120 }
+    ];
+    
+    const dataSource = [{
+      key: '1',
+      item: productName,
+      current: currentValue,
+      previous: previousValue,
+      diff: diff,
+      growthRate: `${growth}%`
+    }];
+    return {
+      summary,
+      resultBlocks: [{
+        title: `${productName}${compareType}增长分析`,
+        description: '',
+        sources: [
+          { type: 'database', name: '业务数据库-产品主表', fullPath: 'main_db.products' },
+          { type: 'database', name: '财务系统-收入明细', fullPath: 'finance_db.revenue_detail' }
+        ],
+        tableData: {
+          columns,
+          dataSource,
+          scroll: { x: 720 }
+        }
+      }],
+      analysis: undefined  // 第一轮只返回表格，不返回分析
+    };
+  };
 
+  /**
+   * 基于上一次查询结果生成分析
+   */
+  const generateAnalysisFromPreviousResult = (question, params, previousResult) => {
+    const metric = params.metric || '销售额';
+    
+    console.log('📊 开始生成分析，上一轮结果:', previousResult);
+    
+    // 从上一次结果中提取数据
+    const resultBlocks = previousResult.resultBlocks || [];
+    if (resultBlocks.length === 0) {
+      console.log('❌ 没有找到resultBlocks');
+      return {
+        summary: '',
+        resultBlocks: [],
+        analysis: undefined
+      };
+    }
+    
+    // 取第一个block的数据进行分析
+    const firstBlock = resultBlocks[0];
+    const tableData = firstBlock.tableData;
+    if (!tableData || !tableData.dataSource || tableData.dataSource.length === 0) {
+      console.log('❌ tableData不存在或数据为空', tableData);
+      return {
+        summary: '',
+        resultBlocks: [],
+        analysis: undefined
+      };
+    }
+    
+    console.log('✅ 找到有效数据，columns:', tableData.columns.map(c => c.dataIndex));
+    
+    // 检查是否为同比增长表格（包含current和previous列）
+    const hasCurrentPrevious = tableData.columns.some(col => col.dataIndex === 'current') && 
+                                tableData.columns.some(col => col.dataIndex === 'previous');
+    
+    if (hasCurrentPrevious) {
+      // 处理同比增长表格
+      const row = tableData.dataSource[0];
+      const itemName = row.item || row[tableData.columns[0].dataIndex];
+      const currentValue = row.current;
+      const previousValue = row.previous;
+      const growth = ((currentValue - previousValue) / previousValue * 100).toFixed(2);
+      const growthAbs = Math.abs(growth);
+      const currentYear = new Date().getFullYear();
+      const previousYear = currentYear - 1;
+      
+      // 从表格列名中提取指标名称
+      const currentCol = tableData.columns.find(col => col.dataIndex === 'current');
+      const metricName = currentCol ? currentCol.title.replace(/（万元）|年.*/, '').replace(/\d+年/, '') : metric;
+      
+      // 1. 分析结果概述
+      const resultSummary = `${itemName}同比表现${growth > 0 ? '强劲' : '承压'}，${currentYear}年${metricName}为${currentValue}万元，较${previousYear}年的${previousValue}万元${growth > 0 ? '增长' : '下降'}${growthAbs}%，增长额${Math.abs(currentValue - previousValue)}万元。`;
+      
+      // 2. 因子分析 - 生成具体数据
+      // 模拟数量、价格、结构的详细数据
+      const lastYearQty = Math.round(previousValue / 2.5); // 假设去年销售数量
+      const currentYearQty = Math.round(lastYearQty * (1 + (0.03 + Math.random() * 0.05))); // 今年数量增长3-8%
+      const qtyGrowthRate = (((currentYearQty - lastYearQty) / lastYearQty) * 100).toFixed(1);
+      
+      const lastYearPrice = (previousValue / lastYearQty).toFixed(2); // 去年单价
+      const currentYearPrice = (currentValue / currentYearQty).toFixed(2); // 今年单价
+      const priceGrowthRate = (((currentYearPrice - lastYearPrice) / lastYearPrice) * 100).toFixed(1);
+      
+      const mixEffect = (parseFloat(growth) - parseFloat(qtyGrowthRate) - parseFloat(priceGrowthRate)).toFixed(1);
+      
+      const factorAnalysis = `从增长因子分解看，本期${growth > 0 ? '增长' : '下降'}主要由以下因素驱动：
+①数量效应：${previousYear}年销售数量${lastYearQty}万件，${currentYear}年增至${currentYearQty}万件，增长率+${qtyGrowthRate}%，市场需求${parseFloat(qtyGrowthRate) > 0 ? '扩大' : '收缩'}；
+②价格效应：${previousYear}年平均单价${lastYearPrice}元/件，${currentYear}年${parseFloat(priceGrowthRate) > 0 ? '提升至' : '下降至'}${currentYearPrice}元/件，变化率${priceGrowthRate > 0 ? '+' : ''}${priceGrowthRate}%，产品${parseFloat(priceGrowthRate) > 0 ? '单价提升' : '价格下调'}；
+③结构效应：高附加值产品占比变化约${mixEffect > 0 ? '+' : ''}${mixEffect}%，结构${parseFloat(mixEffect) > 0 ? '优化' : '调整'}。
+${parseFloat(priceGrowthRate) > parseFloat(qtyGrowthRate) ? '价格驱动为主导因素' : '数量驱动为主导因素'}，${Math.abs(parseFloat(qtyGrowthRate)) > 2 && Math.abs(parseFloat(priceGrowthRate)) > 2 ? '数量与价格共同正向贡献' : '需关注其他因素影响'}。`;
+      
+      // 3. 维度分析 - 添加具体区域/渠道数据
+      const regions = ['华东', '华南', '华北'];
+      const regionData = regions.map((region, idx) => {
+        const ratio = [0.45, 0.32, 0.23][idx];
+        const regionValue = Math.round(currentValue * ratio);
+        const regionGrowth = (parseFloat(growth) + (Math.random() * 10 - 5)).toFixed(1);
+        return { region, value: regionValue, growth: regionGrowth };
+      });
+      
+      const dimAnalysis = `从业务结构看，${itemName}在${currentYear}年${growth > 0 ? '保持稳健增长态势' : '面临调整压力'}。
+按区域维度：${regionData[0].region}区域${metricName}${regionData[0].value}万元，同比${regionData[0].growth > 0 ? '+' : ''}${regionData[0].growth}%，占比${(regionData[0].value / currentValue * 100).toFixed(1)}%；${regionData[1].region}区域${regionData[1].value}万元，同比${regionData[1].growth > 0 ? '+' : ''}${regionData[1].growth}%；${regionData[2].region}区域${regionData[2].value}万元，同比${regionData[2].growth > 0 ? '+' : ''}${regionData[2].growth}%。
+${growth > 0 ? '头部市场表现亮眼，新客户拓展效果显著，产品竞争力持续增强' : '受市场环境影响，部分区域承压明显，需加强市场拓展和产品创新'}。`;
+      
+      // 4. 分析结论
+      const conclusion = `综合判断：${itemName}同比${growth > 0 ? '增长' : '下降'}${growthAbs}%，${growth > 0 ? '表现优于预期' : '需关注风险'}。${parseFloat(priceGrowthRate) > 5 ? '价格策略效果显著，' : ''}${parseFloat(qtyGrowthRate) > 5 ? '市场规模扩张明显，' : ''}建议${growth > 0 ? '持续关注价格策略的可持续性，巩固数量增长基础，进一步优化产品结构' : '加强市场分析，优化产品定价，拓展新的增长点'}，确保业绩稳定增长。`;
+      
+      // 生成因子分解表格
+      const factorTableData = {
+        columns: [
+          { title: '因子', dataIndex: 'factor', key: 'factor', width: 100 },
+          { title: `${previousYear}年`, dataIndex: 'lastYear', key: 'lastYear', align: 'right', width: 120 },
+          { title: `${currentYear}年`, dataIndex: 'currentYear', key: 'currentYear', align: 'right', width: 120 },
+          { title: '变化率', dataIndex: 'changeRate', key: 'changeRate', align: 'right', width: 100 },
+          { title: '贡献度', dataIndex: 'contribution', key: 'contribution', align: 'right', width: 100 }
+        ],
+        dataSource: [
+          { 
+            key: '1', 
+            factor: '数量（万件）', 
+            lastYear: lastYearQty, 
+            currentYear: currentYearQty, 
+            changeRate: `${qtyGrowthRate > 0 ? '+' : ''}${qtyGrowthRate}%`,
+            contribution: `${qtyGrowthRate}%`
+          },
+          { 
+            key: '2', 
+            factor: '单价（元/件）', 
+            lastYear: lastYearPrice, 
+            currentYear: currentYearPrice, 
+            changeRate: `${priceGrowthRate > 0 ? '+' : ''}${priceGrowthRate}%`,
+            contribution: `${priceGrowthRate}%`
+          },
+          { 
+            key: '3', 
+            factor: '结构效应', 
+            lastYear: '基期', 
+            currentYear: '报告期', 
+            changeRate: `${mixEffect > 0 ? '+' : ''}${mixEffect}%`,
+            contribution: `${mixEffect}%`
+          }
+        ]
+      };
+      
+      // 生成区域维度表格
+      const dimensionTableData = {
+        columns: [
+          { title: '区域', dataIndex: 'region', key: 'region', width: 100 },
+          { title: `${metricName}（万元）`, dataIndex: 'value', key: 'value', align: 'right', width: 150 },
+          { title: '同比增长率', dataIndex: 'growth', key: 'growth', align: 'right', width: 120 },
+          { title: '占比', dataIndex: 'ratio', key: 'ratio', align: 'right', width: 100 }
+        ],
+        dataSource: regionData.map((item, idx) => ({
+          key: String(idx + 1),
+          region: item.region,
+          value: item.value,
+          growth: `${item.growth > 0 ? '+' : ''}${item.growth}%`,
+          ratio: `${(item.value / currentValue * 100).toFixed(1)}%`
+        }))
+      };
+      
+      return {
+        summary: '',
+        resultBlocks: [],
+        analysis: {
+          resultSummary,
+          dimensionAnalysis: dimAnalysis,
+          factorAnalysis,
+          conclusion,
+          factors: { qtyGrowth: qtyGrowthRate, priceGrowth: priceGrowthRate, mixEffect },
+          // 因子分析表格和数据来源
+          factorTableData: factorTableData,
+          factorSources: [
+            { type: 'database', name: '业务数据库-销售明细表', fullPath: 'sales_db.sales_detail' },
+            { type: 'database', name: '业务数据库-订单明细表', fullPath: 'sales_db.order_detail' }
+          ],
+          // 维度分析表格和数据来源
+          dimensionTableData: dimensionTableData,
+          dimensionSources: [
+            { type: 'database', name: '业务数据库-区域汇总表', fullPath: 'sales_db.regional_summary' },
+            { type: 'database', name: '组织架构-区域映射表', fullPath: 'org_db.region_mapping' }
+          ]
+        }
+      };
+    }
+    
+    // 处理时间序列表格（year_2023, year_2024格式）
+    const yearColumns = tableData.columns.filter(col => col.dataIndex && col.dataIndex.startsWith('year_'));
+    if (yearColumns.length < 2) {
+      return {
+        summary: '',
+        resultBlocks: [],
+        analysis: undefined
+      };
+    }
+    
+    const lastYearCol = yearColumns[yearColumns.length - 1].dataIndex;
+    const prevYearCol = yearColumns[yearColumns.length - 2].dataIndex;
+    const lastYear = lastYearCol.replace('year_', '');
+    const prevYear = prevYearCol.replace('year_', '');
+    
+    // 计算总体数据
+    const totalLast = tableData.dataSource.reduce((sum, row) => sum + (row[lastYearCol] || 0), 0);
+    const totalPrev = tableData.dataSource.reduce((sum, row) => sum + (row[prevYearCol] || 0), 0);
+    const growth = ((totalLast - totalPrev) / totalPrev * 100).toFixed(2);
+    
+    // 1. 分析结果概述
+    const resultSummary = `总体来看，${lastYear}年${metric}合计约${(totalLast / 10000).toFixed(2)}万元，较${prevYear}年${growth > 0 ? '增长' : '下降'}${Math.abs(growth)}%。`;
+    
+    // 2. 维度分析
+    const sortedRows = [...tableData.dataSource].sort((a, b) => (b[lastYearCol] || 0) - (a[lastYearCol] || 0));
+    const top1 = sortedRows[0];
+    const top2 = sortedRows[1];
+    const dimName = tableData.columns[0].title;
+    const top1Name = top1[tableData.columns[0].dataIndex];
+    const top2Name = top2 ? top2[tableData.columns[0].dataIndex] : '';
+    const top1Value = (top1[lastYearCol] / 10000).toFixed(2);
+    const dimAnalysis = `按${dimName}维度，Top1为"${top1Name}"，${metric}为${top1Value}万元${top2Name ? `；Top2为"${top2Name}"` : ''}。结构上呈现"头部集中、腰部分散"的特征。`;
+    
+    // 3. 因子分析
+    const qtyGrowth = (2 + Math.random() * 4).toFixed(1);
+    const priceGrowth = (1 + Math.random() * 3).toFixed(1);
+    const mixEffect = (Math.random() * 1.5).toFixed(1);
+    const factorAnalysis = `从因子分解看，数量提升约+${qtyGrowth}%、价格提升约+${priceGrowth}%、结构效应约+${mixEffect}%，数量驱动为主，价格与结构共同正向贡献。`;
+    
+    // 4. 分析结论
+    const conclusion = `综合判断：本期${growth > 0 ? '增长' : '下降'}以头部${dimName}拉动为主，建议关注头部项的持续性与腰部项的挖潜空间，并结合市场情况进一步验证。`;
+    
+    return {
+      summary: '',
+      resultBlocks: [], // 分析类问题不显示表格
+      analysis: {
+        resultSummary,
+        dimensionAnalysis: dimAnalysis,
+        factorAnalysis,
+        conclusion,
+        factors: { qtyGrowth, priceGrowth, mixEffect }
+      }
+    };
+  };
 
-    return { clarified, params };
+  /**
+   * 生成多维度多指标分析结果
+   * @param {Object} params - 包含 dimensions, metrics, timeRangeText
+   */
+  const generateMultiDimensionAnalysis = (params) => {
+    console.log('📊 开始生成多维度分析，参数:', params);
+    const { dimensions, metrics, timeRangeText } = params;
+    const currentYear = new Date().getFullYear();
+    const previousYear = currentYear - 1;
+    
+    const dimensionNameMap = {
+      'product': '产品线',
+      'industry': '行业',
+      'company': '分公司',
+      'region': '地区'
+    };
+    
+    const dimensionDataMap = {
+      'product': ['A产品线', 'B产品线', 'C产品线', 'D产品线'],
+      'industry': ['制造业', '零售业', '服务业', '科技业'],
+      'company': ['总部', '华东分公司', '华南分公司', '华北分公司'],
+      'region': ['华东', '华南', '华北', '西南']
+    };
+    
+    // 为每个维度生成一个表格
+    const resultBlocks = dimensions.map(dimKey => {
+      const dimName = dimensionNameMap[dimKey] || dimKey;
+      const dimData = dimensionDataMap[dimKey] || ['项目1', '项目2', '项目3'];
+      
+      // 表格列：第一列是维度名，后面是各个指标（本期+同比）
+      const columns = [
+        { title: dimName, dataIndex: 'name', key: 'name', fixed: 'left', width: 120 }
+      ];
+      
+      metrics.forEach(metricName => {
+        columns.push({
+          title: `${currentYear}年${metricName}`,
+          dataIndex: `current_${metricName}`,
+          key: `current_${metricName}`,
+          align: 'right',
+          width: 150
+        });
+        columns.push({
+          title: `${previousYear}年${metricName}`,
+          dataIndex: `previous_${metricName}`,
+          key: `previous_${metricName}`,
+          align: 'right',
+          width: 150
+        });
+        columns.push({
+          title: `同比增长率`,
+          dataIndex: `yoy_${metricName}`,
+          key: `yoy_${metricName}`,
+          align: 'right',
+          width: 120
+        });
+      });
+      
+      // 生成数据行
+      const dataSource = dimData.map((itemName, idx) => {
+        const row = { key: String(idx + 1), name: itemName };
+        
+        metrics.forEach(metricName => {
+          let currentValue, unit;
+          if (metricName.includes('数量') || metricName.includes('订单')) {
+            // 订单数量：件
+            currentValue = Math.round(1000 + idx * 200 + Math.random() * 100);
+            unit = '';
+          } else {
+            // 销售金额/利润：万元
+            currentValue = Math.round(5000 + idx * 800 + Math.random() * 500);
+            unit = '';
+          }
+          
+          const previousValue = Math.round(currentValue / (1 + (0.10 + Math.random() * 0.15))); // 同比增长10-25%
+          const yoyRate = (((currentValue - previousValue) / previousValue) * 100).toFixed(1);
+          
+          row[`current_${metricName}`] = currentValue;
+          row[`previous_${metricName}`] = previousValue;
+          row[`yoy_${metricName}`] = `${yoyRate > 0 ? '+' : ''}${yoyRate}%`;
+        });
+        
+        return row;
+      });
+      
+      // 计算汇总
+      const totalCurrent = {};
+      const totalPrevious = {};
+      metrics.forEach(metricName => {
+        totalCurrent[metricName] = dataSource.reduce((sum, row) => sum + row[`current_${metricName}`], 0);
+        totalPrevious[metricName] = dataSource.reduce((sum, row) => sum + row[`previous_${metricName}`], 0);
+      });
+      
+      const metricSummary = metrics.map(m => {
+        const growth = ((totalCurrent[m] - totalPrevious[m]) / totalPrevious[m] * 100).toFixed(1);
+        return `${m}${totalCurrent[m]}${m.includes('数量') ? '件' : '万元'}（同比${growth > 0 ? '+' : ''}${growth}%）`;
+      }).join('、');
+      
+      return {
+        title: `按${dimName}维度分析`,
+        description: `${timeRangeText || `${currentYear}年`}按${dimName}维度，${metricSummary}。`,
+        sources: [
+          { type: 'database', name: `业务数据库-${dimName}汇总表`, fullPath: `sales_db.${dimKey}_summary` },
+          { type: 'database', name: '财务系统-收入明细', fullPath: 'finance_db.revenue_detail' },
+          { type: 'database', name: '订单管理系统-订单统计', fullPath: 'order_db.order_stats' }
+        ],
+        tableData: {
+          columns,
+          dataSource,
+          scroll: { x: 120 + metrics.length * 420 }
+        }
+      };
+    });
+    
+    // 生成总体summary
+    const summary = `${timeRangeText || `${currentYear}年`}销售数据多维度分析完成。共分析${dimensions.length}个维度（${dimensions.map(d => dimensionNameMap[d]).join('、')}），关注${metrics.length}个指标（${metrics.join('、')}），各维度整体表现良好，同比均有增长。`;
+    
+    return {
+      summary,
+      resultBlocks,
+      analysis: undefined
+    };
   };
 
   // 根据问题和参数生成模拟结果
-  const generateMockResult = (question, params) => {
-    if (question.includes('销售额')) {
-      // 检查是否为多年查询
-      const years = params && params.timeRange ? params.timeRange.split(',').map(y => y.trim()) : [];
-      const isMultiYear = years.length > 1 && years.every(y => /^\d{4}$/.test(y));
+  const generateMockResult = (question, params, needAnalysis = false) => {
+    // needAnalysis参数表示是否需要同时生成分析内容（复合问题）
+    console.log('🔧 generateMockResult 调用，问题:', question, '参数:', params);
+    
+    // 优先处理同比/环比查询（避免被误判为多维度分析）
+    if (params.isYoYQuery) {
+      console.log('✅ 识别为同比查询');
+      return generateYoYResult(question, params.previousResultMessage);
+    }
+    
+    // 处理多维度多指标分析（只有在明确是多维度分析请求时才使用）
+    if (params.dimensions && params.metrics && params.timeRangeText) {
+      console.log('✅ 识别为多维度分析，调用 generateMultiDimensionAnalysis');
+      return generateMultiDimensionAnalysis(params);
+    }
+    
+    // 检测是否为Top N排名查询
+    const topNMatch = question.match(/前(\d+|[一二三四五六七八九十]+)大?(客户|供应商|产品|地区)|最高的?(\d+|[一二三四五六七八九十]+)个?(客户|供应商|产品|地区|行业)/);
+    const isTopNQuery = topNMatch !== null;
+    
+    // 维度识别
+    const dimensions = [];
+    if (question.includes('产品') || question.includes('品类')) dimensions.push('product');
+    if (question.includes('地区') || question.includes('区域')) dimensions.push('region');
+    if (question.includes('客户')) dimensions.push('customer');
+    if (question.includes('供应商')) dimensions.push('supplier');
+    if (question.includes('行业')) dimensions.push('industry');
 
-      if (isMultiYear) {
-        return {
-          summary: `根据您的查询，${params.timeRange}的销售数据显示，整体呈稳定增长趋势。`,
-          tableData: {
-            columns: [
-              { title: '年份', dataIndex: 'year', key: 'year' },
-              { title: '总销售额 (万元)', dataIndex: 'totalSales', key: 'totalSales', align: 'right' },
-              { title: '同比增长', dataIndex: 'yoyGrowth', key: 'yoyGrowth', align: 'right' },
-            ],
-            dataSource: years.map((year, index) => ({
-              key: index.toString(),
-              year: year,
-              totalSales: 12000 + index * 1500 + Math.floor(Math.random() * 2000),
-              yoyGrowth: index === 0 ? '-' : `${(Math.random() * 8 + 4).toFixed(1)}%`,
-            })),
+    // 时间序列识别（排除单个年份如"2025年"）
+    const timeUnitsMatch = params.timeRangeText ? params.timeRangeText.match(/(最近|过去|近)(\d+|一|二|三|四|五|六|七|八|九|十)(年|月|季度)/) : null;
+    const monthRangeMatch = params.timeRangeText ? params.timeRangeText.match(/(\d+)\s*[-~到至]\s*(\d+)\s*月/) : null;
+    const singleYearMatch = params.timeRangeText ? params.timeRangeText.match(/^\d{4}年$/) : null;
+    
+    const isTimeSeries = params.timeRangeText && 
+                         !singleYearMatch && // 排除单个年份
+                         (timeUnitsMatch || monthRangeMatch);
+    
+    // 指标识别
+    const metric = params.metric || '销售额';
+
+    // 场景1: 时间序列 + 维度 (e.g., 最近三年每个产品的销售额 或 1-6月各产品收入)
+    if (isTimeSeries && dimensions.length > 0) {
+        const currentYear = new Date().getFullYear(); // 2025
+        let timePeriods = [];
+        let timeUnit = '年';
+        let periodPrefix = '';
+        
+        // 处理月度范围 (e.g., 1-6月)
+        if (monthRangeMatch) {
+            const startMonth = parseInt(monthRangeMatch[1], 10);
+            const endMonth = parseInt(monthRangeMatch[2], 10);
+            timeUnit = '月';
+            for (let m = startMonth; m <= endMonth; m++) {
+                timePeriods.push(m);
+            }
+            periodPrefix = `${currentYear}年`;
+        }
+        // 处理年度数据（最近N年、过去N年）
+        else if (timeUnitsMatch) {
+            const numMap = {'一':1, '二':2, '三':3, '四':4, '五':5, '六':6, '七':7, '八':8, '九':9, '十':10};
+            const prefix = timeUnitsMatch[1]; // 最近、过去、近
+            const numStr = timeUnitsMatch[2];
+            const num = parseInt(numStr, 10) || numMap[numStr];
+            timeUnit = timeUnitsMatch[3].replace('季', '季度');
+
+            if (num && timeUnit === '年') {
+                // "过去三年"和"最近三年"都是从今年往前推
+                for (let i = 0; i < num; i++) {
+                    timePeriods.push(currentYear - i);
+                }
+                timePeriods.reverse();
+            }
+        }
+        
+        if (timePeriods.length === 0 && params.timeRangeText.includes('年')) {
+            timePeriods = [currentYear - 2, currentYear - 1, currentYear];
+        }
+
+        if (timePeriods.length > 0) {
+            // 为每个维度生成一个 resultBlock
+            const resultBlocks = dimensions.map(dimensionKey => {
+                const dimensionTitle = { 'product': '产品', 'region': '地区' }[dimensionKey];
+                
+                const columns = [
+                    { title: dimensionTitle, dataIndex: dimensionKey, key: dimensionKey, fixed: 'left', width: 100 },
+                    ...timePeriods.map(period => ({
+                        title: timeUnit === '月' ? `${period}月 ${metric}` : `${period}年 ${metric}`,
+                        dataIndex: timeUnit === '月' ? `month_${period}` : `year_${period}`,
+                        key: timeUnit === '月' ? `month_${period}` : `year_${period}`,
+                        align: 'right',
+                        width: 150
+                    }))
+                ];
+
+                let dataSource = [];
+                let blockSummary = '';
+                
+                if (dimensionKey === 'product') {
+                    const products = ['A产品线', 'B产品线', 'C产品线', 'D产品线'];
+                    dataSource = products.map((product, index) => {
+                        const row = { key: String(index + 1), [dimensionKey]: product };
+                        let baseValue = timeUnit === '月' ? (120 + index * 30) : (800 + index * 150);
+                        timePeriods.forEach(period => {
+                            const dataKey = timeUnit === '月' ? `month_${period}` : `year_${period}`;
+                            row[dataKey] = Math.round(baseValue * (1 + (Math.random() - 0.3) * 0.4));
+                            baseValue = row[dataKey];
+                        });
+                        return row;
+                    });
+                    
+                    // 为产品维度生成总结
+                    const lastPeriodCol = timeUnit === '月' ? `month_${timePeriods[timePeriods.length - 1]}` : `year_${timePeriods[timePeriods.length - 1]}`;
+                    const firstPeriodCol = timeUnit === '月' ? `month_${timePeriods[0]}` : `year_${timePeriods[0]}`;
+                    const sorted = [...dataSource].sort((a, b) => b[lastPeriodCol] - a[lastPeriodCol]);
+                    const best = sorted[0];
+                    const worst = sorted[sorted.length - 1];
+                    const totalValue = dataSource.reduce((sum, item) => sum + item[lastPeriodCol], 0);
+                    const bestGrowth = (((best[lastPeriodCol] - best[firstPeriodCol]) / best[firstPeriodCol]) * 100).toFixed(1);
+                    
+                    if (timeUnit === '月') {
+                        blockSummary = `${periodPrefix}上半年，${best.product}表现最优，${timePeriods[timePeriods.length - 1]}月${metric}达${best[lastPeriodCol]}万元，累计贡献${((best[lastPeriodCol] / totalValue) * 100).toFixed(1)}%。各产品线整体保持稳健增长态势。`;
+                    } else {
+                        blockSummary = `${best.product}持续领先，${timePeriods[timePeriods.length - 1]}年${metric}达${best[lastPeriodCol]}万元，较${timePeriods[0]}年增长${bestGrowth}%。${worst.product}表现相对较弱，仍有较大提升空间。`;
+                    }
+                    
+                } else if (dimensionKey === 'region') {
+                    const regions = ['华东', '华南', '华北'];
+                    dataSource = regions.map((region, index) => {
+                        const row = { key: String(index + 1), [dimensionKey]: region };
+                        let baseValue = timeUnit === '月' ? (100 + index * 20) : (700 + index * 100);
+                        timePeriods.forEach(period => {
+                            const dataKey = timeUnit === '月' ? `month_${period}` : `year_${period}`;
+                            row[dataKey] = Math.round(baseValue * (1 + (Math.random() - 0.3) * 0.4));
+                            baseValue = row[dataKey];
+                        });
+                        return row;
+                    });
+                    
+                    // 为地区维度生成总结
+                    const lastPeriodCol = timeUnit === '月' ? `month_${timePeriods[timePeriods.length - 1]}` : `year_${timePeriods[timePeriods.length - 1]}`;
+                    const sorted = [...dataSource].sort((a, b) => b[lastPeriodCol] - a[lastPeriodCol]);
+                    const total = dataSource.reduce((sum, item) => sum + item[lastPeriodCol], 0);
+                    const topRegion = sorted[0];
+                    const topPercent = ((topRegion[lastPeriodCol] / total) * 100).toFixed(1);
+                    
+                    if (timeUnit === '月') {
+                        blockSummary = `${periodPrefix}上半年，${topRegion.region}区域${metric}领先，${timePeriods[timePeriods.length - 1]}月达${topRegion[lastPeriodCol]}万元，占比${topPercent}%。各区域协同发展态势良好。`;
+                    } else {
+                        blockSummary = `${topRegion.region}区域${metric}最高，${timePeriods[timePeriods.length - 1]}年达${topRegion[lastPeriodCol]}万元，占总体${topPercent}%。各区域整体保持稳定增长，市场格局较为均衡。`;
+                    }
+                }
+                
+                // 为不同维度设置不同的数据来源
+                let sources = [];
+                if (dimensionKey === 'product') {
+                    sources = [
+                        { type: 'database', name: '业务数据库-产品销售表', fullPath: 'sales_db.product_sales' },
+                        { type: 'database', name: '财务系统-收入明细', fullPath: 'finance_db.revenue_detail' }
+                    ];
+                } else if (dimensionKey === 'region') {
+                    sources = [
+                        { type: 'pdf', name: '2025年区域市场分析报告.pdf', fullPath: '/reports/2025_regional_market_analysis.pdf' },
+                        { type: 'database', name: '业务数据库-区域汇总表', fullPath: 'sales_db.regional_summary' }
+                    ];
+                }
+                
+                return {
+                    title: `${params.timeRangeText}${metric}（按${dimensionTitle}）`,
+                    description: blockSummary,
+                    sources,
+                    tableData: {
+                        columns,
+                        dataSource,
+                        scroll: { x: 100 + timePeriods.length * 150 }
+                    }
+                };
+            });
+            
+            const dimensionTitles = dimensions.map(d => ({ 'product': '产品', 'region': '地区' }[d])).join('、');
+            
+            // 如果只有一个维度，生成总体summary；如果多个维度，每个block自己的description就是summary
+            let summary = '';
+            if (dimensions.length === 1) {
+                // 单一维度：生成总体总结
+                const block = resultBlocks[0];
+                summary = block.description;
+                // 清空block的description，避免重复显示
+                block.description = '';
+            } else {
+                // 多维度：不需要总体summary，每个block的description就是各自的总结
+                summary = '';
+            }
+            
+            // 如果需要分析（复合问题），生成分析内容
+            let analysisData = undefined;
+            if (needAnalysis && resultBlocks.length > 0) {
+              const lastPeriod = timePeriods[timePeriods.length - 1];
+              const prevPeriod = timePeriods[timePeriods.length - 2];
+              const firstBlock = resultBlocks[0];
+              const col = timeUnit === '月' ? `month_${lastPeriod}` : `year_${lastPeriod}`;
+              
+              // 计算总体数据
+              const totalLast = resultBlocks.reduce((sum, b) => 
+                sum + (b.tableData.dataSource || []).reduce((s, r) => s + (r[col] || 0), 0), 0
+              );
+              const prevCol = timeUnit === '月' ? `month_${prevPeriod}` : `year_${prevPeriod}`;
+              const totalPrev = resultBlocks.reduce((sum, b) => 
+                sum + (b.tableData.dataSource || []).reduce((s, r) => s + (r[prevCol] || 0), 0), 0
+              );
+              const growth = ((totalLast - totalPrev) / totalPrev * 100).toFixed(2);
+              
+              // 生成分析内容
+              const periodLabel = timeUnit === '月' ? `${lastPeriod}月` : `${lastPeriod}年`;
+              const prevPeriodLabel = timeUnit === '月' ? `${prevPeriod}月` : `${prevPeriod}年`;
+              const resultSummary = `总体来看，${periodLabel}${metric}合计约${totalLast}万元，较${prevPeriodLabel}${growth > 0 ? '增长' : '下降'}${Math.abs(growth)}%。`;
+              
+              const sortedRows = [...firstBlock.tableData.dataSource].sort((a, b) => (b[col] || 0) - (a[col] || 0));
+              const top1 = sortedRows[0];
+              const top2 = sortedRows[1];
+              const dimName = firstBlock.tableData.columns[0].title;
+              const top1Name = top1[firstBlock.tableData.columns[0].dataIndex];
+              const top2Name = top2 ? top2[firstBlock.tableData.columns[0].dataIndex] : '';
+              const dimAnalysis = `按${dimName}维度，Top1为"${top1Name}"，${metric}为${top1[col]}万元${top2Name ? `；Top2为"${top2Name}"` : ''}。结构上呈现"头部集中、腰部分散"的特征。`;
+              
+              const qtyGrowth = (2 + Math.random() * 4).toFixed(1);
+              const priceGrowth = (1 + Math.random() * 3).toFixed(1);
+              const mixEffect = (Math.random() * 1.5).toFixed(1);
+              const factorAnalysis = `从因子分解看，数量提升约+${qtyGrowth}%、价格提升约+${priceGrowth}%、结构效应约+${mixEffect}%，数量驱动为主，价格与结构共同正向贡献。`;
+              
+              const conclusion = `综合判断：本期${growth > 0 ? '增长' : '下降'}以头部${dimName}拉动为主，建议关注头部项的持续性与腰部项的挖潜空间，并结合市场情况进一步验证。`;
+              
+              analysisData = {
+                resultSummary,
+                dimensionAnalysis: dimAnalysis,
+                factorAnalysis,
+                conclusion,
+                factors: { qtyGrowth, priceGrowth, mixEffect }
+              };
+            }
+            
+            return {
+                summary,
+                resultBlocks,
+                analysis: analysisData
+            };
+        }
+    }
+    
+    // 场景1.5: Top N排名查询 (e.g., 前十大客户、最高的三个行业)
+    if (isTopNQuery && topNMatch) {
+      const numMap = {'一':1, '二':2, '三':3, '四':4, '五':5, '六':6, '七':7, '八':8, '九':9, '十':10, '十一':11, '十二':12, '十五':15, '二十':20};
+      // 支持两种模式：前N大、最高的N个
+      const numStr = topNMatch[1] || topNMatch[3];
+      const dimensionType = topNMatch[2] || topNMatch[4]; // 客户、供应商、行业等
+      const topN = parseInt(numStr, 10) || numMap[numStr] || 10;
+      
+      const dimensionLabel = {
+        '客户':'客户名称', 
+        '供应商':'供应商名称', 
+        '产品':'产品名称', 
+        '地区':'地区',
+        '行业':'行业名称'
+      }[dimensionType] || '名称';
+      
+      // 生成Top N数据
+      const mockNames = {
+        '客户': ['华为技术有限公司', '阿里巴巴集团', '腾讯控股有限公司', '字节跳动科技', '美团点评', '京东集团', '百度在线', '小米科技', '网易公司', '滴滴出行', '拼多多', '快手科技', '携程旅行网', '唯品会', '苏宁易购'],
+        '供应商': ['深圳XX电子', '上海YY科技', '北京ZZ材料', '广州AA制造', '杭州BB器件', '南京CC元件', '成都DD电气', '武汉EE设备', '西安FF仪器', '重庆GG工业'],
+        '产品': ['A产品线', 'B产品线', 'C产品线', 'D产品线', 'E产品线', 'F产品线', 'G产品线', 'H产品线', 'I产品线', 'J产品线'],
+        '地区': ['华东', '华南', '华北', '西南', '华中', '东北', '西北', '港澳台'],
+        '行业': ['新能源汽车', '人工智能', '半导体芯片', '生物医药', '云计算', '智能制造', '新材料', '金融科技', '电子商务', '物联网']
+      };
+      
+      const names = mockNames[dimensionType] || mockNames['客户'];
+      const dataSource = [];
+      let totalValue = 0;
+      
+      // 生成递减的金额数据
+      for (let i = 0; i < Math.min(topN, names.length); i++) {
+        const baseValue = 5000 - i * 350 - Math.random() * 100;
+        const value = Math.round(baseValue);
+        totalValue += value;
+        dataSource.push({
+          key: String(i + 1),
+          rank: i + 1,
+          name: names[i],
+          value: value,
+          ratio: 0 // 稍后计算
+        });
+      }
+      
+      // 计算占比
+      dataSource.forEach(item => {
+        item.ratio = ((item.value / totalValue) * 100).toFixed(2);
+      });
+      
+      const columns = [
+        { title: '排名', dataIndex: 'rank', key: 'rank', width: 80, align: 'center' },
+        { title: dimensionLabel, dataIndex: 'name', key: 'name', width: 200 },
+        { title: `${metric}（万元）`, dataIndex: 'value', key: 'value', align: 'right', width: 150 },
+        { title: '占比', dataIndex: 'ratio', key: 'ratio', align: 'right', width: 100, render: (text) => `${text}%` }
+      ];
+      
+      const top1 = dataSource[0];
+      const top2 = dataSource[1];
+      const top3 = dataSource[2];
+      const top3Total = dataSource.slice(0, 3).reduce((sum, item) => sum + item.value, 0);
+      const top3Ratio = ((top3Total / totalValue) * 100).toFixed(1);
+      
+      const summary = `前${topN}大${dimensionType}累计${metric}${totalValue}万元。${top1.name}以${top1.value}万元位居第一，占比${top1.ratio}%；前三大${dimensionType}合计占比${top3Ratio}%，集中度较高。`;
+      
+      const sources = [
+        { type: 'database', name: `业务数据库-${dimensionType}主表`, fullPath: `sales_db.${dimensionType}_master` },
+        { type: 'database', name: '财务系统-收款明细', fullPath: 'finance_db.payment_detail' },
+        { type: 'pdf', name: `2025年${dimensionType}分析报告.pdf`, fullPath: `/reports/2025_${dimensionType}_analysis.pdf` }
+      ];
+      
+      // 如果是复合问题（需要分析）
+      let analysisData = undefined;
+      if (needAnalysis) {
+        const currentYear = new Date().getFullYear();
+        
+        // 1. 分析结果概述
+        const resultSummary = `${currentYear}年${dimensionType}市场表现分化明显。${top1.name}以${top1.value}万元领跑，${top2.name}和${top3.name}分列二三位。前三大${dimensionType}合计贡献${top3Ratio}%，市场集中度较高。`;
+        
+        // 2. 因子分析 - 用文字描述，每个因子后面附数据源
+        const factorAnalysisList = [
+          {
+            title: '市场规模因子',
+            content: `${top1.name}市场规模约${top1.value}万元，较其他${dimensionType}领先优势明显；${top2.name}市场规模${top2.value}万元，增长潜力较大；${top3.name}市场规模${top3.value}万元，保持稳定增长。`,
+            sources: [
+              { type: 'database', name: `业务数据库-${dimensionType}主表`, fullPath: `sales_db.${dimensionType}_master` },
+              { type: 'database', name: '财务系统-收款明细', fullPath: 'finance_db.payment_detail' }
+            ]
+          },
+          {
+            title: '市场份额因子',
+            content: `${top1.name}市场份额${top1.ratio}%，占据市场主导地位；${top2.name}份额${top2.ratio}%，${top3.name}份额${top3.ratio}%，前三大合计份额${top3Ratio}%，头部效应明显。`,
+            sources: [
+              { type: 'database', name: `业务数据库-${dimensionType}市场份额表`, fullPath: `sales_db.${dimensionType}_market_share` },
+              { type: 'database', name: '市场研究-行业分析报告', fullPath: 'market_research.industry_analysis' }
+            ]
+          },
+          {
+            title: '增长动能因子',
+            content: `Top 3${dimensionType}均保持正向增长态势，其中${top1.name}增长最为强劲，主要得益于技术创新、市场拓展和政策支持等多重因素推动。`,
+            sources: [
+              { type: 'database', name: '业务数据库-增长率统计表', fullPath: 'sales_db.growth_rate_stats' },
+              { type: 'pdf', name: `2025年${dimensionType}分析报告`, fullPath: `/reports/2025_${dimensionType}_analysis.pdf` }
+            ]
           }
+        ];
+        
+        // 3. 维度分析 - 生成区域分布表格
+        const regionData = dataSource.slice(0, topN).map((item, idx) => {
+          // 为每个行业模拟区域分布
+          const regions = ['华东', '华南', '华北'];
+          const ratios = idx === 0 ? [0.50, 0.30, 0.20] : 
+                        idx === 1 ? [0.40, 0.35, 0.25] : 
+                        [0.35, 0.40, 0.25];
+          return {
+            name: item.name,
+            regions: regions.map((region, ridx) => ({
+              region,
+              value: Math.round(item.value * ratios[ridx]),
+              ratio: (ratios[ridx] * 100).toFixed(1)
+            }))
+          };
+        });
+        
+        const dimensionTableData = {
+          columns: [
+            { title: dimensionLabel, dataIndex: 'name', key: 'name', width: 150 },
+            { title: '华东（万元）', dataIndex: 'east', key: 'east', align: 'right', width: 120 },
+            { title: '华南（万元）', dataIndex: 'south', key: 'south', align: 'right', width: 120 },
+            { title: '华北（万元）', dataIndex: 'north', key: 'north', align: 'right', width: 120 }
+          ],
+          dataSource: regionData.map((item, idx) => ({
+            key: String(idx + 1),
+            name: item.name,
+            east: item.regions[0].value,
+            south: item.regions[1].value,
+            north: item.regions[2].value
+          }))
+        };
+        
+        const dimAnalysis = `从区域维度看，Top 3${dimensionType}均呈现"华东强、华南稳、华北补"的格局：
+${top1.name}在华东区域${regionData[0].regions[0].value}万元（占比${regionData[0].regions[0].ratio}%），华南${regionData[0].regions[1].value}万元（${regionData[0].regions[1].ratio}%），华北${regionData[0].regions[2].value}万元（${regionData[0].regions[2].ratio}%）；
+${top2.name}华东${regionData[1].regions[0].value}万元、华南${regionData[1].regions[1].value}万元、华北${regionData[1].regions[2].value}万元，区域分布较为均衡；
+${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2].regions[1].value}万元、华北${regionData[2].regions[2].value}万元。
+整体来看，华东区域仍是各${dimensionType}的主战场，华南和华北有较大增长空间。`;
+        
+        // 4. 分析结论
+        const conclusion = `综合判断：${currentYear}年${dimensionType}市场呈现明显的头部集中特征，${top1.name}凭借市场规模、技术实力和品牌优势稳居第一，${top2.name}和${top3.name}紧随其后。建议关注头部${dimensionType}的可持续增长能力，同时挖掘腰部${dimensionType}的增长潜力，优化区域布局，加强华南和华北市场拓展。`;
+        
+        analysisData = {
+          resultSummary,
+          factorAnalysisList, // 因子分析列表（包含每个因子的内容和数据源）
+          dimensionAnalysis: dimAnalysis,
+          conclusion,
+          // 维度分析表格和数据来源
+          dimensionTableData: dimensionTableData,
+          dimensionSources: [
+            { type: 'database', name: '业务数据库-区域汇总表', fullPath: 'sales_db.regional_summary' },
+            { type: 'database', name: `业务数据库-${dimensionType}区域分布表`, fullPath: `sales_db.${dimensionType}_regional_distribution` }
+          ]
         };
       }
       
-      // 如果不是多年查询，则回落到按产品线展示
       return {
-        summary: '根据您的查询，本月的销售数据显示，整体趋势向好，A产品线增长尤为显著。',
-        tableData: {
-          columns: [
-            { title: '产品线', dataIndex: 'productLine', key: 'productLine' },
-            { title: '销售额 (万元)', dataIndex: 'sales', key: 'sales', align: 'right' },
-            { title: '环比增长', dataIndex: 'growth', key: 'growth', align: 'right' },
-          ],
-          dataSource: [
-            { key: '1', productLine: 'A产品线', sales: 1200, growth: '15%' },
-            { key: '2', productLine: 'B产品线', sales: 850, growth: '8%' },
-            { key: '3', productLine: 'C产品线', sales: 950, growth: '-2%' },
-          ],
-        }
-      };
-    } else if (question.includes('用户数据')) {
-       return {
-        summary: '本月用户数据显示，新注册用户主要来源于华东地区，用户活跃度较上月持平。',
-        tableData: {
-          columns: [
-            { title: '地区', dataIndex: 'region', key: 'region' },
-            { title: '新增用户数', dataIndex: 'newUsers', key: 'newUsers', align: 'right' },
-            { title: '活跃用户数', dataIndex: 'activeUsers', key: 'activeUsers', align: 'right' },
-          ],
-          dataSource: [
-            { key: '1', region: '华东', newUsers: 5200, activeUsers: 89000 },
-            { key: '2', region: '华南', newUsers: 3100, activeUsers: 65000 },
-            { key: '3', region: '华北', newUsers: 2500, activeUsers: 58000 },
-          ],
-        }
-      };
-    } else {
-      // 默认回落
-      return {
-        summary: '已为您完成查询，数据详情如下。',
-        tableData: {
-           columns: [{ title: '查询项', dataIndex: 'item' }, { title: '结果', dataIndex: 'value' }],
-           dataSource: [{ key: '1', item: '默认数据', value: '12345' }]
-        }
+        summary,
+        resultBlocks: [{
+          title: `前${topN}大${dimensionType}${metric}排名`,
+          description: '',
+          sources,
+          tableData: {
+            columns,
+            dataSource,
+            scroll: { x: 630 }
+          }
+        }],
+        analysis: analysisData
       };
     }
-  };
-
-  // 处理参数确认
-  const handleParameterConfirm = (params) => {
-    setIsClarifying(false);
     
-    const thinkingId = Date.now();
-    const thinkingMessage = {
-      id: thinkingId,
-      sender: 'ai',
-      type: 'thinking',
-      data: params,
-      time: formatDateTime(new Date())
-    };
+    // 场景2: 仅维度 (e.g., 各个产品的销售额 或 某个行业的收入)
+    if (dimensions.length > 0) {
+      let title = `按${dimensions.map(d => ({'product':'产品','region':'地区','industry':'行业'}[d])).join('、')}拆分`;
+      let columns = [];
+      let dataSource = [];
+      let summary = '';
 
-    const currentQuestion = pendingQuestion;
+      let blockDescription = '';
+      let sources = [];
+      
+      // 处理行业维度
+      if (dimensions.includes('industry')) {
+        // 提取行业名称
+        const industryMatch = question.match(/(风能|光伏|新能源|化工|制造|医药|金融|互联网|房地产)行业/);
+        const industryName = industryMatch ? industryMatch[1] + '行业' : '行业';
+        
+        columns = [
+          { title: '行业', dataIndex: 'industry', key: 'industry' },
+          { title: metric + ' (万元)', dataIndex: 'value', key: 'value', align: 'right' }
+        ];
+        dataSource = [
+          { key: '1', industry: industryName, value: 8500 }
+        ];
+        
+        // 提取年份
+        const yearMatch = question.match(/(\d{4})年/);
+        const year = yearMatch ? yearMatch[1] : '2025';
+        
+        summary = `${year}年${industryName}${metric}为8500万元。`;
+        blockDescription = '';
+        sources = [
+          { type: 'database', name: '业务数据库-行业数据表', fullPath: 'sales_db.industry_data' },
+          { type: 'database', name: '财务系统-收入明细', fullPath: 'finance_db.revenue_detail' }
+        ];
+        
+        return {
+          summary,
+          resultBlocks: [{
+            title: `${year}年${industryName}${metric}`,
+            description: blockDescription,
+            sources,
+            tableData: { columns, dataSource }
+          }],
+          analysis: undefined
+        };
+      }
+      
+      if (dimensions.includes('product')) {
+        // 检测是否查询特定产品
+        const specificProductMatch = question.match(/([A-Z]产品|[A-Z]产品线)/);
+        
+        if (specificProductMatch) {
+          // 查询特定产品
+          const productName = specificProductMatch[1];
+          const yearMatch = question.match(/(\d{4})年|今年|本年/);
+          const year = yearMatch ? (yearMatch[1] || new Date().getFullYear()) : new Date().getFullYear();
+          
+          columns = [
+            { title: '产品', dataIndex: 'product', key: 'product' },
+            { title: metric + ' (万元)', dataIndex: 'value', key: 'value', align: 'right' }
+          ];
+          dataSource = [
+            { key: '1', product: productName, value: 3200 }
+          ];
+          
+          summary = `${year}年${productName}${metric}为3200万元。`;
+          blockDescription = '';
+          sources = [
+            { type: 'database', name: '业务数据库-产品主表', fullPath: 'main_db.products' },
+            { type: 'database', name: '财务系统-收入明细', fullPath: 'finance_db.revenue_detail' }
+          ];
+        } else {
+          // 查询所有产品
+          columns = [{ title: '产品', dataIndex: 'product', key: 'product' }, { title: metric + " (万元)", dataIndex: 'value', key: 'value', align: 'right' }];
+          dataSource = [
+            { key: '1', product: 'A产品', value: 2200 }, 
+            { key: '2', product: 'B产品', value: 1400 },
+            { key: '3', product: 'C产品', value: 1800 }
+          ];
+          const sorted = [...dataSource].sort((a, b) => b.value - a.value);
+          const total = dataSource.reduce((sum, item) => sum + item.value, 0);
+          summary = `从产品${metric}来看，${sorted[0].product}以${sorted[0].value}万元领跑，占比${((sorted[0].value / total) * 100).toFixed(1)}%。`;
+          blockDescription = `${sorted[0].product}以${sorted[0].value}万元的${metric}位居第一，${sorted[1].product}(${sorted[1].value}万元)和${sorted[2].product}(${sorted[2].value}万元)分列二、三位。三大产品线总计贡献${total}万元${metric}。`;
+          sources = [
+            { type: 'database', name: '业务数据库-产品主表', fullPath: 'main_db.products' },
+            { type: 'excel', name: '产品销售明细.xlsx', fullPath: '/data/sales/product_sales_detail.xlsx' }
+          ];
+        }
+      } else if (dimensions.includes('region')) {
+        columns = [{ title: '地区', dataIndex: 'region', key: 'region' }, { title: metric + " (万元)", dataIndex: 'value', key: 'value', align: 'right' }];
+        dataSource = [
+          { key: '1', region: '华东', value: 2000 }, 
+          { key: '2', region: '华南', value: 1600 },
+          { key: '3', region: '华北', value: 1200 }
+        ];
+        const sorted = [...dataSource].sort((a, b) => b.value - a.value);
+        const total = dataSource.reduce((sum, item) => sum + item.value, 0);
+        summary = `区域${metric}分布中，${sorted[0].region}表现最强（${sorted[0].value}万元），${sorted[1].region}、${sorted[2].region}紧随其后，三地合计${total}万元。`;
+        blockDescription = `${sorted[0].region}区域${metric}达${sorted[0].value}万元，占比${((sorted[0].value / total) * 100).toFixed(1)}%；${sorted[1].region}区域${sorted[1].value}万元，占比${((sorted[1].value / total) * 100).toFixed(1)}%；${sorted[2].region}区域${sorted[2].value}万元，占比${((sorted[2].value / total) * 100).toFixed(1)}%。`;
+        sources = [
+          { type: 'pdf', name: '区域市场报告.pdf', fullPath: '/reports/regional_market_report.pdf' },
+          { type: 'database', name: '业务数据库-区域统计', fullPath: 'main_db.regional_stats' },
+          { type: 'excel', name: '各地区销售数据.xlsx', fullPath: '/data/regional/regional_sales.xlsx' }
+        ];
+      }
 
-    setMessages(prev => [...prev, thinkingMessage]);
-    
-    // 模拟AI回复
-    setTimeout(() => {
-      const resultData = generateMockResult(currentQuestion, params);
-      const aiResponseMessage = {
-        id: Date.now() + 1, // 使用新ID确保key唯一
-        sender: 'ai',
-        type: 'result',
-        // 将参数和结果都传入
-        data: {
-          params: params,
-          summary: resultData.summary,
-          tableData: resultData.tableData,
-        },
-        time: formatDateTime(new Date())
+      return {
+        summary,
+        resultBlocks: [{
+          title,
+          description: blockDescription,
+          sources,
+          tableData: { columns, dataSource }
+        }]
       };
-      // 替换思考过程为最终结果
-      setMessages(prev => prev.map(msg => msg.id === thinkingId ? aiResponseMessage : msg));
-    }, 1500); // 增加一点延迟，让思考过程更明显
+    }
 
-    setPendingQuestion('');
+    // 场景3: 默认回退
+    return {
+      summary: '已为您完成查询，数据详情如下。',
+      resultBlocks: [
+        {
+          sources: [],
+          tableData: {
+            columns: [{ title: '查询项', dataIndex: 'item' }, { title: '结果', dataIndex: 'value' }],
+            dataSource: [{ key: '1', item: metric, value: '暂无数据' }]
+          }
+        }
+      ]
+    };
   };
 
   // 回车发送
@@ -311,10 +1792,10 @@ const QuestionAssistant = () => {
 
   // 常用问题列表
   const quickQuestions = [
-    '查询本月销售额',
-    '分析用户增长趋势',
-    '最近的订单数据',
-    '产品销售排名'
+    '我们1-6月不同产品收入是多少',
+    '我们前十大客户是什么？金额是什么？占比多少',
+    '最近三年不同产品和地区的销售额',
+    '今年销售额最高的三个行业是什么？为什么？'
   ];
 
   // 打开菜单
@@ -356,11 +1837,81 @@ const QuestionAssistant = () => {
   // 置顶对话
   const handlePinConversation = (e, conversationId) => {
     e.stopPropagation();
-    const conversation = conversations.find(c => c.id === conversationId);
-    const otherConversations = conversations.filter(c => c.id !== conversationId);
-    setConversations([conversation, ...otherConversations]);
+    setConversations(conversations.map(c => 
+      c.id === conversationId ? { ...c, pinned: !c.pinned } : c
+    ));
     setOpenMenuId(null);
   };
+
+  // 删除对话
+  const handleDeleteConversation = (e, conversationId) => {
+    e.stopPropagation();
+    const updatedConversations = conversations.filter(c => c.id !== conversationId);
+    setConversations(updatedConversations);
+    
+    // 如果删除的是当前活动对话，切换到第一个对话
+    if (conversationId === activeConversationId) {
+      if (updatedConversations.length > 0) {
+        setActiveConversationId(updatedConversations[0].id);
+        setMessages(updatedConversations[0].messages);
+      } else {
+        setActiveConversationId(null);
+        setMessages([]);
+      }
+    }
+    setOpenMenuId(null);
+  };
+
+  /**
+   * 按日期对对话进行分组
+   */
+  const groupConversationsByDate = (conversations) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const lastWeek = new Date(today);
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    const lastMonth = new Date(today);
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+    const groups = {
+      pinned: [],
+      today: [],
+      yesterday: [],
+      lastWeek: [],
+      lastMonth: [],
+      earlier: []
+    };
+
+    conversations.forEach(conv => {
+      // 置顶的对话单独分组
+      if (conv.pinned) {
+        groups.pinned.push(conv);
+        return;
+      }
+
+      // 解析对话时间
+      const convDate = new Date(conv.time);
+      const convDateOnly = new Date(convDate.getFullYear(), convDate.getMonth(), convDate.getDate());
+
+      if (convDateOnly.getTime() === today.getTime()) {
+        groups.today.push(conv);
+      } else if (convDateOnly.getTime() === yesterday.getTime()) {
+        groups.yesterday.push(conv);
+      } else if (convDate >= lastWeek) {
+        groups.lastWeek.push(conv);
+      } else if (convDate >= lastMonth) {
+        groups.lastMonth.push(conv);
+      } else {
+        groups.earlier.push(conv);
+      }
+    });
+
+    return groups;
+  };
+
+  const groupedConversations = groupConversationsByDate(conversations);
 
   return (
     <div className="chat-container">
@@ -373,10 +1924,18 @@ const QuestionAssistant = () => {
           </button>
         </div>
         <div className="conversation-items">
+          {/* 渲染对话分组的函数 */}
+          {(() => {
+            const renderConversationGroup = (conversations, groupLabel) => {
+              if (conversations.length === 0) return null;
+              
+              return (
+                <div key={groupLabel} className="conversation-group">
+                  {groupLabel && <div className="conversation-group-label">{groupLabel}</div>}
           {conversations.map(conversation => (
             <div
               key={conversation.id}
-              className={`conversation-item ${activeConversationId === conversation.id ? 'active' : ''}`}
+                      className={`conversation-item ${activeConversationId === conversation.id ? 'active' : ''} ${conversation.pinned ? 'pinned' : ''}`}
               onClick={() => handleSelectConversation(conversation.id)}
             >
               {editingConversationId === conversation.id ? (
@@ -401,7 +1960,15 @@ const QuestionAssistant = () => {
               ) : (
                 <>
                   <div className="conversation-content">
-                    <div className="conversation-title">{conversation.title}</div>
+                            <div className="conversation-title">
+                              {conversation.pinned && (
+                                <svg className="pin-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: 6 }}>
+                                  <path d="M12 17v5"/>
+                                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a6 6 0 0 0-6 0v3.76Z"/>
+                                </svg>
+                              )}
+                              {conversation.title}
+                            </div>
                     <div className="conversation-time">{conversation.time}</div>
                   </div>
                   <div className="conversation-menu-wrapper">
@@ -435,7 +2002,19 @@ const QuestionAssistant = () => {
                             <path d="M12 17v5"/>
                             <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a6 6 0 0 0-6 0v3.76Z"/>
                           </svg>
-                          置顶
+                                  {conversation.pinned ? '取消置顶' : '置顶'}
+                                </button>
+                                <button 
+                                  className="menu-item delete"
+                                  onClick={(e) => handleDeleteConversation(e, conversation.id)}
+                                >
+                                  <svg className="menu-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    <line x1="10" y1="11" x2="10" y2="17"/>
+                                    <line x1="14" y1="11" x2="14" y2="17"/>
+                                  </svg>
+                                  删除
                         </button>
                       </div>
                     )}
@@ -444,6 +2023,22 @@ const QuestionAssistant = () => {
               )}
             </div>
           ))}
+                </div>
+              );
+            };
+
+            // 按顺序渲染各个分组
+            return (
+              <>
+                {renderConversationGroup(groupedConversations.pinned, '置顶')}
+                {renderConversationGroup(groupedConversations.today, '今天')}
+                {renderConversationGroup(groupedConversations.yesterday, '昨天')}
+                {renderConversationGroup(groupedConversations.lastWeek, '最近7天')}
+                {renderConversationGroup(groupedConversations.lastMonth, '最近30天')}
+                {renderConversationGroup(groupedConversations.earlier, '更早')}
+              </>
+            );
+          })()}
         </div>
       </div>
 
@@ -482,10 +2077,22 @@ const QuestionAssistant = () => {
                 messages.map(message => (
                   <div key={message.id} className={`message ${message.sender === 'user' ? 'user-message' : 'ai-message'}`}>
                     <div className="message-content">
-                      {message.type === 'thinking' ? (
-                        <ThinkingProcess params={message.data} />
+                      {message.type === 'combined' ? (
+                        <CombinedThinking 
+                          intentData={message.intentData}
+                          config={message.config}
+                          dataInfo={message.dataInfo}
+                          steps={message.steps}
+                          isComplete={message.isComplete} 
+                        />
                       ) : message.type === 'result' ? (
-                        <QueryResult data={message.data} />
+                        <>
+                          <QueryResult data={message.data} />
+                          <div className="message-footer">
+                            <div className="footer-actions"></div>
+                            <div className="footer-time">{message.time}</div>
+                          </div>
+                        </>
                       ) : (
                         <p>{message.text}</p>
                       )}
@@ -494,7 +2101,6 @@ const QuestionAssistant = () => {
                 ))
               )}
               <div ref={messagesEndRef} />
-              {isClarifying && <ParameterForm onSubmit={handleParameterConfirm} initialParams={preParseQuestion(pendingQuestion).params} />}
             </div>
 
             {/* 输入区域 */}
@@ -509,7 +2115,7 @@ const QuestionAssistant = () => {
                   rows={3}
                 />
                 <div className="input-actions">
-                  <button className="action-chip">
+                  <button className="action-chip" onClick={() => setConfigVisible(true)}>
                     <span className="action-icon">⚙️</span>
                     <span>问数配置</span>
                   </button>
@@ -530,10 +2136,24 @@ const QuestionAssistant = () => {
           </div>
         )}
       </div>
+
+      {/* 配置弹窗 */}
+      <QueryConfigModal
+        visible={configVisible}
+        initialConfig={getEffectiveConfig()}
+        onOk={(cfg) => {
+          setConfigVisible(false);
+          if (cfg.applyScope === 'all') {
+            setConfigGlobal(cfg);
+          } else {
+            setConfigPerConv(prev => ({ ...prev, [activeConversationId]: cfg }));
+          }
+        }}
+        onCancel={() => setConfigVisible(false)}
+      />
     </div>
   );
 };
-
 
 export default QuestionAssistant;
 
