@@ -63,7 +63,7 @@ const ParameterForm = ({ onSubmit, initialParams = {} }) => {
         </div>
       </div>
       <div className="parameter-form-footer">
-        <Button type="primary" onClick={handleSubmit} className="submit-button">确认并继续提问</Button>
+        <Button type="primary" onClick={handleSubmit} className="submit-button">确认并重新运行提问</Button>
       </div>
     </div>
   );
