@@ -164,8 +164,9 @@ const RolePermission = () => {
       key: 'action',
       width: 150,
       render: (_, record) => {
-        // 超级管理员默认拥有所有权限，不需要配置
-        if (record.roleName === '超级管理员' || record.roleId === '1') {
+        // 超级管理员和管理员默认拥有所有权限，不需要配置
+        if (record.roleName === '超级管理员' || record.roleId === '1' || 
+            record.roleName === '管理员' || record.roleId === '2') {
           return (
             <span style={{ color: '#999', fontSize: '14px' }}>
               -
