@@ -172,6 +172,14 @@ const RolePermission = () => {
             </span>
           );
         }
+        // 管理员默认拥有所有权限，不需要配置
+        if (record.roleName === '管理员' || record.roleId === '2') {
+          return (
+            <span style={{ color: '#999', fontSize: '14px' }}>
+              -
+            </span>
+          );
+        }
         // 禁用状态的角色不能配置
         if (record.status === '禁用') {
           return (

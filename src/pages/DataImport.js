@@ -125,8 +125,9 @@ const DataImport = () => {
   const [pageSize] = useState(10);
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
   const [announcementPage, setAnnouncementPage] = useState(1);
-  const [announcementPageSize] = useState(15);
+  const [announcementPageSize] = useState(20);
   const [announcementSearchKeyword, setAnnouncementSearchKeyword] = useState('');
+  const [selectedAnnouncements, setSelectedAnnouncements] = useState([]); // 已选中的公告ID列表
   
   // 文件名输入弹窗
   const [showFileNameModal, setShowFileNameModal] = useState(false);
@@ -354,6 +355,7 @@ const DataImport = () => {
     setSelectedCompanyId(null);
     setAnnouncementPage(1);
     setAnnouncementSearchKeyword('');
+    setSelectedAnnouncements([]); // 返回列表时清空选择
   };
 
   const getFilteredAnnouncements = () => {
@@ -377,16 +379,78 @@ const DataImport = () => {
     return Math.ceil(filtered.length / announcementPageSize);
   };
 
-  // 打开文件名输入弹窗
+  // 直接导入公告，使用公告内容作为文件名
   const handleImportOnlineDoc = (item) => {
-    let defaultFileName = item.content.length > 30 
+    let fileName = item.content.length > 30 
       ? item.content.substring(0, 30) 
       : item.content;
-    defaultFileName = defaultFileName.replace(/[^\u4e00-\u9fa5A-Za-z0-9_-]/g, '_');
-    setSelectedDoc(item);
-    setInputFileName(defaultFileName);
-    setIsFileNameValid(validateFileName(defaultFileName));
-    setShowFileNameModal(true);
+    fileName = fileName.replace(/[^\u4e00-\u9fa5A-Za-z0-9_-]/g, '_');
+    
+    // 直接执行导入
+    alert(`已成功导入文档！\n文件名：${fileName}.pdf`);
+  };
+
+  // 切换单个公告的选中状态
+  const handleToggleAnnouncement = (announcementId) => {
+    setSelectedAnnouncements(prev => {
+      if (prev.includes(announcementId)) {
+        return prev.filter(id => id !== announcementId);
+      } else {
+        return [...prev, announcementId];
+      }
+    });
+  };
+
+  // 全选/取消全选当前页
+  const handleToggleAllCurrentPage = () => {
+    const currentPageAnnouncementIds = getCurrentPageAnnouncements().map(item => item.id);
+    const allSelected = currentPageAnnouncementIds.every(id => selectedAnnouncements.includes(id));
+    
+    if (allSelected) {
+      // 取消选中当前页所有
+      setSelectedAnnouncements(prev => prev.filter(id => !currentPageAnnouncementIds.includes(id)));
+    } else {
+      // 选中当前页所有
+      setSelectedAnnouncements(prev => {
+        const newIds = currentPageAnnouncementIds.filter(id => !prev.includes(id));
+        return [...prev, ...newIds];
+      });
+    }
+  };
+
+
+  // 批量导入选中的公告
+  const handleBatchImport = () => {
+    if (selectedAnnouncements.length === 0) {
+      alert('请至少选择一个公告！');
+      return;
+    }
+
+    const allAnnouncements = getFilteredAnnouncements();
+    const selectedItems = allAnnouncements.filter(item => selectedAnnouncements.includes(item.id));
+    
+    const fileNames = selectedItems.map(item => {
+      let fileName = item.content.length > 30 
+        ? item.content.substring(0, 30) 
+        : item.content;
+      return fileName.replace(/[^\u4e00-\u9fa5A-Za-z0-9_-]/g, '_') + '.pdf';
+    });
+
+    alert(`已成功批量导入 ${selectedItems.length} 个文档！\n\n文件列表：\n${fileNames.join('\n')}`);
+    setSelectedAnnouncements([]); // 导入后清空选择
+  };
+
+  // 检查当前页是否全选
+  const isCurrentPageAllSelected = () => {
+    const currentPageAnnouncementIds = getCurrentPageAnnouncements().map(item => item.id);
+    if (currentPageAnnouncementIds.length === 0) return false;
+    return currentPageAnnouncementIds.every(id => selectedAnnouncements.includes(id));
+  };
+
+  // 翻页并清空选择
+  const handleAnnouncementPageChange = (newPage) => {
+    setAnnouncementPage(newPage);
+    setSelectedAnnouncements([]); // 翻页时清空选择
   };
 
   const validateFileName = (name) => {
@@ -442,7 +506,7 @@ const DataImport = () => {
   // 获取状态显示文本
   const getStatusText = (status) => {
     const statusMap = {
-      processing: '运行中',
+      processing: '载入中',
       pausing: '终止中',
       paused: '终止',
       completed: '完成',
@@ -475,11 +539,20 @@ const DataImport = () => {
     }, 1000);
   };
 
-  // 继续任务
+  // 重新运行任务
   const handleResumeTask = (taskId) => {
     setImportTasks(tasks => tasks.map(task => 
       task.id === taskId && task.status === 'paused'
         ? { ...task, status: 'processing' }
+        : task
+    ));
+  };
+
+  // 重新运行失败的任务
+  const handleRerunTask = (taskId) => {
+    setImportTasks(tasks => tasks.map(task => 
+      task.id === taskId && task.status === 'failed'
+        ? { ...task, status: 'processing', completeTime: null, errorDetail: null }
         : task
     ));
   };
@@ -618,7 +691,7 @@ const DataImport = () => {
                           setTaskPage(1);
                         }}
                       >
-                        运行中
+                        载入中
                       </div>
                       <div 
                         className={`filter-menu-item ${filterStatus === 'pausing' ? 'active' : ''}`}
@@ -627,7 +700,7 @@ const DataImport = () => {
                           setTaskPage(1);
                         }}
                       >
-                        暂停中
+                        终止中
                       </div>
                       <div 
                         className={`filter-menu-item ${filterStatus === 'paused' ? 'active' : ''}`}
@@ -636,7 +709,7 @@ const DataImport = () => {
                           setTaskPage(1);
                         }}
                       >
-                        暂停
+                        终止
                       </div>
                       <div 
                         className={`filter-menu-item ${filterStatus === 'completed' ? 'active' : ''}`}
@@ -701,7 +774,7 @@ const DataImport = () => {
                     {task.status === 'processing' && (
                       <button 
                         className="task-action-btn pause-btn" 
-                        title="暂停"
+                        title="终止"
                         onClick={() => handlePauseTask(task.id)}
                       >
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
@@ -712,7 +785,7 @@ const DataImport = () => {
                     {task.status === 'pausing' && (
                       <button 
                         className="task-action-btn pause-btn disabled" 
-                        title="暂停中..."
+                        title="终止中..."
                         disabled
                       >
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
@@ -724,8 +797,19 @@ const DataImport = () => {
                     {task.status === 'paused' && (
                       <button 
                         className="task-action-btn resume-btn" 
-                        title="继续"
+                        title="重新运行"
                         onClick={() => handleResumeTask(task.id)}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M5 3l8 5-8 5V3z"/>
+                        </svg>
+                      </button>
+                    )}
+                    {task.status === 'failed' && (
+                      <button 
+                        className="task-action-btn resume-btn" 
+                        title="重新运行"
+                        onClick={() => handleRerunTask(task.id)}
                       >
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                           <path d="M5 3l8 5-8 5V3z"/>
@@ -734,7 +818,7 @@ const DataImport = () => {
                     )}
                       <button
                         className={`task-action-btn delete-btn ${(task.status !== 'completed' && task.status !== 'paused' && task.status !== 'failed') ? 'disabled' : ''}`}
-                        title={(task.status === 'completed' || task.status === 'paused' || task.status === 'failed') ? '删除' : '只能删除已完成、已暂停或失败的任务'}
+                        title={(task.status === 'completed' || task.status === 'paused' || task.status === 'failed') ? '删除' : '只能删除已完成、已终止或失败的任务'}
                         onClick={() => handleDeleteTask(task.id)}
                         disabled={task.status !== 'completed' && task.status !== 'paused' && task.status !== 'failed'}
                       >
@@ -1176,6 +1260,7 @@ const DataImport = () => {
                           onChange={(e) => {
                             setAnnouncementSearchKeyword(e.target.value);
                             setAnnouncementPage(1);
+                            setSelectedAnnouncements([]); // 搜索时清空选择
                           }}
                         />
                         {announcementSearchKeyword && (
@@ -1184,6 +1269,7 @@ const DataImport = () => {
                             onClick={() => {
                               setAnnouncementSearchKeyword('');
                               setAnnouncementPage(1);
+                              setSelectedAnnouncements([]); // 清空搜索时清空选择
                             }}
                           >
                             <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
@@ -1192,12 +1278,51 @@ const DataImport = () => {
                           </button>
                         )}
                       </div>
+                      
+                      {/* 批量操作栏 */}
+                      {getCurrentPageAnnouncements().length > 0 && (
+                        <div className="announcement-batch-actions">
+                          <div className="batch-select-actions">
+                            <label className="checkbox-label">
+                              <input
+                                type="checkbox"
+                                checked={isCurrentPageAllSelected()}
+                                onChange={handleToggleAllCurrentPage}
+                              />
+                              <span>全选</span>
+                            </label>
+                            {selectedAnnouncements.length > 0 && (
+                              <span className="selected-count">
+                                已选择 {selectedAnnouncements.length} 项
+                              </span>
+                            )}
+                          </div>
+                          <button 
+                            className="batch-import-btn"
+                            onClick={handleBatchImport}
+                            disabled={selectedAnnouncements.length === 0}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: '6px' }}>
+                              <path d="M8.5 1.5v9m-3-3l3 3 3-3M2 13h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                            </svg>
+                            批量导入
+                          </button>
+                        </div>
+                      )}
+
                       <div className="announcement-list">
                         {getCurrentPageAnnouncements().length === 0 ? (
                           <div className="empty-announcement">{announcementSearchKeyword ? '未找到匹配的公告' : '暂无公告'}</div>
                         ) : (
                           getCurrentPageAnnouncements().map((item) => (
                             <div key={item.id} className="announcement-item">
+                              <label className="announcement-checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedAnnouncements.includes(item.id)}
+                                  onChange={() => handleToggleAnnouncement(item.id)}
+                                />
+                              </label>
                               <div className="announcement-main">
                                 <span className="announcement-datetime">{item.datetime}</span>
                                 <a 
@@ -1227,11 +1352,11 @@ const DataImport = () => {
                       {/* 公告分页 */}
                       {getCurrentPageAnnouncements().length > 0 && getAnnouncementTotalPages() > 1 && (
                         <div className="pagination">
-                          <button className="page-btn" onClick={() => setAnnouncementPage(1)} disabled={announcementPage === 1}>首页</button>
-                          <button className="page-btn" onClick={() => setAnnouncementPage(announcementPage - 1)} disabled={announcementPage === 1}>上一页</button>
+                          <button className="page-btn" onClick={() => handleAnnouncementPageChange(1)} disabled={announcementPage === 1}>首页</button>
+                          <button className="page-btn" onClick={() => handleAnnouncementPageChange(announcementPage - 1)} disabled={announcementPage === 1}>上一页</button>
                           <span className="page-info">第 {announcementPage} / {getAnnouncementTotalPages()} 页</span>
-                          <button className="page-btn" onClick={() => setAnnouncementPage(announcementPage + 1)} disabled={announcementPage === getAnnouncementTotalPages()}>下一页</button>
-                          <button className="page-btn" onClick={() => setAnnouncementPage(getAnnouncementTotalPages())} disabled={announcementPage === getAnnouncementTotalPages()}>末页</button>
+                          <button className="page-btn" onClick={() => handleAnnouncementPageChange(announcementPage + 1)} disabled={announcementPage === getAnnouncementTotalPages()}>下一页</button>
+                          <button className="page-btn" onClick={() => handleAnnouncementPageChange(getAnnouncementTotalPages())} disabled={announcementPage === getAnnouncementTotalPages()}>末页</button>
                         </div>
                       )}
                     </div>

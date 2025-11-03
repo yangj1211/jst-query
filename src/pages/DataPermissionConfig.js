@@ -15,7 +15,6 @@ const DataPermissionConfig = () => {
   console.log('location.state:', location.state);
   console.log('currentRole:', currentRole);
 
-  const [objectType, setObjectType] = useState('表');
   const [objectName, setObjectName] = useState(null);
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   
@@ -25,7 +24,6 @@ const DataPermissionConfig = () => {
   // 编辑对象弹窗相关状态
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingObject, setEditingObject] = useState(null);
-  const [editObjectType, setEditObjectType] = useState('表');
   const [editObjectName, setEditObjectName] = useState(null);
   const [editSelectedPermissions, setEditSelectedPermissions] = useState([]);
   const [editTempColumnConfigs, setEditTempColumnConfigs] = useState([]);
@@ -42,28 +40,8 @@ const DataPermissionConfig = () => {
     { value: 'DT8', label: '表查询', hasConfig: true },
   ];
 
-  // 文件权限选项
-  const filePermissionOptions = [
-    { value: 'DT10', label: '查看' },
-  ];
-
-  // 根据对象类型获取权限选项
-  const getPermissionOptions = (type) => {
-    return type === '文件' ? filePermissionOptions : tablePermissionOptions;
-  };
-
-  // 模拟从数据中心获取对象列表（与数据中心的数据保持一致）
+  // 模拟从数据中心获取对象列表（与数据中心的数据保持一致，只包含表）
   const dataCenterObjects = [
-    {
-      id: 1,
-      name: '2024年财务报告.pdf',
-      objectType: 'file',
-    },
-    {
-      id: 2,
-      name: '2023年对外披露数据.pdf',
-      objectType: 'file',
-    },
     { 
       id: 3, 
       name: '测试表1',
@@ -76,19 +54,13 @@ const DataPermissionConfig = () => {
     }
   ];
 
-  // 根据对象类别获取对象名称选项（过滤掉已添加的对象）
-  const getObjectNameOptions = (type) => {
-    const typeMap = {
-      '表': 'table',
-      '文件': 'file',
-    };
-    // 获取已添加的同类型对象名称
-    const addedObjectNames = objectPermissions
-      .filter(obj => obj.objectType === type)
-      .map(obj => obj.objectName);
+  // 获取表对象名称选项（过滤掉已添加的对象）
+  const getObjectNameOptions = () => {
+    // 获取已添加的对象名称
+    const addedObjectNames = objectPermissions.map(obj => obj.objectName);
     
     return dataCenterObjects
-      .filter(obj => obj.objectType === typeMap[type])
+      .filter(obj => obj.objectType === 'table')
       .filter(obj => !addedObjectNames.includes(obj.name)) // 过滤掉已添加的对象
       .map(obj => obj.name);
   };
@@ -118,7 +90,7 @@ const DataPermissionConfig = () => {
     }
     
     // 检查是否已经添加过这个对象
-    if (objectPermissions.some(obj => obj.objectName === objectName && obj.objectType === objectType)) {
+    if (objectPermissions.some(obj => obj.objectName === objectName)) {
       alert('该对象已添加，请勿重复添加');
       return;
     }
@@ -129,17 +101,15 @@ const DataPermissionConfig = () => {
     let permissions = [];
     if (isAdmin) {
       // 管理员默认拥有所有权限
-      permissions = objectType === '文件' 
-        ? filePermissionOptions.map(opt => opt.value)
-        : tablePermissionOptions.map(opt => opt.value);
+      permissions = tablePermissionOptions.map(opt => opt.value);
     } else {
-      // 普通用户使用已选择的权限（表类型已自动设置为DT8，文件类型为DT10）
+      // 普通用户使用已选择的权限（表类型已自动设置为DT8）
       permissions = [...selectedPermissions];
     }
 
     const newObjectPermission = {
       id: Date.now(),
-      objectType,
+      objectType: '表',
       objectName,
       permissions,
       columnConfigs: tempColumnConfigs.length > 0 ? [...tempColumnConfigs] : [], // 使用临时配置的行列权限
@@ -161,7 +131,6 @@ const DataPermissionConfig = () => {
   // 编辑对象权限 - 打开编辑弹窗
   const handleEditObjectPermission = (objectPermission) => {
     setEditingObject(objectPermission);
-    setEditObjectType(objectPermission.objectType);
     setEditObjectName(objectPermission.objectName);
     setEditSelectedPermissions(objectPermission.permissions);
     setEditTempColumnConfigs(objectPermission.columnConfigs || []);
@@ -172,7 +141,6 @@ const DataPermissionConfig = () => {
   const handleEditModalClose = () => {
     setIsEditModalVisible(false);
     setEditingObject(null);
-    setEditObjectType('表');
     setEditObjectName(null);
     setEditSelectedPermissions([]);
     setEditTempColumnConfigs([]);
@@ -186,11 +154,9 @@ const DataPermissionConfig = () => {
     let permissions = [];
     if (isAdmin) {
       // 管理员默认拥有所有权限
-      permissions = editObjectType === '文件' 
-        ? filePermissionOptions.map(opt => opt.value)
-        : tablePermissionOptions.map(opt => opt.value);
+      permissions = tablePermissionOptions.map(opt => opt.value);
     } else {
-      // 普通用户使用已选择的权限（表类型已自动设置为DT8，文件类型为DT10）
+      // 普通用户使用已选择的权限（表类型已自动设置为DT8）
       permissions = [...editSelectedPermissions];
     }
 
@@ -199,7 +165,7 @@ const DataPermissionConfig = () => {
       obj.id === editingObject.id 
         ? {
             ...obj,
-            objectType: editObjectType,
+            objectType: '表',
             objectName: editObjectName,
             permissions,
             columnConfigs: editTempColumnConfigs.length > 0 ? [...editTempColumnConfigs] : []
@@ -310,12 +276,18 @@ const DataPermissionConfig = () => {
     
     // 如果已有临时配置则使用，否则初始化
     if (tempColumnConfigs.length > 0) {
-      setColumnConfigs(tempColumnConfigs);
+      // 确保每个字段都有 relation 字段（兼容旧数据）
+      const configsWithRelation = tempColumnConfigs.map(config => ({
+        ...config,
+        relation: config.relation || '且'
+      }));
+      setColumnConfigs(configsWithRelation);
     } else {
       const initialConfigs = columns.map(col => ({
         ...col,
         selected: true, // 默认全选
         expressions: [], // 行权限表达式
+        relation: '且', // 字段内表达式关系：'且' 或 '或'，对应 SQL 的 AND 和 OR
       }));
       setColumnConfigs(initialConfigs);
     }
@@ -339,12 +311,18 @@ const DataPermissionConfig = () => {
     
     // 如果已有临时配置则使用，否则初始化
     if (editTempColumnConfigs.length > 0) {
-      setColumnConfigs(editTempColumnConfigs);
+      // 确保每个字段都有 relation 字段（兼容旧数据）
+      const configsWithRelation = editTempColumnConfigs.map(config => ({
+        ...config,
+        relation: config.relation || '且'
+      }));
+      setColumnConfigs(configsWithRelation);
     } else {
       const initialConfigs = columns.map(col => ({
         ...col,
         selected: true, // 默认全选
         expressions: [], // 行权限表达式
+        relation: '且', // 字段内表达式关系：'且' 或 '或'，对应 SQL 的 AND 和 OR
       }));
       setColumnConfigs(initialConfigs);
     }
@@ -362,12 +340,18 @@ const DataPermissionConfig = () => {
     
     // 如果已有配置则使用已有的，否则初始化
     if (objectPermission.columnConfigs && objectPermission.columnConfigs.length > 0) {
-      setColumnConfigs(objectPermission.columnConfigs);
+      // 确保每个字段都有 relation 字段（兼容旧数据）
+      const configsWithRelation = objectPermission.columnConfigs.map(config => ({
+        ...config,
+        relation: config.relation || '且'
+      }));
+      setColumnConfigs(configsWithRelation);
     } else {
       const initialConfigs = columns.map(col => ({
         ...col,
         selected: true, // 默认全选
         expressions: [], // 行权限表达式
+        relation: '且', // 字段内表达式关系：'且' 或 '或'，对应 SQL 的 AND 和 OR
       }));
       setColumnConfigs(initialConfigs);
     }
@@ -431,6 +415,19 @@ const DataPermissionConfig = () => {
               values: [], // 用于"包含"操作符
             }
           ]
+        };
+      }
+      return col;
+    }));
+  };
+
+  // 更新字段的表达式关系
+  const handleUpdateColumnRelation = (columnName, relation) => {
+    setColumnConfigs(columnConfigs.map(col => {
+      if (col.name === columnName) {
+        return {
+          ...col,
+          relation: relation
         };
       }
       return col;
@@ -541,20 +538,6 @@ const DataPermissionConfig = () => {
     }));
   };
 
-  // 对象类别改变
-  const handleObjectTypeChange = (value) => {
-    setObjectType(value);
-    setObjectName(null);
-    // 文件类型默认选中"查看"权限，表类型默认选中"表查询"权限
-    if (value === '文件') {
-      setSelectedPermissions(['DT10']);
-    } else if (value === '表') {
-      setSelectedPermissions(['DT8']);
-    } else {
-      setSelectedPermissions([]);
-    }
-    setTempColumnConfigs([]); // 清空临时行列权限配置
-  };
 
   // 如果没有角色信息，显示加载中（实际上会立即重定向）
   if (!currentRole) {
@@ -596,23 +579,6 @@ const DataPermissionConfig = () => {
           <div style={{ fontWeight: 600, marginBottom: '12px' }}>添加对象</div>
           
           <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
-            {/* 对象类别 */}
-            <div style={{ width: '200px' }}>
-              <div style={{ marginBottom: '8px', fontSize: '14px' }}>
-                <span style={{ color: '#ff4d4f', marginRight: '4px' }}>*</span>
-                对象类别
-              </div>
-              <Select
-                value={objectType}
-                onChange={handleObjectTypeChange}
-                style={{ width: '100%' }}
-                placeholder="请选择对象类别"
-              >
-                <Option value="表">表</Option>
-                <Option value="文件">文件</Option>
-              </Select>
-            </div>
-
             {/* 对象名称 */}
             <div style={{ width: '300px' }}>
               <div style={{ marginBottom: '8px', fontSize: '14px' }}>
@@ -623,39 +589,32 @@ const DataPermissionConfig = () => {
                 value={objectName}
                 onChange={(value) => {
                   setObjectName(value);
-                  // 文件类型默认选中"查看"权限，表类型默认选中"表查询"权限
-                  if (objectType === '文件') {
-                    setSelectedPermissions(['DT10']);
-                  } else if (objectType === '表') {
-                    setSelectedPermissions(['DT8']);
-                  } else {
-                    setSelectedPermissions([]);
-                  }
+                  // 表类型默认选中"表查询"权限
+                  setSelectedPermissions(['DT8']);
                   setTempColumnConfigs([]); // 切换对象时清空临时配置
                 }}
                 style={{ width: '100%' }}
                 placeholder="请选择对象名称"
               >
-                {getObjectNameOptions(objectType).map(name => (
+                {getObjectNameOptions().map(name => (
                   <Option key={name} value={name}>{name}</Option>
                 ))}
               </Select>
             </div>
 
-            {/* 表类型显示配置行列权限按钮 - 管理员不显示 */}
-            {!(currentRole?.roleName === '管理员' || currentRole?.roleId === '2') && objectType === '表' && objectName && (
-              <div style={{ alignSelf: 'flex-end', paddingBottom: '4px' }}>
-                <Button
-                  type="link"
-                  size="small"
-                  icon={<SettingOutlined />}
-                  onClick={handleConfigColumnPermissionBeforeAdd}
-                  style={{ padding: 0 }}
-                >
-                  配置行列权限 {tempColumnConfigs.length > 0 && '(已配置)'}
-                </Button>
-              </div>
-            )}
+            {/* 配置行列权限按钮 */}
+            <div style={{ alignSelf: 'flex-end', paddingBottom: '4px' }}>
+              <Button
+                type="link"
+                size="small"
+                icon={<SettingOutlined />}
+                onClick={handleConfigColumnPermissionBeforeAdd}
+                disabled={!objectName}
+                style={{ padding: 0 }}
+              >
+                配置行列权限 {tempColumnConfigs.length > 0 && '(已配置)'}
+              </Button>
+            </div>
           </div>
 
           <Button type="primary" onClick={handleAddObjectPermission}>
@@ -723,18 +682,18 @@ const DataPermissionConfig = () => {
                         </span>
                         <span style={{ 
                           padding: '2px 8px',
-                          backgroundColor: obj.objectType === '表' ? '#e6f7ff' : '#fff7e6',
-                          color: obj.objectType === '表' ? '#1890ff' : '#fa8c16',
+                          backgroundColor: '#e6f7ff',
+                          color: '#1890ff',
                           fontSize: '12px',
                           borderRadius: '2px'
                         }}>
-                          {obj.objectType}
+                          表
                         </span>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      {/* 表类型且非管理员才显示编辑按钮 */}
-                      {!(currentRole?.roleName === '管理员' || currentRole?.roleId === '2') && obj.objectType === '表' && (
+                      {/* 非管理员才显示编辑按钮 */}
+                      {!(currentRole?.roleName === '管理员' || currentRole?.roleId === '2') && (
                         <Button
                           size="small"
                           onClick={() => handleEditObjectPermission(obj)}
@@ -785,28 +744,6 @@ const DataPermissionConfig = () => {
       >
         <div style={{ padding: '12px 0' }}>
           <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-            {/* 对象类别 */}
-            <div style={{ width: '200px' }}>
-              <div style={{ marginBottom: '8px', fontSize: '14px' }}>
-                <span style={{ color: '#ff4d4f', marginRight: '4px' }}>*</span>
-                对象类别
-              </div>
-              <Select
-                value={editObjectType}
-                onChange={(value) => {
-                  setEditObjectType(value);
-                  setEditObjectName(null);
-                  setEditTempColumnConfigs([]);
-                }}
-                style={{ width: '100%' }}
-                placeholder="请选择对象类别"
-                disabled
-              >
-                <Option value="表">表</Option>
-                <Option value="文件">文件</Option>
-              </Select>
-            </div>
-
             {/* 对象名称 */}
             <div style={{ width: '300px' }}>
               <div style={{ marginBottom: '8px', fontSize: '14px' }}>
@@ -823,27 +760,26 @@ const DataPermissionConfig = () => {
                 placeholder="请选择对象名称"
                 disabled
               >
-                {getObjectNameOptions(editObjectType).map(name => (
+                {getObjectNameOptions().map(name => (
                   <Option key={name} value={name}>{name}</Option>
                 ))}
               </Select>
             </div>
           </div>
 
-          {/* 表类型显示配置行列权限按钮 - 管理员不显示 */}
-          {!(currentRole?.roleName === '管理员' || currentRole?.roleId === '2') && editObjectType === '表' && editObjectName && (
-            <div style={{ marginBottom: '16px' }}>
-              <Button
-                type="link"
-                size="small"
-                icon={<SettingOutlined />}
-                onClick={handleConfigColumnPermissionInEditMode}
-                style={{ padding: 0 }}
-              >
-                配置行列权限 {editTempColumnConfigs.length > 0 && '(已配置)'}
-              </Button>
-            </div>
-          )}
+          {/* 配置行列权限按钮 */}
+          <div style={{ marginBottom: '16px' }}>
+            <Button
+              type="link"
+              size="small"
+              icon={<SettingOutlined />}
+              onClick={handleConfigColumnPermissionInEditMode}
+              disabled={!editObjectName}
+              style={{ padding: 0 }}
+            >
+              配置行列权限 {editTempColumnConfigs.length > 0 && '(已配置)'}
+            </Button>
+          </div>
         </div>
       </Modal>
 
@@ -853,7 +789,7 @@ const DataPermissionConfig = () => {
         open={isRowColumnModalVisible}
         onOk={handleSaveRowColumnPermission}
         onCancel={handleRowColumnModalClose}
-        width={780}
+        width={1000}
         okText="确定"
         cancelText="取消"
         bodyStyle={{ maxHeight: '60vh', overflow: 'auto' }}
@@ -903,7 +839,7 @@ const DataPermissionConfig = () => {
               {/* 表头 */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '50px 120px 1fr 140px',
+                gridTemplateColumns: '50px 120px 100px 400px 200px',
                 backgroundColor: '#fafafa',
                 borderBottom: '1px solid #e8e8e8',
                 fontWeight: 600,
@@ -911,6 +847,7 @@ const DataPermissionConfig = () => {
               }}>
                 <div>选择</div>
                 <div>列名</div>
+                <div>表达式关系</div>
                 <div>行权限表达式</div>
                 <div>样例数据</div>
               </div>
@@ -926,7 +863,7 @@ const DataPermissionConfig = () => {
                 >
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: '50px 120px 1fr 140px',
+                    gridTemplateColumns: '50px 120px 100px 400px 200px',
                     padding: '16px',
                     alignItems: 'start'
                   }}>
@@ -941,6 +878,27 @@ const DataPermissionConfig = () => {
                     {/* 列名 */}
                     <div>
                       <div style={{ fontWeight: 500 }}>{col.name}</div>
+                    </div>
+
+                    {/* 表达式关系 */}
+                    <div>
+                      {!col.selected ? (
+                        <div style={{ color: '#999', fontSize: '14px' }}>-</div>
+                      ) : col.expressions.length < 2 ? (
+                        <div style={{ color: '#999', fontSize: '14px', paddingTop: '12px' }}>-</div>
+                      ) : (
+                        <div style={{ paddingTop: '12px' }}>
+                          <Select
+                            value={col.relation || '且'}
+                            onChange={(value) => handleUpdateColumnRelation(col.name, value)}
+                            style={{ width: '80px' }}
+                            size="small"
+                          >
+                            <Option value="且">且</Option>
+                            <Option value="或">或</Option>
+                          </Select>
+                        </div>
+                      )}
                     </div>
 
                     {/* 行权限表达式 */}
@@ -958,10 +916,7 @@ const DataPermissionConfig = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           {col.expressions.map((exp) => (
                             <div key={exp.id} style={{ 
-                              border: '1px solid #d9d9d9',
-                              borderRadius: '4px',
-                              padding: '12px',
-                              backgroundColor: '#fff'
+                              padding: '12px 0'
                             }}>
                               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginBottom: '8px' }}>
                                 <Select
@@ -986,7 +941,7 @@ const DataPermissionConfig = () => {
                                     value={exp.value}
                                     onChange={(e) => handleUpdateExpression(col.name, exp.id, 'value', e.target.value)}
                                     placeholder={exp.operator === '模糊匹配' ? "例如: '%科技公司'" : '输入值...'}
-                                    style={{ flex: 1 }}
+                                    style={{ width: '120px' }}
                                   />
                                 )}
 
@@ -1016,7 +971,7 @@ const DataPermissionConfig = () => {
                                         value={val}
                                         onChange={(e) => handleUpdateExpressionValue(col.name, exp.id, valIndex, e.target.value)}
                                         placeholder="输入值..."
-                                        style={{ flex: 1 }}
+                                        style={{ width: '120px' }}
                                       />
                                       <Button
                                         size="small"
