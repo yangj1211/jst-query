@@ -1785,19 +1785,6 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
     }
   };
 
-  // 快速提问
-  const handleQuickQuestion = (question) => {
-    setInputValue(question);
-  };
-
-  // 常用问题列表
-  const quickQuestions = [
-    '我们1-6月不同产品收入是多少',
-    '我们前十大客户是什么？金额是什么？占比多少',
-    '最近三年不同产品和地区的销售额',
-    '今年销售额最高的三个行业是什么？为什么？'
-  ];
-
   // 打开菜单
   const handleOpenMenu = (e, conversationId) => {
     e.stopPropagation();
@@ -2061,17 +2048,6 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                     </svg>
                   </div>
                   <div className="welcome-text">您好！我是问数智能助手，有什么可以帮您的吗？</div>
-                  <div className="quick-questions">
-                    {quickQuestions.map((question, index) => (
-                      <button
-                        key={index}
-                        className="quick-question-btn"
-                        onClick={() => handleQuickQuestion(question)}
-                      >
-                        {question}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               ) : (
                 messages.map(message => (
