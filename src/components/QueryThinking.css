@@ -1,0 +1,130 @@
+.query-thinking-wrapper {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.thinking-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fffbeb;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.thinking-header:hover {
+  background: #fef3c7;
+}
+
+.thinking-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #92400e;
+}
+
+.thinking-title {
+  color: #92400e;
+}
+
+.thinking-content {
+  padding: 16px;
+  background: #ffffff;
+}
+
+/* 相关数据区域 */
+.thinking-data-info {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.data-info-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.data-info-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.data-info-item:last-child {
+  margin-bottom: 0;
+}
+
+.data-info-key {
+  color: #6b7280;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.data-info-value {
+  color: #1f2937;
+  flex: 1;
+}
+
+/* 执行步骤区域 */
+.thinking-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.thinking-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #374151;
+  transition: all 0.3s;
+}
+
+.thinking-step.loading {
+  opacity: 0.7;
+}
+
+.thinking-step.done {
+  opacity: 1;
+  background: #f0fdf4;
+  border-left: 2px solid #10b981;
+}
+
+.step-marker {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.thinking-step.done .step-marker {
+  color: #10b981;
+}
+
+.step-description {
+  flex: 1;
+  color: #1f2937;
+}
+

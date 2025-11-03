@@ -1,0 +1,57 @@
+.intent-recognition-wrapper {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.intent-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #f9fafb;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.intent-header:hover {
+  background: #f3f4f6;
+}
+
+.intent-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #374151;
+}
+
+.intent-title {
+  color: #374151;
+}
+
+.intent-content {
+  padding: 16px;
+  background: #ffffff;
+}
+
+.intent-section {
+  margin-bottom: 0;
+}
+
+.intent-label {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.intent-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1f2937;
+}
+
