@@ -45,7 +45,6 @@ const MainLayout = () => {
 
   const renderContent = () => {
     // 简单的路由逻辑
-    if (location.pathname === '/data/view') {
     if (location.pathname.startsWith('/dashboard')) {
       return <Dashboard />;
     }
