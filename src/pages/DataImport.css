@@ -24,6 +24,204 @@
   border-radius: 8px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+}
+
+/* 任务搜索框 */
+.task-search-bar {
+  position: relative;
+  margin-bottom: 20px;
+  max-width: 400px;
+}
+
+.task-search-input {
+  width: 100%;
+  padding: 10px 40px 10px 16px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.3s;
+  background: #fafafa;
+}
+
+.task-search-input:focus {
+  outline: none;
+  border-color: #1890ff;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.task-search-input::placeholder {
+  color: #bbb;
+}
+
+.clear-task-search-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #999;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.clear-task-search-btn:hover {
+  background: #f0f0f0;
+  color: #666;
+}
+
+/* 已载入文件区域 */
+.imported-files-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.files-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.files-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* 文件列表 */
+.files-list {
+  background: #fff;
+  border-radius: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid #e0e0e0;
+}
+
+.files-list-header {
+  display: grid;
+  grid-template-columns: 1fr 100px 150px 150px 180px 100px;
+  min-width: 880px;
+  padding: 16px 20px;
+  background: #fafafa;
+  border-bottom: 1px solid #e0e0e0;
+  font-weight: 600;
+  font-size: 13px;
+  color: #333;
+}
+
+.files-list-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 150px 150px 180px 100px;
+  min-width: 880px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.2s;
+  align-items: center;
+}
+
+.files-list-row:hover {
+  background: #f8f9fa;
+}
+
+.files-list-row:last-child {
+  border-bottom: none;
+}
+
+/* 文件列名称 */
+.file-col-name {
+  color: #333;
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 文件类型 */
+.file-col-type {
+  font-weight: 500;
+}
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.type-file {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.type-table {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+/* 文件来源 */
+.file-col-source {
+  font-size: 13px;
+  color: #666;
+}
+
+/* 文件信息 */
+.file-col-info {
+  font-size: 13px;
+  color: #666;
+}
+
+/* 导入时间 */
+.file-col-time {
+  font-size: 13px;
+  color: #666;
+}
+
+/* 文件操作按钮 */
+.file-col-action {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.file-action-btn {
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+}
+
+.file-action-btn:hover:not(:disabled) {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.file-action-btn.delete-btn:hover:not(:disabled) {
+  border-color: #ff4d4f;
+  color: #ff4d4f;
 }
 
 .tasks-header {

@@ -48,11 +48,15 @@ const MainLayout = () => {
     if (location.pathname.startsWith('/dashboard')) {
       return <Dashboard />;
     }
-    if (location.pathname.startsWith('/data')) {
-      return <DataCenter />;
-    }
+    // 先判断更具体的路径
     if (location.pathname === '/data/import') {
       return <DataImport />;
+    }
+    if (location.pathname === '/data/view') {
+      return <DataCenter />;
+    }
+    if (location.pathname.startsWith('/data')) {
+      return <DataCenter />;
     }
     if (location.pathname === '/permission/user-management') {
       return <UserManagement />;
