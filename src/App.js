@@ -5,8 +5,10 @@ import DataCenter from './pages/DataCenter';
 import PermissionConfig from './pages/PermissionConfig';
 import UserManagement from './pages/UserManagement';
 import RolePermission from './pages/RolePermission';
+import DataPermissionConfig from './pages/DataPermissionConfig';
 import DocumentSearch from './pages/DocumentSearch';
 import SalesDocumentSearch from './pages/SalesDocumentSearch';
+import DataImport from './pages/DataImport';
 import './App.css';
 
 function App() {
@@ -17,10 +19,12 @@ function App() {
           <Route index element={<Navigate to="/question" />} />
           <Route path="question" element={<QuestionAssistant />} />
           <Route path="document" element={<DocumentSearch />} />
-          <Route path="data" element={<DataCenter />} />
+          <Route path="data/view" element={<DataCenter />} />
+          <Route path="data/import" element={<DataImport />} />
           <Route path="permission" element={<PermissionConfig />} />
           <Route path="permission/user-management" element={<UserManagement />} />
           <Route path="permission/role-permission" element={<RolePermission />} />
+          <Route path="permission/data-permission" element={<DataPermissionConfig />} />
         </Route>
       </Routes>
     </Router>

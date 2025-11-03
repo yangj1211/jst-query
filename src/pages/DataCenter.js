@@ -5,8 +5,15 @@ import './DataCenter.css';
 
 const DataCenter = () => {
   const [showUploadModal, setShowUploadModal] = useState(false); // 控制上传弹窗显示
+  const [uploadTab, setUploadTab] = useState('local'); // 'local' 或 'online'
   const [uploadedFile, setUploadedFile] = useState(null);
   const [fields, setFields] = useState([]); // 初始为空，上传文件后根据表头生成
+  const [announcementTab, setAnnouncementTab] = useState('annual'); // 公告类型标签
+  const [searchResults, setSearchResults] = useState([]); // 搜索结果
+  const [showFileNameModal, setShowFileNameModal] = useState(false); // 控制文件名输入弹窗
+  const [selectedDoc, setSelectedDoc] = useState(null); // 当前选中的文档
+  const [inputFileName, setInputFileName] = useState(''); // 用户输入的文件名
+  const [isFileNameValid, setIsFileNameValid] = useState(true); // 文件名是否合法
   const [savedTables, setSavedTables] = useState([
     {
       id: 1,
@@ -304,7 +311,7 @@ const DataCenter = () => {
     );
   };
 
-  // 生成抽样数据（模拟）
+  // 生成表数据（模拟）
   const generateSampleData = (table, count = 100) => {
     const data = [];
     for (let i = 1; i <= count; i++) {
@@ -348,16 +355,140 @@ const DataCenter = () => {
     return Math.ceil(100 / pageSize);
   };
 
+  // 根据公告类型获取资讯数据
+  const getAnnouncementData = (type) => {
+    const dataMap = {
+      annual: [
+        { id: 1, datetime: '2025-04-03', content: '金盘科技：2024年年度报告' },
+        { id: 2, datetime: '2024-03-21', content: '金盘科技：2023年年度报告' },
+        { id: 3, datetime: '2023-03-21', content: '金盘科技：2022年年度报告' },
+        { id: 4, datetime: '2022-04-16', content: '金盘科技：2021年年度报告' },
+      ],
+      interim: [
+        { id: 1, datetime: '2025-08-15', content: '金盘科技：2025年中期报告' },
+        { id: 2, datetime: '2024-08-20', content: '金盘科技：2024年中期报告' },
+      ],
+      q1: [
+        { id: 1, datetime: '2025-04-28', content: '金盘科技：2025年第一季度报告' },
+        { id: 2, datetime: '2024-04-25', content: '金盘科技：2024年第一季度报告' },
+      ],
+      q3: [
+        { id: 1, datetime: '2025-10-28 00:56', content: '金盘科技(688676.SH)发布前三季度业绩，归母净利润4.86亿元，同比增长20.27%' },
+        { id: 2, datetime: '2025-10-27 18:51', content: '金盘科技前三季度营收51.94亿元同比增8.25%，归母净利润4.86亿元同比增20.27%，销售费用同比增长23.63%' },
+        { id: 3, datetime: '2025-10-27 18:23', content: '金盘科技公布三季报 前三季净利增加20.27%' },
+        { id: 4, datetime: '2025-10-27 18:22', content: '图解金盘科技三季报：第三季度单季净利润同比增长21.71%' },
+      ]
+    };
+    return dataMap[type] || [];
+  };
+
+  // 验证文件名是否合法（只允许中文、英文字母、数字、短横线、下划线）
+  const validateFileName = (name) => {
+    if (!name.trim()) {
+      return false;
+    }
+    // 正则表达式：只允许中文、英文字母、数字、短横线、下划线
+    const validPattern = /^[\u4e00-\u9fa5A-Za-z0-9_-]+$/;
+    return validPattern.test(name);
+  };
+
+  // 处理文件名输入变化
+  const handleFileNameChange = (value) => {
+    setInputFileName(value);
+    setIsFileNameValid(validateFileName(value));
+  };
+
+  // 打开文件名输入弹窗
+  const handleImportOnlineDoc = (item) => {
+    // 设置默认文件名（过滤掉不合法字符）
+    let defaultFileName = item.content.length > 30 
+      ? item.content.substring(0, 30) 
+      : item.content;
+    
+    // 替换不合法字符为下划线
+    defaultFileName = defaultFileName.replace(/[^\u4e00-\u9fa5A-Za-z0-9_-]/g, '_');
+    
+    setSelectedDoc(item);
+    setInputFileName(defaultFileName);
+    setIsFileNameValid(validateFileName(defaultFileName));
+    setShowFileNameModal(true);
+  };
+
+  // 确认导入文档
+  const handleConfirmImport = () => {
+    // 检查文件名是否为空
+    if (!inputFileName.trim()) {
+      alert('文件名不能为空！');
+      return;
+    }
+
+    // 检查文件名是否合法
+    if (!isFileNameValid) {
+      alert('文件名包含非法字符！\n只允许使用：中文、英文字母、数字、短横线(-)、下划线(_)');
+      return;
+    }
+    
+    const now = new Date().toLocaleString('zh-CN');
+    const newFile = {
+      id: savedTables.length + 1,
+      name: `${inputFileName.trim()}.pdf`,
+      description: selectedDoc.content,
+      objectType: 'file',
+      fileSize: '2.1MB',
+      createTime: now,
+      updateTime: now
+    };
+    setSavedTables([...savedTables, newFile]);
+    
+    // 关闭弹窗并重置状态
+    setShowFileNameModal(false);
+    setSelectedDoc(null);
+    setInputFileName('');
+    setIsFileNameValid(true);
+    
+    alert(`已成功导入文档到文件列表！\n文件名：${inputFileName.trim()}.pdf`);
+  };
+
+  // 取消导入
+  const handleCancelImport = () => {
+    setShowFileNameModal(false);
+    setSelectedDoc(null);
+    setInputFileName('');
+    setIsFileNameValid(true);
+  };
+
+  // 关闭弹窗时重置状态
+  const handleCloseModal = () => {
+    setShowUploadModal(false);
+    setUploadTab('local');
+    setAnnouncementTab('annual');
+    setSearchResults([]);
+  };
+
+  // 获取标签显示名称
+  const getTabLabel = (type) => {
+    const labels = {
+      annual: '年度报告',
+      interim: '中期报告',
+      q1: '一季度报告',
+      q3: '三季度报告'
+    };
+    return labels[type] || type;
+  };
+
   return (
     <div className="page-container">
       <div className="page-header">
-        <h2>数据中心</h2>
-        <button className="upload-entry-btn" onClick={() => setShowUploadModal(true)}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: '6px' }}>
-            <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          导入数据
-        </button>
+        <div className="header-left">
+          {viewingTableId && (
+            <button className="back-icon-btn" onClick={handleBackToList}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M11 1L4 8l7 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          )}
+          <h2>{viewingTableId ? '表详情' : '数据中心'}</h2>
+        </div>
       </div>
       <div className="page-content">
         {/* 表列表和详情 */}
@@ -398,14 +529,7 @@ const DataCenter = () => {
                 {getFilteredTables().map((item) => (
                   <div key={item.id} className="table-list-row">
                     <div className="list-col-name">
-                      <span 
-                        className={item.objectType === 'table' ? 'table-name-link' : ''}
-                        onClick={() => item.objectType === 'table' ? handleViewTable(item.id) : null}
-                        style={{ 
-                          cursor: item.objectType === 'file' ? 'default' : 'pointer',
-                          color: item.objectType === 'file' ? '#333' : ''
-                        }}
-                      >
+                      <span style={{ cursor: 'default', color: '#333' }}>
                         {item.name}
                       </span>
                     </div>
@@ -421,6 +545,16 @@ const DataCenter = () => {
                     <div className="list-col-actions">
                       {item.objectType === 'table' && (
                         <>
+                          <button 
+                            className="list-action-btn"
+                            onClick={() => handleViewTable(item.id)}
+                            title="预览"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M8 3C4.5 3 1.5 5.5 0 8c1.5 2.5 4.5 5 8 5s6.5-2.5 8-5c-1.5-2.5-4.5-5-8-5zm0 8.5c-1.93 0-3.5-1.57-3.5-3.5S6.07 4.5 8 4.5s3.5 1.57 3.5 3.5S9.93 11.5 8 11.5z"/>
+                              <circle cx="8" cy="8" r="2"/>
+                            </svg>
+                          </button>
                           <button 
                             className="list-action-btn"
                             onClick={() => handleClearTable(item.id)}
@@ -447,7 +581,7 @@ const DataCenter = () => {
                           <button 
                             className="list-action-btn"
                             onClick={() => handlePreviewFile(item.id)}
-                            title="预览文件"
+                            title="预览"
                           >
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                               <path d="M8 3C4.5 3 1.5 5.5 0 8c1.5 2.5 4.5 5 8 5s6.5-2.5 8-5c-1.5-2.5-4.5-5-8-5zm0 8.5c-1.93 0-3.5-1.57-3.5-3.5S6.07 4.5 8 4.5s3.5 1.57 3.5 3.5S9.93 11.5 8 11.5z"/>
@@ -480,12 +614,6 @@ const DataCenter = () => {
             
             return (
               <div className="table-detail-section">
-                <button className="back-btn" onClick={handleBackToList}>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M11 1L4 8l7 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  返回
-                </button>
                 <div className="detail-header">
                   <div className="detail-title">
                     <h3>{table.name}</h3>
@@ -524,7 +652,7 @@ const DataCenter = () => {
                     className={`detail-tab-button ${detailTab === 'data' ? 'active' : ''}`}
                     onClick={() => setDetailTab('data')}
                   >
-                    抽样数据
+                    表数据
                   </button>
                 </div>
 
@@ -552,7 +680,7 @@ const DataCenter = () => {
                   </div>
                 )}
 
-                {/* 抽样数据 */}
+                {/* 表数据 */}
                 {detailTab === 'data' && (
                   <div className="detail-sample-data">
                     <div className="sample-data-table-wrapper">
@@ -619,17 +747,34 @@ const DataCenter = () => {
 
         {/* 上传弹窗 */}
         {showUploadModal && (
-          <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
+          <div className="modal-overlay" onClick={handleCloseModal}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>导入数据</h3>
-                <button className="modal-close-btn" onClick={() => setShowUploadModal(false)}>✕</button>
+                <button className="modal-close-btn" onClick={handleCloseModal}>✕</button>
               </div>
               <div className="modal-body">
-                {/* 文件上传区域 */}
-                <div className="upload-section">
-                  {/* 上传文件 */}
-                  <div className="section-title">上传文件</div>
+                {/* Tab切换 */}
+                <div className="upload-tabs">
+                  <button 
+                    className={`upload-tab-btn ${uploadTab === 'local' ? 'active' : ''}`}
+                    onClick={() => setUploadTab('local')}
+                  >
+                    上传本地文件
+                  </button>
+                  <button 
+                    className={`upload-tab-btn ${uploadTab === 'online' ? 'active' : ''}`}
+                    onClick={() => setUploadTab('online')}
+                  >
+                    网站公告
+                  </button>
+                </div>
+
+                {/* 上传本地文件内容 */}
+                {uploadTab === 'local' && (
+                  <div className="upload-section">
+                    {/* 上传文件 */}
+                    <div className="section-title">上传文件</div>
                   <div className="upload-area">
                     {!uploadedFile ? (
                       <label className="upload-label">
@@ -889,7 +1034,107 @@ const DataCenter = () => {
                       )}
                     </div>
                   )}
+                  </div>
+                )}
+
+                {/* 网站公告内容 */}
+                {uploadTab === 'online' && (
+                  <div className="announcement-section">
+                    <div className="announcement-header">
+                      <h4>资讯与公告</h4>
+                    </div>
+                    
+                    {/* 公告类型标签导航 */}
+                    <div className="announcement-tabs">
+                      {['annual', 'interim', 'q1', 'q3'].map((type) => (
+                        <button
+                          key={type}
+                          className={`announcement-tab-btn ${announcementTab === type ? 'active' : ''}`}
+                          onClick={() => setAnnouncementTab(type)}
+                        >
+                          {getTabLabel(type)}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* 资讯列表 */}
+                    <div className="announcement-content">
+                      <div className="announcement-title">
+                        {getTabLabel(announcementTab)}相关资讯：
+                      </div>
+                      <div className="announcement-list">
+                        {getAnnouncementData(announcementTab).map((item) => (
+                          <div 
+                            key={item.id} 
+                            className="announcement-item"
+                          >
+                            <span className="announcement-datetime">{item.datetime}</span>
+                            <span className="announcement-text">{item.content}</span>
+                            <button 
+                              className="import-doc-btn"
+                              onClick={() => handleImportOnlineDoc(item)}
+                              title="导入此文件"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M8.5 1.5v9m-3-3l3 3 3-3M2 13h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                              </svg>
+                              导入
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 文件名输入弹窗 */}
+        {showFileNameModal && (
+          <div className="modal-overlay" onClick={handleCancelImport}>
+            <div className="filename-modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="filename-modal-header">
+                <h3>输入文件名</h3>
+                <button className="modal-close-btn" onClick={handleCancelImport}>✕</button>
+              </div>
+              <div className="filename-modal-body">
+                <div className="filename-input-group">
+                  <label className="filename-label">文件名：</label>
+                  <input
+                    type="text"
+                    className={`filename-input ${!isFileNameValid ? 'invalid' : ''}`}
+                    value={inputFileName}
+                    onChange={(e) => handleFileNameChange(e.target.value)}
+                    placeholder="请输入文件名"
+                    autoFocus
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && isFileNameValid) {
+                        handleConfirmImport();
+                      }
+                    }}
+                  />
+                  <span className="filename-suffix">.pdf</span>
                 </div>
+                {!isFileNameValid && (
+                  <div className="filename-error">
+                    文件名包含非法字符！只允许使用：中文、英文字母、数字、短横线(-)、下划线(_)
+                  </div>
+                )}
+                <div className="filename-hint">提示：文件名会自动添加 .pdf 后缀</div>
+              </div>
+              <div className="filename-modal-footer">
+                <button className="cancel-import-btn" onClick={handleCancelImport}>
+                  取消
+                </button>
+                <button 
+                  className="confirm-import-btn" 
+                  onClick={handleConfirmImport}
+                  disabled={!isFileNameValid || !inputFileName.trim()}
+                >
+                  确认导入
+                </button>
               </div>
             </div>
           </div>

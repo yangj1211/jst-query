@@ -15,7 +15,9 @@ import DataCenter from '../pages/DataCenter';
 import PermissionConfig from '../pages/PermissionConfig';
 import UserManagement from '../pages/UserManagement';
 import RolePermission from '../pages/RolePermission';
+import DataPermissionConfig from '../pages/DataPermissionConfig';
 import DocumentSearch from '../pages/DocumentSearch';
+import DataImport from '../pages/DataImport';
 import './MainLayout.css';
 
 const { Sider, Content } = Layout;
@@ -41,14 +43,20 @@ const MainLayout = () => {
 
   const renderContent = () => {
     // 简单的路由逻辑
-    if (location.pathname.startsWith('/data')) {
+    if (location.pathname === '/data/view') {
       return <DataCenter />;
+    }
+    if (location.pathname === '/data/import') {
+      return <DataImport />;
     }
     if (location.pathname === '/permission/user-management') {
       return <UserManagement />;
     }
     if (location.pathname === '/permission/role-permission') {
       return <RolePermission />;
+    }
+    if (location.pathname === '/permission/data-permission') {
+      return <DataPermissionConfig />;
     }
     if (location.pathname.startsWith('/permission')) {
       return <PermissionConfig />;
@@ -88,7 +96,18 @@ const MainLayout = () => {
       key: 'data',
       icon: <DatabaseOutlined />,
       label: '数据中心',
-      path: '/data',
+      children: [
+        {
+          key: 'data-view',
+          label: '数据查看',
+          path: '/data/view',
+        },
+        {
+          key: 'data-import',
+          label: '数据载入',
+          path: '/data/import',
+        },
+      ],
     },
     {
       key: 'permission',
@@ -97,7 +116,7 @@ const MainLayout = () => {
       children: [
         {
           key: 'user-management',
-          label: '用户管理',
+          label: '用户信息',
           path: '/permission/user-management',
         },
         {
