@@ -1,0 +1,205 @@
+import React, { useState, useEffect } from 'react';
+import { Modal, Radio, Select, Divider, Typography, Space, Tag } from 'antd';
+import { TableOutlined, FileTextOutlined, DatabaseOutlined } from '@ant-design/icons';
+
+const { Option } = Select;
+const { Text } = Typography;
+
+/**
+ * 查询配置弹窗（优化视觉与交互）
+ * props:
+ * - visible: boolean
+ * - initialConfig: object
+ * - onOk: (config) => void
+ * - onCancel: () => void
+ */
+const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
+  const [sourceMode, setSourceMode] = useState(initialConfig.sourceMode || 'all'); // all | custom
+  const [tables, setTables] = useState(initialConfig.tables || []);
+  const [files, setFiles] = useState(initialConfig.files || []);
+  const [scopeType, setScopeType] = useState(initialConfig.scopeType || 'group'); // group | branches
+  const [branches, setBranches] = useState(initialConfig.branches || []);
+  const [caliber, setCaliber] = useState(initialConfig.caliber || 'internal'); // internal | external
+  const [applyScope, setApplyScope] = useState(initialConfig.applyScope || 'current'); // current | all
+
+  useEffect(() => {
+    if (visible) {
+      setSourceMode(initialConfig.sourceMode || 'all');
+      setTables(initialConfig.tables || []);
+      setFiles(initialConfig.files || []);
+      setScopeType(initialConfig.scopeType || 'group');
+      setBranches(initialConfig.branches || []);
+      setCaliber(initialConfig.caliber || 'internal');
+      setApplyScope(initialConfig.applyScope || 'current');
+    }
+  }, [visible, initialConfig]);
+
+  // 假数据
+  const tableOptions = ['sales_monthly_report', 'users_regional_stats', 'orders_detail', 'inventory_snapshot'];
+  const fileOptions = ['销售数据2024.xlsx', '仓储盘点.pdf', '市场跟踪.xlsx'];
+  const branchList = ['分公司 A', '分公司 B', '分公司 C', '分公司 D'];
+
+  const tagRender = (props) => {
+    const { label, closable, onClose } = props;
+    return (
+      <Tag color="#1677ff" closable={closable} onClose={onClose} style={{ marginRight: 4 }}>
+        {label}
+      </Tag>
+    );
+  };
+
+  const handleOk = () => {
+    onOk && onOk({ sourceMode, tables, files, scopeType, branches, caliber, applyScope });
+  };
+
+  return (
+    <Modal
+      open={visible}
+      title="问数配置"
+      onOk={handleOk}
+      onCancel={onCancel}
+      okText="保存配置"
+      cancelText="取消"
+      width={720}
+      destroyOnClose
+    >
+      {/* 数据来源 */}
+      <Space direction="vertical" size={4} style={{ width: '100%' }}>
+        <Space align="center" size={8}>
+          <Text strong>数据来源</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            选择数据来自哪里
+          </Text>
+        </Space>
+        <Radio.Group value={sourceMode} onChange={(e) => setSourceMode(e.target.value)}>
+          <Radio value="all">全部数据</Radio>
+          <Radio value="custom">指定来源</Radio>
+        </Radio.Group>
+        {sourceMode === 'custom' && (
+          <div style={{ marginTop: 8 }}>
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+              <Space align="center" size={6}>
+                <DatabaseOutlined />
+                <Text type="secondary">选择数据库表</Text>
+              </Space>
+              <Select
+                mode="multiple"
+                value={tables}
+                onChange={setTables}
+                style={{ width: '100%' }}
+                placeholder="请选择一个或多个表"
+                showSearch
+                tagRender={tagRender}
+                maxTagCount="responsive"
+                allowClear
+              >
+                {tableOptions.map((name) => (
+                  <Option key={name} value={name}>
+                    <Space size={6}>
+                      <TableOutlined />
+                      <span>{name}</span>
+                    </Space>
+                  </Option>
+                ))}
+              </Select>
+              <Divider dashed style={{ margin: '8px 0' }} />
+              <Space align="center" size={6}>
+                <FileTextOutlined />
+                <Text type="secondary">选择文件</Text>
+              </Space>
+              <Select
+                mode="multiple"
+                value={files}
+                onChange={setFiles}
+                style={{ width: '100%' }}
+                placeholder="请选择一个或多个文件"
+                showSearch
+                tagRender={tagRender}
+                maxTagCount="responsive"
+                allowClear
+              >
+                {fileOptions.map((name) => (
+                  <Option key={name} value={name}>
+                    <Space size={6}>
+                      <FileTextOutlined />
+                      <span>{name}</span>
+                    </Space>
+                  </Option>
+                ))}
+              </Select>
+            </Space>
+          </div>
+        )}
+      </Space>
+
+      <Divider />
+
+      {/* 数据范围 */}
+      <Space direction="vertical" size={6} style={{ width: '100%' }}>
+        <Space align="center" size={8}>
+          <Text strong>数据范围</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            选择统计范围（可按分公司限定）
+          </Text>
+        </Space>
+        <Radio.Group value={scopeType} onChange={(e) => setScopeType(e.target.value)}>
+          <Radio value="group">集团总数据</Radio>
+          <Radio value="branches">指定分公司</Radio>
+        </Radio.Group>
+        {scopeType === 'branches' && (
+          <Select
+            mode="multiple"
+            value={branches}
+            onChange={setBranches}
+            style={{ width: '100%' }}
+            placeholder="请选择分公司 (可多选)"
+            showSearch
+            tagRender={tagRender}
+            maxTagCount="responsive"
+            allowClear
+          >
+            {branchList.map((b) => (
+              <Option key={b} value={b}>
+                {b}
+              </Option>
+            ))}
+          </Select>
+        )}
+      </Space>
+
+      <Divider />
+
+      {/* 数据口径 */}
+      <Space direction="vertical" size={6} style={{ width: '100%' }}>
+        <Space align="center" size={8}>
+          <Text strong>数据口径</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            选择使用场景，以匹配管口或法口
+          </Text>
+        </Space>
+        <Radio.Group value={caliber} onChange={(e) => setCaliber(e.target.value)}>
+          <Radio value="internal">内部管理用（管口）</Radio>
+          <Radio value="external">对外披露用（法口）</Radio>
+        </Radio.Group>
+      </Space>
+
+      <Divider />
+
+      {/* 应用范围 */}
+      <Space direction="vertical" size={6} style={{ width: '100%' }}>
+        <Space align="center" size={8}>
+          <Text strong>应用范围</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            选择本配置的生效范围
+          </Text>
+        </Space>
+        <Radio.Group value={applyScope} onChange={(e) => setApplyScope(e.target.value)}>
+          <Radio value="current">仅当前对话</Radio>
+          <Radio value="all">全部对话</Radio>
+        </Radio.Group>
+      </Space>
+    </Modal>
+  );
+};
+
+export default QueryConfigModal;

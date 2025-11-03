@@ -365,9 +365,9 @@
 }
 
 .message-content {
-  padding: 12px 16px;
-  border-radius: 18px;
-  max-width: 90%;
+  padding: 0;
+  border-radius: 12px;
+  width: 100%;
   line-height: 1.5;
   word-wrap: break-word;
   white-space: pre-wrap;
@@ -375,18 +375,73 @@
 }
 
 .user-message .message-content {
-  background-color: #d6e4ff;
-  color: #333;
-  border-bottom-right-radius: 4px;
+  background: linear-gradient(135deg, #d6e4ff 0%, #bdd5ff 100%);
+  color: #1a202c;
+  padding: 12px 18px;
+  border-radius: 16px;
+  box-shadow: 0 2px 6px rgba(22, 119, 255, 0.15);
 }
 
 .ai-message .message-content {
-  background-color: #ffffff;
-  border: 1px solid #e8e8e8;
+  background-color: transparent;
+  border: none;
 }
 
-.message-time {
-  display: none;
+.ai-message .message-content p {
+  padding: 12px 16px;
+  margin: 0;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+/* 消息底部栏（参考样式：数据分析 | 数据预测    时间） */
+.message-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 12px 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+.footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.footer-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.footer-action-btn:hover {
+  color: #1677ff;
+}
+
+.footer-action-btn svg {
+  stroke: currentColor;
+}
+
+.footer-divider {
+  margin: 0 12px;
+  color: #d9d9d9;
+  font-size: 14px;
+}
+
+.footer-time {
+  color: #999;
+  font-size: 14px;
+  white-space: nowrap;
 }
 
 .message.user .message-time {
@@ -493,5 +548,47 @@
 
 .send-button-round svg {
   margin-left: 2px;
+}
+
+/* 对话分组样式 */
+.conversation-group {
+  margin-bottom: 8px;
+}
+
+.conversation-group-label {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+}
+
+/* 置顶分组特殊样式 */
+.conversation-group:has(.conversation-item.pinned) {
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+/* 置顶图标样式 */
+.pin-icon {
+  color: #1890ff;
+  flex-shrink: 0;
+}
+
+/* 删除菜单项样式 */
+.menu-item.delete {
+  color: #ff4d4f;
+}
+
+.menu-item.delete:hover {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+
+.menu-item.delete .menu-icon {
+  stroke: #ff4d4f;
 }
 
