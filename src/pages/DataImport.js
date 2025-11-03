@@ -114,6 +114,7 @@ const DataImport = () => {
   // 筛选条件
   const [filterSource, setFilterSource] = useState('all'); // all, local, online
   const [filterStatus, setFilterStatus] = useState('all'); // all, processing, pausing, paused, completed, failed
+  const [taskSearchKeyword, setTaskSearchKeyword] = useState(''); // 任务搜索关键词
   
   // 任务列表分页
   const [taskPage, setTaskPage] = useState(1);
@@ -500,6 +501,13 @@ const DataImport = () => {
   // 获取筛选后的任务列表
   const getFilteredTasks = () => {
     return importTasks.filter(task => {
+      // 搜索关键词筛选
+      if (taskSearchKeyword.trim()) {
+        if (!task.objectName.toLowerCase().includes(taskSearchKeyword.toLowerCase())) {
+          return false;
+        }
+      }
+      
       // 来源筛选
       if (filterSource !== 'all') {
         if (filterSource === 'local' && task.type !== 'excel') return false;
@@ -546,6 +554,31 @@ const DataImport = () => {
         <div className="import-tasks-section">
           <div className="tasks-header">
             <h3>载入任务</h3>
+          </div>
+          
+          {/* 搜索框 */}
+          <div className="task-search-bar">
+            <input
+              type="text"
+              className="task-search-input"
+              placeholder="搜索载入对象名..."
+              value={taskSearchKeyword}
+              onChange={(e) => {
+                setTaskSearchKeyword(e.target.value);
+                setTaskPage(1); // 重置到第一页
+              }}
+            />
+            {taskSearchKeyword && (
+              <button 
+                className="clear-task-search-btn" 
+                onClick={() => {
+                  setTaskSearchKeyword('');
+                  setTaskPage(1);
+                }}
+              >
+                ✕
+              </button>
+            )}
           </div>
           
           {getFilteredTasks().length === 0 ? (
