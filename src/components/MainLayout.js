@@ -14,6 +14,8 @@ import { useNavigate, Routes, Route, useLocation } from 'react-router-dom';
 import QuestionAssistant from '../pages/QuestionAssistant';
 import DataCenter from '../pages/DataCenter';
 import PermissionConfig from '../pages/PermissionConfig';
+import UserManagement from '../pages/UserManagement';
+import RolePermission from '../pages/RolePermission';
 import DocumentSearch from '../pages/DocumentSearch';
 import Dashboard from '../pages/Dashboard';
 import './MainLayout.css';
@@ -46,6 +48,12 @@ const MainLayout = () => {
     }
     if (location.pathname.startsWith('/data')) {
       return <DataCenter />;
+    }
+    if (location.pathname === '/permission/user-management') {
+      return <UserManagement />;
+    }
+    if (location.pathname === '/permission/role-permission') {
+      return <RolePermission />;
     }
     if (location.pathname.startsWith('/permission')) {
       return <PermissionConfig />;
@@ -97,13 +105,36 @@ const MainLayout = () => {
       key: 'permission',
       icon: <SettingOutlined />,
       label: '权限配置',
-      path: '/permission',
+      children: [
+        {
+          key: 'user-management',
+          label: '用户管理',
+          path: '/permission/user-management',
+        },
+        {
+          key: 'role-permission',
+          label: '角色权限',
+          path: '/permission/role-permission',
+        },
+      ],
     },
   ];
 
   const handleMenuClick = ({ key }) => {
-    const item = menuItems.find((menu) => menu.key === key);
-    if (item) {
+    // 查找主菜单项
+    let item = menuItems.find((menu) => menu.key === key);
+    
+    // 如果没找到，查找子菜单项
+    if (!item) {
+      for (const menu of menuItems) {
+        if (menu.children) {
+          item = menu.children.find((child) => child.key === key);
+          if (item) break;
+        }
+      }
+    }
+    
+    if (item && item.path) {
       setSelectedKey(key);
       navigate(item.path);
     }
