@@ -1052,26 +1052,6 @@ const DataPermissionConfig = () => {
                 </div>
               ))}
             </div>
-
-            {/* 底部说明 */}
-            <div style={{ 
-              marginTop: '16px',
-              padding: '12px',
-              backgroundColor: '#f5f5f5',
-              borderRadius: '4px',
-              fontSize: '13px',
-              color: '#666'
-            }}>
-              <div style={{ fontWeight: 600, marginBottom: '8px' }}>行权限表达式规则：</div>
-              <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                <li>支持为每一列设置多个行权限表达式</li>
-                <li>表达式条件分类：
-                  <ul style={{ marginTop: '4px', paddingLeft: '20px' }}>
-                    <li>精确匹配：等于、不等于（支持多值，支持且/或关系）</li>
-                  </ul>
-                </li>
-              </ul>
-            </div>
           </div>
         </div>
       </Modal>
