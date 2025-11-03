@@ -8,6 +8,7 @@ import {
   UserOutlined,
   LeftOutlined,
   RightOutlined,
+  DashboardOutlined,
 } from '@ant-design/icons';
 import { useNavigate, Routes, Route, useLocation } from 'react-router-dom';
 import QuestionAssistant from '../pages/QuestionAssistant';
@@ -16,6 +17,7 @@ import PermissionConfig from '../pages/PermissionConfig';
 import UserManagement from '../pages/UserManagement';
 import RolePermission from '../pages/RolePermission';
 import DocumentSearch from '../pages/DocumentSearch';
+import Dashboard from '../pages/Dashboard';
 import './MainLayout.css';
 
 const { Sider, Content } = Layout;
@@ -41,6 +43,9 @@ const MainLayout = () => {
 
   const renderContent = () => {
     // 简单的路由逻辑
+    if (location.pathname.startsWith('/dashboard')) {
+      return <Dashboard />;
+    }
     if (location.pathname.startsWith('/data')) {
       return <DataCenter />;
     }
@@ -83,6 +88,12 @@ const MainLayout = () => {
       icon: <QuestionCircleOutlined />,
       label: '问数助手',
       path: '/question',
+    },
+    {
+      key: 'dashboard',
+      icon: <DashboardOutlined />,
+      label: '仪表盘',
+      path: '/dashboard',
     },
     {
       key: 'data',

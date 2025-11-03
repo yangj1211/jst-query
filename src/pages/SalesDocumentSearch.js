@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Checkbox, Tag, Avatar, Input, List, Tooltip, Pagination } from 'antd';
+import { Button, Checkbox, Tag, Avatar, Input, List, Tooltip, Pagination, Modal, Table } from 'antd';
 import { 
   SyncOutlined, 
   LeftOutlined, 
@@ -90,6 +90,8 @@ const mockResults = [
 
 const SalesDocumentSearch = () => {
   const [expandedItems, setExpandedItems] = useState([1]); // 默认展开第一项
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [detailItem, setDetailItem] = useState(null);
 
   const toggleExpand = (id) => {
     setExpandedItems(prev => 
@@ -117,6 +119,104 @@ const SalesDocumentSearch = () => {
       </div>
     </div>
   );
+
+  // 详情数据（示例，来自截图）
+  const getDetailData = (item) => {
+    return {
+      baseInfo: [
+        // 按用户提供的字段顺序完整展示
+        { label: '销售订单', value: '2012000553' },
+        { label: '最终用户行业', value: '高端装备-轨道交通' },
+        { label: '最终用户行业描述', value: '交通运输-轨道交通' },
+        { label: '2012000553', value: '' }, // 占位（原文中重复编号）
+        { label: '18', value: '' },
+        { label: '交通运输-轨道交通', value: '' },
+        { label: '凭证日期', value: '2012-03-31' },
+        { label: '凭证类型', value: 'ZOR1' },
+        { label: '采购订单日期', value: '2012-03-31' },
+        { label: '客户合同编号', value: '' },
+        { label: '售达方', value: '0001000518' },
+        { label: '客户名称', value: '北京京港地铁有限公司' },
+        { label: '工程项目名称', value: '北京地铁14号线工程牵引整流机组及配电变压器采购项目' },
+        { label: '合同总金额（订单货币）', value: '5600840.00' },
+        { label: '合同总金额(CNY)', value: '5600840.00' },
+        { label: '货币', value: 'CNY' },
+        { label: '销售代表处', value: '1618' },
+        { label: '销售代表处描述', value: '雄安营销中心' },
+        { label: '销售代表', value: '162' },
+        { label: '销售代表描述', value: '雄安-刘福松' },
+        { label: '销售地区', value: 'CN0002' },
+        { label: '销售地区描述', value: '华北地区' },
+        { label: '分销渠道', value: '40' },
+        { label: '分销渠道描述', value: '国内销售' },
+        { label: '订单联系人', value: '' },
+        { label: '客户业务联系人', value: '' },
+        { label: '客户财务联系人', value: '' },
+        { label: '交货城市', value: '北京市' },
+        { label: '交货省份', value: '北京' },
+        { label: '交货联系人1', value: '刘亚军（13241401248/18811533630）' },
+        { label: '交货联系人2', value: '王凯13717821362' },
+        { label: '实际出口国家', value: '中国' },
+        { label: '质保期备注', value: '' },
+        { label: '是否投标', value: '是' },
+        { label: '是否收到合同原件', value: '是' },
+        { label: '控股方', value: '北京首都创业集团有限公司' },
+        { label: '用户行业(披露口径)', value: '25' },
+        { label: '用户行业(披露口径)描述', value: '高端装备-轨道交通' },
+        { label: '合同是否有约定保密条款', value: '否' },
+        { label: '最终用户行业二类', value: '高端装备-轨道交通' },
+        { label: '月份', value: '3' },
+        { label: '客户所在国家', value: '中国' },
+        { label: '项目交付国家', value: '中国' },
+        { label: '周', value: '201213' },
+        { label: '销售方式描述', value: '直销' },
+        { label: '销售渠道', value: '内销' },
+        { label: '报价单编号', value: '' },
+        { label: '设计图号', value: '' },
+        { label: '客户所在省份', value: '北京' },
+        { label: '凭证类型描述', value: 'JST 标准订单' },
+        { label: '订单金额合计(订单货币)', value: '5600840.00' },
+        { label: '订单金额合计(CNY)', value: '5600840.00' },
+        { label: '订单不含税金额合计', value: '4956495.60' },
+        { label: '订单不含税金额合计(CNY)', value: '4956495.60' },
+        { label: '最终用户行业三类', value: '高端装备-轨道交通' },
+        { label: '最终用户行业一类', value: '高端装备' },
+        { label: 'VAT发票号', value: '' },
+        { label: 'VAT发票时间', value: '' },
+        { label: 'VAT发票税率', value: '' },
+        { label: 'VAT发票金额', value: '33387921.00' },
+        { label: '合同差额', value: '0.00' },
+        { label: '发票差额', value: '34806327.00' },
+        { label: 'VAT发票种类', value: '' },
+        { label: 'VAT发票代码', value: '' },
+        { label: '销售折扣%', value: '55.92' },
+        { label: '安装通电验收单状态', value: '' },
+        { label: '付款条件备注', value: '17.4 付款以人民币进行支付。卖方应在合同签订后十（10）天内提交履约担保，由此卖方引发的银行费用由卖方承担。买方应向卖方提供支付保证。17.5 支付进度……（示例）' },
+        { label: '不合理请求', value: '' },
+        { label: '订单原因', value: '' },
+        { label: '合同确认书编号', value: '' },
+      ],
+      items: [
+        { key: '1', no: 35, line: 590, model: '-', spec: '0.00', materialNo: '914010000001', desc: '技术服务及设计联络费', capacity: '-', firstDate: '2026-12-01', price: '198080.00' },
+        { key: '2', no: 5, line: 980, model: 'SCBH15-1250/10.5', spec: '1250.00', materialNo: '310117865001', desc: '干变 SCBH15-1250/10.5 ZB.011786.5001', capacity: '2500', firstDate: '2020-12-28', price: '174270.00' },
+        { key: '3', no: 17, line: 990, model: '-', spec: '0.00', materialNo: '590500001203', desc: '钢外壳 散装 2WK.024.29524', capacity: '-', firstDate: '2021-06-03', price: '0.00' },
+        { key: '4', no: 27, line: 1000, model: '0', spec: '0.00', materialNo: '120301001513', desc: '温控120301001513 20-GT-32669', capacity: '-', firstDate: '2020-12-28', price: '0.00' },
+        { key: '5', no: 6, line: 1020, model: 'SCBH15-1250/10.5', spec: '1250.00', materialNo: '310117865002', desc: '干变 SCBH15-1250/10.5 ZB.011786.5002', capacity: '2500', firstDate: '2021-04-10', price: '174270.00' },
+      ],
+    };
+  };
+
+  const itemColumns = [
+    { title: 'NO.', dataIndex: 'no', key: 'no', width: 80 },
+    { title: '行项目', dataIndex: 'line', key: 'line', width: 100 },
+    { title: '型号', dataIndex: 'model', key: 'model', width: 160 },
+    { title: '规格', dataIndex: 'spec', key: 'spec', width: 100, align: 'right' },
+    { title: '物料号', dataIndex: 'materialNo', key: 'materialNo', width: 160 },
+    { title: '物料描述', dataIndex: 'desc', key: 'desc' },
+    { title: '装机容量', dataIndex: 'capacity', key: 'capacity', width: 120, align: 'right' },
+    { title: '首个请求交货日', dataIndex: 'firstDate', key: 'firstDate', width: 160 },
+    { title: '合同单价', dataIndex: 'price', key: 'price', width: 140, align: 'right' },
+  ];
 
   return (
     <div className="sales-search-page">
@@ -167,7 +267,11 @@ const SalesDocumentSearch = () => {
                       <Button type="text" icon={<DownloadOutlined />} />
                     </Tooltip>
                     <Tooltip title="查看详情">
-                      <Button type="text" icon={<EyeOutlined />} />
+                      <Button
+                        type="text"
+                        icon={<EyeOutlined />}
+                        onClick={() => { setDetailItem(item); setDetailVisible(true); }}
+                      />
                     </Tooltip>
                     <Tooltip title="相关文件">
                       <Button type="text" icon={expandedItems.includes(item.id) ? <UpOutlined /> : <DownOutlined />} onClick={() => toggleExpand(item.id)} />
@@ -193,6 +297,42 @@ const SalesDocumentSearch = () => {
           <Pagination defaultCurrent={1} total={57640} showSizeChanger={false} />
         </div>
       </div>
+      {/* 详情弹窗 */}
+      <Modal
+        open={detailVisible}
+        title={detailItem ? detailItem.title : '详情'}
+        width={1000}
+        onCancel={() => setDetailVisible(false)}
+        footer={null}
+        bodyStyle={{ maxHeight: '70vh', overflowY: 'auto', padding: 0 }}
+     >
+        {detailItem && (
+          <div className="detail-modal">
+            <div className="detail-section">
+              <div className="detail-section-title">销售订单详情</div>
+              <div className="detail-grid">
+                {getDetailData(detailItem).baseInfo.map((it, idx) => (
+                  <div className="detail-item" key={idx}>
+                    <div className="detail-label">{it.label}：</div>
+                    <div className="detail-value">{it.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="detail-section">
+              <div className="detail-section-title">物料清单</div>
+              <Table
+                columns={itemColumns}
+                dataSource={getDetailData(detailItem).items}
+                pagination={false}
+                size="small"
+                scroll={{ x: true }}
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

@@ -225,3 +225,45 @@
     text-align: right;
     border-top: 1px solid #e8e8e8;
 }
+
+/* 详情弹窗样式 */
+.detail-modal {
+  padding: 16px 24px 24px 24px;
+  background: #fff;
+}
+
+.detail-section {
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  margin-bottom: 16px;
+}
+
+.detail-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
+  padding: 12px 16px 16px 16px;
+}
+
+.detail-item {
+  display: flex;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.detail-label {
+  color: #666;
+  white-space: nowrap;
+}
+
+.detail-value {
+  color: #1a1a1a;
+}
