@@ -417,14 +417,15 @@ const QueryResult = ({ data }) => {
                       className="table-action-btn" 
                     />
                   </Tooltip>
-                  <Tooltip title="添加到仪表盘">
+                  {/* 添加到仪表盘按钮已隐藏（代码保留，取消注释即可恢复） */}
+                  {/* <Tooltip title="添加到仪表盘">
                     <Button 
                       icon={<PlusSquareOutlined />} 
                       onClick={() => handleAddToDashboard(block, idx, activeViews[idx], chartTypes[idx])} 
                       size="small" 
                       className="table-action-btn" 
                     />
-                  </Tooltip>
+                  </Tooltip> */}
                 </div>
               </div>
               <div className="table-wrapper">
@@ -537,7 +538,8 @@ const QueryResult = ({ data }) => {
                             className="table-action-btn" 
                           />
                         </Tooltip>
-                        <Tooltip title="添加到仪表盘">
+                        {/* 添加到仪表盘按钮已隐藏（代码保留，取消注释即可恢复） */}
+                        {/* <Tooltip title="添加到仪表盘">
                           <Button 
                             icon={<PlusSquareOutlined />} 
                             onClick={() => handleAddToDashboard(
@@ -553,7 +555,7 @@ const QueryResult = ({ data }) => {
                             size="small" 
                             className="table-action-btn" 
                           />
-                        </Tooltip>
+                        </Tooltip> */}
                       </div>
                     </div>
                     <div className="table-wrapper">
@@ -632,7 +634,8 @@ const QueryResult = ({ data }) => {
                             className="table-action-btn" 
                           />
                         </Tooltip>
-                        <Tooltip title="添加到仪表盘">
+                        {/* 添加到仪表盘按钮已隐藏（代码保留，取消注释即可恢复） */}
+                        {/* <Tooltip title="添加到仪表盘">
                           <Button 
                             icon={<PlusSquareOutlined />} 
                             onClick={() => handleAddToDashboard(
@@ -648,7 +651,7 @@ const QueryResult = ({ data }) => {
                             size="small" 
                             className="table-action-btn" 
                           />
-                        </Tooltip>
+                        </Tooltip> */}
                       </div>
                     </div>
                     <div className="table-wrapper">

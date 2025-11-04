@@ -101,12 +101,13 @@ const MainLayout = () => {
       label: '问数助手',
       path: '/question',
     },
-    {
-      key: 'dashboard',
-      icon: <DashboardOutlined />,
-      label: '仪表盘',
-      path: '/dashboard',
-    },
+    // 仪表盘菜单项已隐藏（代码保留，取消注释即可恢复）
+    // {
+    //   key: 'dashboard',
+    //   icon: <DashboardOutlined />,
+    //   label: '仪表盘',
+    //   path: '/dashboard',
+    // },
     {
       key: 'data',
       icon: <DatabaseOutlined />,
