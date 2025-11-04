@@ -199,12 +199,16 @@ const QuestionAssistant = () => {
         nextParams.metric = parsed.params.metric;
       }
 
+      // 如果还没有时间范围，设置默认值
+      if (!nextParams.timeRangeText) {
+        nextParams.timeRangeText = '所有时间';
+      }
+
       setPendingParams(nextParams);
       setInputValue('');
 
-      // 检查还缺什么信息
+      // 检查还缺什么信息（不再检查时间，因为有默认值）
       const missingInfo = [];
-      if (!nextParams.timeRangeText) missingInfo.push('时间范围');
       if (!nextParams.dimensions || nextParams.dimensions.length === 0) missingInfo.push('分析维度');
       if (!nextParams.metrics || nextParams.metrics.length === 0) missingInfo.push('关注指标');
       
@@ -214,9 +218,6 @@ const QuestionAssistant = () => {
       // 如果还有缺失信息，继续追问
       if (missingInfo.length > 0) {
         let followUpQuestion = '请继续补充以下信息：\n';
-        if (missingInfo.includes('时间范围')) {
-          followUpQuestion += '• 时间范围（例如：本月、上月、今年、2024年等）\n';
-        }
         if (missingInfo.includes('分析维度')) {
           followUpQuestion += '• 分析维度（例如：产品线、行业、分公司、地区等，可选择多个）\n';
         }
@@ -225,8 +226,8 @@ const QuestionAssistant = () => {
         }
         
         ask(followUpQuestion.trim());
-        // 保持期待状态
-        setExpectTime(!nextParams.timeRangeText);
+        // 保持期待状态（不再期待时间）
+        setExpectTime(false);
         setExpectDimensions(!nextParams.dimensions || nextParams.dimensions.length === 0);
         setExpectMetrics(!nextParams.metrics || nextParams.metrics.length === 0);
         return;
@@ -287,18 +288,55 @@ const QuestionAssistant = () => {
     }
     
     // 检测是否为多维度分析请求（模糊分析请求）
-    const isMultiDimensionAnalysis = /(分析.*销售|销售.*分析|分析.*情况)/.test(question) && 
-                                      !/(产品|地区|行业|分公司)/.test(question) && // 没有明确维度
-                                      !/(本月|上月|今年|去年|\d+年)/.test(question); // 没有明确时间
+    const isMultiDimensionAnalysis = /(分析.*销售|销售.*分析|分析.*情况)/.test(question);
     
     if (isMultiDimensionAnalysis) {
-      // 触发多轮追问：一次性提醒所有需要的信息
-      setPendingQuestion(question);
-      setPendingParams({});
-      setExpectTime(true);
-      setExpectDimensions(true);
-      setExpectMetrics(true);
-      ask('为了更准确地回答，请补充以下信息：\n1. 时间范围（例如：本月、上月、今年、2024年等）\n2. 分析维度（例如：产品线、行业、分公司、地区等，可选择多个）\n3. 关注指标（例如：订单数量、销售金额、利润、客户数等，可选择多个）');
+      // 先解析时间
+      const parsedTime = preParseQuestion(question);
+      const timeRangeText = parsedTime.params.timeRangeText || '所有时间';
+      
+      // 解析问题中是否包含维度和指标
+      const dimensionsInQuestion = [];
+      if (question.includes('产品') || question.includes('产品线')) dimensionsInQuestion.push('product');
+      if (question.includes('行业')) dimensionsInQuestion.push('industry');
+      if (question.includes('分公司') || question.includes('公司')) dimensionsInQuestion.push('company');
+      if (question.includes('地区') || question.includes('区域')) dimensionsInQuestion.push('region');
+      
+      const metricsInQuestion = [];
+      if (question.includes('订单') || question.includes('数量')) metricsInQuestion.push('订单数量');
+      if (question.includes('销售') || question.includes('金额') || question.includes('收入')) metricsInQuestion.push('销售金额');
+      if (question.includes('利润')) metricsInQuestion.push('利润');
+      if (question.includes('客户') || question.includes('用户')) metricsInQuestion.push('客户数');
+      
+      // 如果没有明确维度，随机选择2-3个维度
+      let finalDimensions = dimensionsInQuestion;
+      if (finalDimensions.length === 0) {
+        const allDimensions = ['product', 'industry', 'region', 'company'];
+        const numDimensions = Math.random() > 0.5 ? 2 : 3; // 50%概率选2个，50%概率选3个
+        const shuffled = allDimensions.sort(() => 0.5 - Math.random());
+        finalDimensions = shuffled.slice(0, numDimensions);
+      }
+      
+      // 如果没有明确指标，随机选择3个指标
+      let finalMetrics = metricsInQuestion;
+      if (finalMetrics.length === 0) {
+        const allMetrics = ['销售金额', '利润', '订单数量', '客户数'];
+        const shuffled = allMetrics.sort(() => 0.5 - Math.random());
+        finalMetrics = shuffled.slice(0, 3); // 固定选择3个指标
+      }
+      
+      // 不再追问，直接使用识别到的或随机的维度和指标
+      const params = {
+        timeRangeText: timeRangeText, // 使用解析到的时间，如果没有则为"所有时间"
+        dimensions: finalDimensions,
+        metrics: finalMetrics
+      };
+      
+      console.log('🎲 多维度分析 - 最终参数:', params);
+      console.log('  - 时间:', timeRangeText);
+      console.log('  - 维度:', finalDimensions);
+      console.log('  - 指标:', finalMetrics);
+      proceedWithQuery(params, base, question);
       return;
     }
     
@@ -338,13 +376,7 @@ const QuestionAssistant = () => {
       setPendingQuestion(question);
       setPendingParams(params);
       
-      // Top N查询不需要时间，跳过时间追问
-      if (needTime && !isTopNQuery) {
-        setExpectTime(true);
-        ask('为了更准确地回答，请补充时间范围（例如：本月、上月、最近三个月、2024年等）。');
-        return;
-      }
-      
+      // 时间不再追问，已有默认值
       // Top N查询通常有默认指标（金额/销售额），如果缺少指标且不是Top N查询才追问
       if (needMetric && !isTopNQuery) {
         setExpectMetric(true);
@@ -402,7 +434,7 @@ const QuestionAssistant = () => {
     }
     
     const intentData = analyzeIntents(question, params, isCompositeQuestion);
-    const thinkingSteps = generateThinkingSteps(question, params, isCompositeQuestion);
+    const thinkingSteps = generateThinkingSteps(question, params, isCompositeQuestion, intentData.description);
     
     // 提取相关数据信息
     const dataInfo = {
@@ -597,7 +629,7 @@ const QuestionAssistant = () => {
   /**
    * 生成思考步骤 - 优化的4步或5步流程
    */
-  const generateThinkingSteps = (question, params, isCompositeQuestion = false) => {
+  const generateThinkingSteps = (question, params, isCompositeQuestion = false, intentDescription = '') => {
     // 识别维度
     const dimensionList = [];
     if (question.includes('产品') || question.includes('品类')) {
@@ -610,7 +642,7 @@ const QuestionAssistant = () => {
     const metric = params.metric || '销售额';
     const timeText = params.timeRangeText || '今年每月';
 
-    // 将“最近N年”规范化为具体年份列表（仅用于问题改写展示）
+    // 将"最近N年"规范化为具体年份列表（仅用于问题改写展示）
     const normalizeTimeForRewrite = (text) => {
       if (!text) return text;
       const match = text.match(/最近(\d+|[一二三四五六七八九十]+)年/);
@@ -636,6 +668,10 @@ const QuestionAssistant = () => {
       // 复合问题：包含查询和分析两个意图
       steps = [
         {
+          description: `识别用户意图：${intentDescription}`,
+          isIntentStep: true
+        },
+        {
           description: `问题改写：将用户问题标准化为"查询${rewrittenTimeText}${normalizedDims}的${metric}，并分析变化原因"`
         },
         { 
@@ -658,6 +694,10 @@ const QuestionAssistant = () => {
     } else {
       // 单一问题：只查询或只分析
       steps = [
+        {
+          description: `识别用户意图：${intentDescription}`,
+          isIntentStep: true
+        },
         {
           description: `问题改写：将用户问题标准化为"查询${rewrittenTimeText}${normalizedDims}的${metric}"`
         },
@@ -713,9 +753,13 @@ const QuestionAssistant = () => {
         break;
       }
     }
-    const needTime = !timeText;
+    // 如果识别到时间，使用识别到的时间；否则默认为所有时间，不需要追问
+    const needTime = false; // 不再追问时间
     if (timeText) {
       params.timeRangeText = timeText;
+    } else {
+      // 没有识别到时间时，默认为所有时间
+      params.timeRangeText = '所有时间';
     }
 
     // ===== 增强的指标识别 =====
@@ -735,7 +779,8 @@ const QuestionAssistant = () => {
     const needMetric = !metricFound;
     if (metricFound) params.metric = metricFound;
 
-    const clarified = !needTime && !needMetric;
+    // 现在只需要判断指标是否缺失，时间已经有默认值
+    const clarified = !needMetric;
     return { clarified, params, needTime, needMetric };
   };
 

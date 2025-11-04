@@ -39,11 +39,8 @@ const CombinedThinking = ({ intentData = {}, config = {}, dataInfo = {}, steps =
       
       {isExpanded && (
         <div className="combined-content">
-          {/* 意图识别部分 */}
+          {/* 数据配置信息（白色区域） */}
           <div className="intent-section">
-            <div className="section-label">识别到用户意图为：</div>
-            <div className="section-text">{description}</div>
-            
             {/* 数据配置信息 */}
             <div className="config-info">
               <div className="config-item">
