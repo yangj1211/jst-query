@@ -119,39 +119,11 @@ const RolePermission = () => {
       width: 150,
     },
     {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 120,
-      render: (status) => {
-        const isNormal = status === '正常';
-        return (
-          <span style={{ 
-            display: 'inline-block',
-            padding: '2px 12px',
-            backgroundColor: isNormal ? '#f6ffed' : '#fff1f0',
-            color: isNormal ? '#52c41a' : '#ff4d4f',
-            borderRadius: '4px',
-            fontSize: '14px'
-          }}>
-            {status}
-          </span>
-        );
-      },
-    },
-    {
       title: '创建时间',
       dataIndex: 'createTime',
       key: 'createTime',
       width: 200,
       sorter: (a, b) => new Date(a.createTime) - new Date(b.createTime),
-    },
-    {
-      title: '更新时间',
-      dataIndex: 'updateTime',
-      key: 'updateTime',
-      width: 200,
-      sorter: (a, b) => new Date(a.updateTime) - new Date(b.updateTime),
     },
     {
       title: '备注',

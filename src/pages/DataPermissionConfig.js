@@ -85,7 +85,7 @@ const DataPermissionConfig = () => {
   // 添加对象权限
   const handleAddObjectPermission = () => {
     if (!objectName) {
-      alert('请选择对象名称');
+      alert('请选择表对象');
       return;
     }
     
@@ -222,38 +222,128 @@ const DataPermissionConfig = () => {
   const getTableColumns = (tableName) => {
     // 根据表名返回对应的列详细信息
     const tableColumnsMap = {
-      '测试表1': [
+      '测试表1': [ // 财务表
         { 
-          name: '用户ID', 
-          type: 'int', 
-          description: '主键ID',
-          sampleData: ['1', '12345', '9999']
+          name: '凭证号', 
+          type: 'varchar(50)', 
+          description: '会计凭证编号',
+          sampleData: ['VCH-2025-001', 'VCH-2025-002', 'VCH-2025-003']
         },
         { 
-          name: '用户名', 
+          name: '会计科目', 
           type: 'varchar(100)', 
-          description: '用户名',
-          sampleData: ['admin', 'user123', 'test_user']
+          description: '会计科目代码及名称',
+          sampleData: ['1001-库存现金', '1002-银行存款', '2001-应付账款']
         },
         { 
-          name: '创建时间', 
-          type: 'datetime', 
-          description: '创建时间',
-          sampleData: ['2025-01-01 10:00:00', '2025-01-15 14:30:00', '2025-02-20 09:15:00']
+          name: '借方金额', 
+          type: 'decimal(15,2)', 
+          description: '借方发生金额',
+          sampleData: ['10000.00', '50000.00', '0.00']
+        },
+        { 
+          name: '贷方金额', 
+          type: 'decimal(15,2)', 
+          description: '贷方发生金额',
+          sampleData: ['0.00', '25000.00', '15000.00']
+        },
+        { 
+          name: '余额', 
+          type: 'decimal(15,2)', 
+          description: '科目余额',
+          sampleData: ['500000.00', '750000.00', '1000000.00']
+        },
+        { 
+          name: '会计期间', 
+          type: 'varchar(20)', 
+          description: '会计期间（年月）',
+          sampleData: ['2025-01', '2025-02', '2025-03']
+        },
+        { 
+          name: '部门', 
+          type: 'varchar(50)', 
+          description: '所属部门',
+          sampleData: ['财务部', '销售部', '研发部']
+        },
+        { 
+          name: '项目代码', 
+          type: 'varchar(50)', 
+          description: '项目编码',
+          sampleData: ['PRJ-001', 'PRJ-002', 'PRJ-003']
+        },
+        { 
+          name: '制单人', 
+          type: 'varchar(50)', 
+          description: '凭证制单人',
+          sampleData: ['张三', '李四', '王五']
+        },
+        { 
+          name: '审核人', 
+          type: 'varchar(50)', 
+          description: '凭证审核人',
+          sampleData: ['赵六', '钱七', '孙八']
         },
       ],
-      '测试表2': [
+      '测试表2': [ // 销售表
         { 
           name: '订单编号', 
           type: 'varchar(50)', 
           description: '订单唯一标识',
-          sampleData: ['ORD001', 'ORD002', 'ORD003']
+          sampleData: ['ORD-2025-001', 'ORD-2025-002', 'ORD-2025-003']
         },
         { 
-          name: '金额', 
+          name: '客户名称', 
+          type: 'varchar(100)', 
+          description: '客户公司名称',
+          sampleData: ['北京科技有限公司', '上海贸易有限公司', '深圳电子股份有限公司']
+        },
+        { 
+          name: '产品名称', 
+          type: 'varchar(100)', 
+          description: '销售产品名称',
+          sampleData: ['办公软件授权', '企业管理系统', '数据分析平台']
+        },
+        { 
+          name: '销售数量', 
+          type: 'int', 
+          description: '销售产品数量',
+          sampleData: ['10', '50', '100']
+        },
+        { 
+          name: '单价', 
           type: 'decimal(10,2)', 
-          description: '订单金额',
-          sampleData: ['100.50', '299.99', '1580.00']
+          description: '产品单价',
+          sampleData: ['2999.00', '4999.00', '9999.00']
+        },
+        { 
+          name: '总金额', 
+          type: 'decimal(15,2)', 
+          description: '订单总金额',
+          sampleData: ['29990.00', '249950.00', '999900.00']
+        },
+        { 
+          name: '销售日期', 
+          type: 'datetime', 
+          description: '订单销售日期',
+          sampleData: ['2025-01-15 10:00:00', '2025-02-20 14:30:00', '2025-03-10 09:15:00']
+        },
+        { 
+          name: '销售员', 
+          type: 'varchar(50)', 
+          description: '负责销售员姓名',
+          sampleData: ['张销售', '李销售', '王销售']
+        },
+        { 
+          name: '订单状态', 
+          type: 'varchar(20)', 
+          description: '订单当前状态',
+          sampleData: ['已确认', '已发货', '已完成']
+        },
+        { 
+          name: '客户区域', 
+          type: 'varchar(50)', 
+          description: '客户所属区域',
+          sampleData: ['华北', '华东', '华南']
         },
       ],
     };
@@ -263,7 +353,7 @@ const DataPermissionConfig = () => {
   // 配置行列权限（添加前配置）
   const handleConfigColumnPermissionBeforeAdd = () => {
     if (!objectName) {
-      alert('请先选择对象名称');
+      alert('请先选择表对象');
       return;
     }
     
@@ -279,7 +369,7 @@ const DataPermissionConfig = () => {
       // 确保每个字段都有 relation 字段（兼容旧数据）
       const configsWithRelation = tempColumnConfigs.map(config => ({
         ...config,
-        relation: config.relation || '且'
+        relation: config.relation || '或'
       }));
       setColumnConfigs(configsWithRelation);
     } else {
@@ -287,7 +377,7 @@ const DataPermissionConfig = () => {
         ...col,
         selected: true, // 默认全选
         expressions: [], // 行权限表达式
-        relation: '且', // 字段内表达式关系：'且' 或 '或'，对应 SQL 的 AND 和 OR
+        relation: '或', // 字段内表达式关系：'且' 或 '或'，对应 SQL 的 AND 和 OR
       }));
       setColumnConfigs(initialConfigs);
     }
@@ -298,7 +388,7 @@ const DataPermissionConfig = () => {
   // 配置行列权限（编辑模式下的配置）
   const handleConfigColumnPermissionInEditMode = () => {
     if (!editObjectName) {
-      alert('请先选择对象名称');
+      alert('请先选择表对象');
       return;
     }
     
@@ -314,7 +404,7 @@ const DataPermissionConfig = () => {
       // 确保每个字段都有 relation 字段（兼容旧数据）
       const configsWithRelation = editTempColumnConfigs.map(config => ({
         ...config,
-        relation: config.relation || '且'
+        relation: config.relation || '或'
       }));
       setColumnConfigs(configsWithRelation);
     } else {
@@ -322,7 +412,7 @@ const DataPermissionConfig = () => {
         ...col,
         selected: true, // 默认全选
         expressions: [], // 行权限表达式
-        relation: '且', // 字段内表达式关系：'且' 或 '或'，对应 SQL 的 AND 和 OR
+        relation: '或', // 字段内表达式关系：'且' 或 '或'，对应 SQL 的 AND 和 OR
       }));
       setColumnConfigs(initialConfigs);
     }
@@ -343,7 +433,7 @@ const DataPermissionConfig = () => {
       // 确保每个字段都有 relation 字段（兼容旧数据）
       const configsWithRelation = objectPermission.columnConfigs.map(config => ({
         ...config,
-        relation: config.relation || '且'
+        relation: config.relation || '或'
       }));
       setColumnConfigs(configsWithRelation);
     } else {
@@ -351,7 +441,7 @@ const DataPermissionConfig = () => {
         ...col,
         selected: true, // 默认全选
         expressions: [], // 行权限表达式
-        relation: '且', // 字段内表达式关系：'且' 或 '或'，对应 SQL 的 AND 和 OR
+        relation: '或', // 字段内表达式关系：'且' 或 '或'，对应 SQL 的 AND 和 OR
       }));
       setColumnConfigs(initialConfigs);
     }
@@ -400,8 +490,88 @@ const DataPermissionConfig = () => {
     ));
   };
 
+  // 获取字段内已选择的运算符（排除当前正在编辑的表达式）
+  const getExistingOperators = (columnName, excludeExpressionId = null) => {
+    const column = columnConfigs.find(col => col.name === columnName);
+    if (!column || !column.expressions || column.expressions.length === 0) {
+      return [];
+    }
+    return column.expressions
+      .filter(exp => exp.id !== excludeExpressionId)
+      .map(exp => exp.operator);
+  };
+
+  // 根据已选择的运算符和字段关系，获取允许添加的运算符列表
+  const getAllowedOperators = (columnName, excludeExpressionId = null) => {
+    const column = columnConfigs.find(col => col.name === columnName);
+    if (!column) return [];
+
+    // 如果字段关系为"或"，或者没有表达式，允许所有运算符
+    if (!column.relation || column.relation === '或' || !column.expressions || column.expressions.length === 0) {
+      return ['等于', '不等于', '大于', '大于等于', '小于', '小于等于', '包含', '模糊匹配'];
+    }
+
+    // 字段关系为"且"时，需要根据已有运算符限制
+    const existingOperators = getExistingOperators(columnName, excludeExpressionId);
+    
+    if (existingOperators.length === 0) {
+      // 如果没有已有表达式，允许所有运算符
+      return ['等于', '不等于', '大于', '大于等于', '小于', '小于等于', '包含', '模糊匹配'];
+    }
+
+    // 获取第一个已有表达式的运算符（作为限制标准）
+    const firstOperator = existingOperators[0];
+
+    // 根据规则确定允许的运算符
+    const allowedOperatorsMap = {
+      '等于': [], // 等于：不允许再添加任何表达式
+      '不等于': ['不等于', '大于', '大于等于', '小于', '小于等于'], // 不等于：允许继续添加"≠"和范围操作符
+      '大于': ['小于', '小于等于'], // 大于：可添加"小于/小于等于"形成区间
+      '大于等于': ['小于', '小于等于'], // 大于等于：可添加"小于/小于等于"形成区间
+      '小于': ['大于', '大于等于'], // 小于：可添加"大于/大于等于"形成区间
+      '小于等于': ['大于', '大于等于'], // 小于等于：可添加"大于/大于等于"形成区间
+      '包含': ['不等于'], // 包含：可添加"≠"以排除子集
+      '模糊匹配': [], // 模糊匹配：禁止添加其他
+    };
+
+    return allowedOperatorsMap[firstOperator] || [];
+  };
+
+  // 获取禁止的运算符列表（用于灰显）
+  const getDisabledOperators = (columnName, excludeExpressionId = null) => {
+    const allOperators = ['等于', '不等于', '大于', '大于等于', '小于', '小于等于', '包含', '模糊匹配'];
+    const allowedOperators = getAllowedOperators(columnName, excludeExpressionId);
+    return allOperators.filter(op => !allowedOperators.includes(op));
+  };
+
+  // 检查是否可以添加新表达式
+  const canAddExpression = (columnName) => {
+    const column = columnConfigs.find(col => col.name === columnName);
+    if (!column || !column.expressions || column.expressions.length === 0) {
+      return true; // 没有表达式时，可以添加
+    }
+
+    // 如果字段关系为"或"，允许添加
+    if (!column.relation || column.relation === '或') {
+      return true;
+    }
+
+    // 字段关系为"且"时，检查是否允许添加
+    const allowedOperators = getAllowedOperators(columnName);
+    return allowedOperators.length > 0;
+  };
+
   // 为某一列添加表达式
   const handleAddExpression = (columnName) => {
+    const allowedOperators = getAllowedOperators(columnName);
+    if (allowedOperators.length === 0) {
+      alert('根据当前已选择的运算符，不能再添加新的表达式');
+      return;
+    }
+
+    // 使用第一个允许的运算符作为默认值
+    const defaultOperator = allowedOperators[0];
+
     setColumnConfigs(columnConfigs.map(col => {
       if (col.name === columnName) {
         return {
@@ -410,7 +580,7 @@ const DataPermissionConfig = () => {
             ...col.expressions,
             {
               id: Date.now(),
-              operator: '等于',
+              operator: defaultOperator,
               value: '',
               values: [], // 用于"包含"操作符
             }
@@ -421,8 +591,81 @@ const DataPermissionConfig = () => {
     }));
   };
 
+  // 验证表达式是否符合"且"关系规则
+  const validateExpressionsForAndRelation = (columnName) => {
+    const column = columnConfigs.find(col => col.name === columnName);
+    if (!column || !column.expressions || column.expressions.length === 0) {
+      return { valid: true, message: '' };
+    }
+
+    const expressions = column.expressions;
+    
+    // 如果只有一个表达式，总是符合规则
+    if (expressions.length === 1) {
+      return { valid: true, message: '' };
+    }
+
+    const firstOperator = expressions[0].operator;
+    
+    // 定义"且"关系下每个运算符允许组合的其他运算符
+    const allowedOperatorsMapForAnd = {
+      '等于': [], // 等于：不允许再添加任何表达式
+      '不等于': ['不等于', '大于', '大于等于', '小于', '小于等于'], // 不等于：允许继续添加"≠"和范围操作符
+      '大于': ['小于', '小于等于'], // 大于：可添加"小于/小于等于"形成区间
+      '大于等于': ['小于', '小于等于'], // 大于等于：可添加"小于/小于等于"形成区间
+      '小于': ['大于', '大于等于'], // 小于：可添加"大于/大于等于"形成区间
+      '小于等于': ['大于', '大于等于'], // 小于等于：可添加"大于/大于等于"形成区间
+      '包含': ['不等于'], // 包含：可添加"≠"以排除子集
+      '模糊匹配': [], // 模糊匹配：禁止添加其他
+    };
+
+    const allowedOperators = allowedOperatorsMapForAnd[firstOperator] || [];
+    
+    // 如果第一个是"等于"或"模糊匹配"，不能有多个表达式
+    if (firstOperator === '等于' || firstOperator === '模糊匹配') {
+      return {
+        valid: false,
+        message: `当表达式关系为"且"时，"${firstOperator}"运算符只能单独使用，不能与其他表达式组合。请先删除其他表达式或改为"或"关系。`
+      };
+    }
+
+    // 如果允许的运算符列表为空，说明第一个运算符不允许添加其他表达式
+    if (allowedOperators.length === 0) {
+      return {
+        valid: false,
+        message: `当表达式关系为"且"时，"${firstOperator}"运算符不允许与其他表达式组合。请先删除其他表达式或改为"或"关系。`
+      };
+    }
+
+    // 检查除了第一个表达式外的其他表达式是否都在允许列表中
+    for (let i = 1; i < expressions.length; i++) {
+      const operator = expressions[i].operator;
+      if (!allowedOperators.includes(operator)) {
+        return {
+          valid: false,
+          message: `当表达式关系为"且"时，不能将"${firstOperator}"和"${operator}"运算符组合使用。请先删除或修改不符合规则的表达式，或改为"或"关系。`
+        };
+      }
+    }
+
+    return { valid: true, message: '' };
+  };
+
   // 更新字段的表达式关系
   const handleUpdateColumnRelation = (columnName, relation) => {
+    const column = columnConfigs.find(col => col.name === columnName);
+    if (!column) return;
+
+    // 如果切换到"且"关系，需要验证现有表达式是否符合规则
+    if (relation === '且') {
+      const validation = validateExpressionsForAndRelation(columnName);
+      if (!validation.valid) {
+        alert(validation.message);
+        return; // 阻止切换
+      }
+    }
+
+    // 验证通过，执行切换
     setColumnConfigs(columnConfigs.map(col => {
       if (col.name === columnName) {
         return {
@@ -576,15 +819,10 @@ const DataPermissionConfig = () => {
           borderRadius: '4px',
           marginBottom: '16px'
         }}>
-          <div style={{ fontWeight: 600, marginBottom: '12px' }}>添加对象</div>
+          <div style={{ fontWeight: 600, marginBottom: '12px' }}>添加表对象</div>
           
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
-            {/* 对象名称 */}
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div style={{ width: '300px' }}>
-              <div style={{ marginBottom: '8px', fontSize: '14px' }}>
-                <span style={{ color: '#ff4d4f', marginRight: '4px' }}>*</span>
-                对象名称
-              </div>
               <Select
                 value={objectName}
                 onChange={(value) => {
@@ -594,7 +832,7 @@ const DataPermissionConfig = () => {
                   setTempColumnConfigs([]); // 切换对象时清空临时配置
                 }}
                 style={{ width: '100%' }}
-                placeholder="请选择对象名称"
+                placeholder="请选择表对象"
               >
                 {getObjectNameOptions().map(name => (
                   <Option key={name} value={name}>{name}</Option>
@@ -603,7 +841,7 @@ const DataPermissionConfig = () => {
             </div>
 
             {/* 配置行列权限按钮 */}
-            <div style={{ alignSelf: 'flex-end', paddingBottom: '4px' }}>
+            <div style={{ paddingBottom: '4px' }}>
               <Button
                 type="link"
                 size="small"
@@ -615,11 +853,12 @@ const DataPermissionConfig = () => {
                 配置行列权限 {tempColumnConfigs.length > 0 && '(已配置)'}
               </Button>
             </div>
-          </div>
 
-          <Button type="primary" onClick={handleAddObjectPermission}>
-            + 添加到列表
-          </Button>
+            {/* 添加按钮 */}
+            <Button type="primary" onClick={handleAddObjectPermission}>
+              添加
+            </Button>
+          </div>
         </div>
 
         {/* 已添加的对象列表 */}
@@ -645,7 +884,7 @@ const DataPermissionConfig = () => {
               backgroundColor: '#fafafa',
               borderRadius: '4px'
             }}>
-              暂无配置，请先添加对象
+              暂无配置，请先添加表对象
             </div>
           ) : (
             <div style={{ 
@@ -744,12 +983,7 @@ const DataPermissionConfig = () => {
       >
         <div style={{ padding: '12px 0' }}>
           <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-            {/* 对象名称 */}
             <div style={{ width: '300px' }}>
-              <div style={{ marginBottom: '8px', fontSize: '14px' }}>
-                <span style={{ color: '#ff4d4f', marginRight: '4px' }}>*</span>
-                对象名称
-              </div>
               <Select
                 value={editObjectName}
                 onChange={(value) => {
@@ -757,7 +991,7 @@ const DataPermissionConfig = () => {
                   setEditTempColumnConfigs([]);
                 }}
                 style={{ width: '100%' }}
-                placeholder="请选择对象名称"
+                placeholder="请选择表对象"
                 disabled
               >
                 {getObjectNameOptions().map(name => (
@@ -884,12 +1118,10 @@ const DataPermissionConfig = () => {
                     <div>
                       {!col.selected ? (
                         <div style={{ color: '#999', fontSize: '14px' }}>-</div>
-                      ) : col.expressions.length < 2 ? (
-                        <div style={{ color: '#999', fontSize: '14px', paddingTop: '12px' }}>-</div>
                       ) : (
                         <div style={{ paddingTop: '12px' }}>
                           <Select
-                            value={col.relation || '且'}
+                            value={col.relation || '或'}
                             onChange={(value) => handleUpdateColumnRelation(col.name, value)}
                             style={{ width: '80px' }}
                             size="small"
@@ -909,6 +1141,7 @@ const DataPermissionConfig = () => {
                         <Button 
                           size="small" 
                           onClick={() => handleAddExpression(col.name)}
+                          disabled={!canAddExpression(col.name)}
                         >
                           + 添加表达式
                         </Button>
@@ -921,18 +1154,27 @@ const DataPermissionConfig = () => {
                               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginBottom: '8px' }}>
                                 <Select
                                   value={exp.operator}
-                                  onChange={(value) => handleUpdateExpression(col.name, exp.id, 'operator', value)}
+                                  onChange={(value) => {
+                                    // 如果改为不允许的运算符，给出提示并阻止
+                                    const allowedOperators = getAllowedOperators(col.name, exp.id);
+                                    if (!allowedOperators.includes(value) && allowedOperators.length > 0) {
+                                      alert(`根据当前已选择的运算符，不能使用"${value}"运算符`);
+                                      return;
+                                    }
+                                    handleUpdateExpression(col.name, exp.id, 'operator', value);
+                                  }}
                                   style={{ width: 120 }}
                                   size="small"
                                 >
-                                  <Option value="等于">等于</Option>
-                                  <Option value="不等于">不等于</Option>
-                                  <Option value="大于">大于</Option>
-                                  <Option value="大于等于">大于等于</Option>
-                                  <Option value="小于">小于</Option>
-                                  <Option value="小于等于">小于等于</Option>
-                                  <Option value="包含">包含</Option>
-                                  <Option value="模糊匹配">模糊匹配</Option>
+                                  {['等于', '不等于', '大于', '大于等于', '小于', '小于等于', '包含', '模糊匹配'].map(op => {
+                                    const allowedOperators = getAllowedOperators(col.name, exp.id);
+                                    const isDisabled = allowedOperators.length > 0 && !allowedOperators.includes(op);
+                                    return (
+                                      <Option key={op} value={op} disabled={isDisabled}>
+                                        {op}
+                                      </Option>
+                                    );
+                                  })}
                                 </Select>
 
                                 {exp.operator !== '包含' && (
@@ -950,6 +1192,7 @@ const DataPermissionConfig = () => {
                                   onClick={() => handleAddExpression(col.name)}
                                   icon={<span>+</span>}
                                   title="添加表达式"
+                                  disabled={!canAddExpression(col.name)}
                                 />
                                 <Button
                                   size="small"

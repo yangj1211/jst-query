@@ -25,30 +25,45 @@ const DataCenter = () => {
     { 
       id: 3, 
       name: '测试表1',
-      description: '用户信息表',
+      description: '财务数据表',
       objectType: 'table', // 表类型
-      fieldCount: 3,
+      fieldCount: 10,
       rowCount: 1523,
       createTime: '2025-10-20 10:30:00',
       updateTime: '2025-10-20 10:30:00',
       fields: [
-        { id: 1, name: '用户ID', type: 'int', unique: true, description: '主键' },
-        { id: 2, name: '用户名', type: 'varchar', length: 100, unique: false, description: '' },
-        { id: 3, name: '创建时间', type: 'datetime', datetimePrecision: 0, unique: false, description: '' }
+        { id: 1, name: '凭证号', type: 'varchar', length: 50, unique: false, description: '会计凭证编号' },
+        { id: 2, name: '会计科目', type: 'varchar', length: 100, unique: false, description: '会计科目代码及名称' },
+        { id: 3, name: '借方金额', type: 'decimal', precision: 15, scale: 2, unique: false, description: '借方发生金额' },
+        { id: 4, name: '贷方金额', type: 'decimal', precision: 15, scale: 2, unique: false, description: '贷方发生金额' },
+        { id: 5, name: '余额', type: 'decimal', precision: 15, scale: 2, unique: false, description: '科目余额' },
+        { id: 6, name: '会计期间', type: 'varchar', length: 20, unique: false, description: '会计期间（年月）' },
+        { id: 7, name: '部门', type: 'varchar', length: 50, unique: false, description: '所属部门' },
+        { id: 8, name: '项目代码', type: 'varchar', length: 50, unique: false, description: '项目编码' },
+        { id: 9, name: '制单人', type: 'varchar', length: 50, unique: false, description: '凭证制单人' },
+        { id: 10, name: '审核人', type: 'varchar', length: 50, unique: false, description: '凭证审核人' }
       ]
     },
     { 
       id: 4, 
       name: '测试表2',
-      description: '订单数据表',
+      description: '销售数据表',
       objectType: 'table', // 表类型
-      fieldCount: 2,
+      fieldCount: 10,
       rowCount: 8942,
       createTime: '2025-10-21 14:20:00',
       updateTime: '2025-10-21 14:20:00',
       fields: [
         { id: 1, name: '订单编号', type: 'varchar', length: 50, unique: true, description: '订单唯一标识' },
-        { id: 2, name: '金额', type: 'decimal', precision: 10, scale: 2, unique: false, description: '订单金额' }
+        { id: 2, name: '客户名称', type: 'varchar', length: 100, unique: false, description: '客户公司名称' },
+        { id: 3, name: '产品名称', type: 'varchar', length: 100, unique: false, description: '销售产品名称' },
+        { id: 4, name: '销售数量', type: 'int', unique: false, description: '销售产品数量' },
+        { id: 5, name: '单价', type: 'decimal', precision: 10, scale: 2, unique: false, description: '产品单价' },
+        { id: 6, name: '总金额', type: 'decimal', precision: 15, scale: 2, unique: false, description: '订单总金额' },
+        { id: 7, name: '销售日期', type: 'datetime', datetimePrecision: 0, unique: false, description: '订单销售日期' },
+        { id: 8, name: '销售员', type: 'varchar', length: 50, unique: false, description: '负责销售员姓名' },
+        { id: 9, name: '订单状态', type: 'varchar', length: 20, unique: false, description: '订单当前状态' },
+        { id: 10, name: '客户区域', type: 'varchar', length: 50, unique: false, description: '客户所属区域' }
       ]
     }
   ]);
