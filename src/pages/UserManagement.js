@@ -241,12 +241,6 @@ const UserManagement = () => {
       dataIndex: 'role',
       key: 'role',
       width: 180,
-      render: (role) => (
-        <span style={{ color: '#52c41a', fontSize: '14px' }}>
-          <span style={{ marginRight: 6 }}>✓</span>
-          {role}
-        </span>
-      ),
     },
     {
       title: '创建时间',
