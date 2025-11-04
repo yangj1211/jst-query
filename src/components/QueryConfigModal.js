@@ -40,7 +40,22 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
   const branchList = ['分公司 A', '分公司 B', '分公司 C', '分公司 D'];
 
   const tagRender = (props) => {
-    const { label, closable, onClose } = props;
+    const { label, value, closable, onClose } = props;
+    // 如果是全选标记，显示自定义文本
+    if (value === '__ALL_TABLES__') {
+      return (
+        <Tag color="#1890ff" closable={closable} onClose={onClose} style={{ marginRight: 4, fontWeight: 'bold' }}>
+          全部表
+        </Tag>
+      );
+    }
+    if (value === '__ALL_FILES__') {
+      return (
+        <Tag color="#1890ff" closable={closable} onClose={onClose} style={{ marginRight: 4, fontWeight: 'bold' }}>
+          全部文件
+        </Tag>
+      );
+    }
     return (
       <Tag color="#1677ff" closable={closable} onClose={onClose} style={{ marginRight: 4 }}>
         {label}
@@ -48,8 +63,54 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
     );
   };
 
+  // 处理表格选择变化
+  const handleTablesChange = (selectedTables) => {
+    // 如果选择了"全部表"
+    if (selectedTables.includes('__ALL_TABLES__')) {
+      // 如果之前已经是全选标记，再次点击则清空
+      if (tables.includes('__ALL_TABLES__')) {
+        setTables([]);
+      } else {
+        // 只保留全选标记，清除其他具体项
+        setTables(['__ALL_TABLES__']);
+      }
+    } else {
+      // 如果选择了其他具体项，移除全选标记
+      setTables(selectedTables.filter(t => t !== '__ALL_TABLES__'));
+    }
+  };
+
+  // 处理文件选择变化
+  const handleFilesChange = (selectedFiles) => {
+    // 如果选择了"全部文件"
+    if (selectedFiles.includes('__ALL_FILES__')) {
+      // 如果之前已经是全选标记，再次点击则清空
+      if (files.includes('__ALL_FILES__')) {
+        setFiles([]);
+      } else {
+        // 只保留全选标记，清除其他具体项
+        setFiles(['__ALL_FILES__']);
+      }
+    } else {
+      // 如果选择了其他具体项，移除全选标记
+      setFiles(selectedFiles.filter(f => f !== '__ALL_FILES__'));
+    }
+  };
+
   const handleOk = () => {
-    onOk && onOk({ sourceMode, tables, files, scopeType, branches, caliber, applyScope });
+    // 处理全选标记，转换为实际的表/文件列表
+    const finalTables = tables.includes('__ALL_TABLES__') ? tableOptions : tables;
+    const finalFiles = files.includes('__ALL_FILES__') ? fileOptions : files;
+    
+    onOk && onOk({ 
+      sourceMode, 
+      tables: finalTables, 
+      files: finalFiles, 
+      scopeType, 
+      branches, 
+      caliber, 
+      applyScope 
+    });
   };
 
   return (
@@ -85,7 +146,7 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
               <Select
                 mode="multiple"
                 value={tables}
-                onChange={setTables}
+                onChange={handleTablesChange}
                 style={{ width: '100%' }}
                 placeholder="请选择一个或多个表"
                 showSearch
@@ -93,6 +154,12 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
                 maxTagCount="responsive"
                 allowClear
               >
+                <Option key="__ALL_TABLES__" value="__ALL_TABLES__">
+                  <Space size={6}>
+                    <DatabaseOutlined style={{ color: '#1890ff', fontWeight: 'bold' }} />
+                    <span style={{ fontWeight: 'bold', color: '#1890ff' }}>全部表</span>
+                  </Space>
+                </Option>
                 {tableOptions.map((name) => (
                   <Option key={name} value={name}>
                     <Space size={6}>
@@ -110,7 +177,7 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
               <Select
                 mode="multiple"
                 value={files}
-                onChange={setFiles}
+                onChange={handleFilesChange}
                 style={{ width: '100%' }}
                 placeholder="请选择一个或多个文件"
                 showSearch
@@ -118,6 +185,12 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
                 maxTagCount="responsive"
                 allowClear
               >
+                <Option key="__ALL_FILES__" value="__ALL_FILES__">
+                  <Space size={6}>
+                    <FileTextOutlined style={{ color: '#1890ff', fontWeight: 'bold' }} />
+                    <span style={{ fontWeight: 'bold', color: '#1890ff' }}>全部文件</span>
+                  </Space>
+                </Option>
                 {fileOptions.map((name) => (
                   <Option key={name} value={name}>
                     <Space size={6}>

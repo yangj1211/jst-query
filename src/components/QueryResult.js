@@ -33,6 +33,9 @@ const QueryResult = ({ data }) => {
   // 分析部分的维度表格视图状态
   const [dimensionView, setDimensionView] = useState('table');
   const [dimensionChartType, setDimensionChartType] = useState('bar');
+  
+  // 引用数字的选中状态：记录哪些引用被点击了 {refKey: boolean}
+  const [activeReferences, setActiveReferences] = useState({});
 
   const handleViewChange = (blockIdx, view) => {
     setActiveViews(prev => {
@@ -47,6 +50,90 @@ const QueryResult = ({ data }) => {
       const newTypes = [...prev];
       newTypes[blockIdx] = chartType;
       return newTypes;
+    });
+  };
+
+  /**
+   * 切换引用数字的选中状态
+   */
+  const toggleReferenceActive = (refKey) => {
+    setActiveReferences(prev => ({
+      ...prev,
+      [refKey]: !prev[refKey]
+    }));
+  };
+
+  /**
+   * 渲染数据来源
+   */
+  const renderDataSources = (sources, prefix = '') => {
+    if (!Array.isArray(sources) || sources.length === 0) {
+      return <span style={{ color: '#999', fontSize: '12px' }}>暂无数据来源</span>;
+    }
+
+    return sources.map((source, i) => {
+      const isFile = source.type === 'excel' || source.type === 'pdf';
+      const hasReferences = isFile && source.references && source.references.length > 0;
+      
+      // 去掉文件后缀
+      const displayName = isFile 
+        ? source.name.replace(/\.(xlsx?|pdf)$/i, '') 
+        : source.name;
+
+      return (
+        <Tooltip key={i} title={source.fullPath || source.name}>
+          <Button
+            type="link"
+            icon={isFile ? <FileOutlined /> : <DbIcon />}
+            size="small"
+            className="source-link"
+            onClick={() => console.log('查看来源:', source)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+          >
+            {displayName}
+            {isFile && <Tag size="small" color="orange">网页</Tag>}
+            {source.type === 'database' && <Tag size="small" color="blue">表</Tag>}
+            
+            {/* 如果是文件且有引用，在后面显示圆形数字 */}
+            {hasReferences && (
+              <span style={{ display: 'inline-flex', gap: 4, marginLeft: 4 }}>
+                {source.references.map((ref, refIdx) => {
+                  const refKey = `${prefix}-${i}-${refIdx}`;
+                  const isActive = activeReferences[refKey];
+                  
+                  return (
+                    <span 
+                      key={refIdx}
+                      onClick={(e) => {
+                        e.stopPropagation(); // 阻止事件冒泡到Button
+                        toggleReferenceActive(refKey);
+                        console.log('查看引用:', ref);
+                      }}
+                      style={{ 
+                        display: 'inline-block', 
+                        width: 18, 
+                        height: 18, 
+                        lineHeight: '18px',
+                        textAlign: 'center',
+                        background: isActive ? '#1890ff' : '#d9d9d9',
+                        color: '#fff',
+                        borderRadius: '50%',
+                        fontSize: 11,
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'background 0.2s'
+                      }}
+                      title={ref.location || `引用位置 ${refIdx + 1}`}
+                    >
+                      {refIdx + 1}
+                    </span>
+                  );
+                })}
+              </span>
+            )}
+          </Button>
+        </Tooltip>
+      );
     });
   };
 
@@ -238,9 +325,6 @@ const QueryResult = ({ data }) => {
 
   const headerActions = (
     <div className="header-actions">
-      <Tooltip title="查看SQL">
-        <Button type="text" icon={<DatabaseOutlined />} size="small" style={{ marginRight: 4 }} />
-      </Tooltip>
       <Tooltip title="下载报告">
         <Button type="text" icon={<DownloadOutlined />} size="small" />
       </Tooltip>
@@ -318,6 +402,13 @@ const QueryResult = ({ data }) => {
                       />
                     </Tooltip>
                   </Dropdown>
+                  <Tooltip title="查看SQL">
+                    <Button 
+                      icon={<DatabaseOutlined />} 
+                      size="small" 
+                      className="table-action-btn" 
+                    />
+                  </Tooltip>
                   <Tooltip title="导出">
                     <Button 
                       icon={<DownloadOutlined />} 
@@ -355,26 +446,7 @@ const QueryResult = ({ data }) => {
               <div className="data-sources">
                 <div className="sources-label">数据来源:</div>
                 <div className="sources-list">
-                  {Array.isArray(block.sources) && block.sources.length > 0 ? (
-                    block.sources.map((source, i) => (
-                      <Tooltip key={i} title={source.fullPath || source.name}>
-                        <Button
-                          type="link"
-                          icon={source.type === 'excel' || source.type === 'pdf' ? <FileOutlined /> : <DbIcon />}
-                          size="small"
-                          className="source-link"
-                          onClick={() => console.log('查看来源:', source)}
-                        >
-                          {source.name}
-                          {source.type === 'excel' && <Tag size="small" color="green">Excel</Tag>}
-                          {source.type === 'pdf' && <Tag size="small" color="red">PDF</Tag>}
-                          {source.type === 'database' && <Tag size="small" color="blue">数据库</Tag>}
-                        </Button>
-                      </Tooltip>
-                    ))
-                  ) : (
-                    <span style={{ color: '#999', fontSize: '12px' }}>暂无数据来源</span>
-                  )}
+                  {renderDataSources(block.sources, `block-${idx}`)}
                 </div>
               </div>
             </div>
@@ -388,138 +460,8 @@ const QueryResult = ({ data }) => {
               <div className="analysis-header"><span className="badge">1</span> 一. 概览</div>
               <div className="analysis-text">{data.analysis.resultSummary}</div>
             </div>
-            <div className="analysis-card factor">
-              <div className="analysis-header"><span className="badge">2</span> 二. 因子影响</div>
-              {data.analysis.factorAnalysisList ? (
-                <>
-                  {/* 因子分析列表 - 每个因子一个区块 */}
-                  {data.analysis.factorAnalysisList.map((factor, idx) => (
-                    <div key={idx} style={{ marginBottom: 16 }}>
-                      <div className="analysis-subtitle">②-{idx + 1}. {factor.title}</div>
-                      <div className="analysis-text" style={{ marginBottom: 8 }}>{factor.content}</div>
-                      {factor.sources && factor.sources.length > 0 && (
-                        <div className="data-sources" style={{ marginTop: 8, marginBottom: 8 }}>
-                          <div className="sources-label">数据来源:</div>
-                          <div className="sources-list">
-                            {factor.sources.map((source, i) => (
-                              <Tooltip key={i} title={source.fullPath || source.name}>
-                                <Button
-                                  type="link"
-                                  icon={source.type === 'excel' || source.type === 'pdf' ? <FileOutlined /> : <DbIcon />}
-                                  size="small"
-                                  className="source-link"
-                                  onClick={() => console.log('查看来源:', source)}
-                                >
-                                  {source.name}
-                                  {source.type === 'excel' && <Tag size="small" color="green">Excel</Tag>}
-                                  {source.type === 'pdf' && <Tag size="small" color="red">PDF</Tag>}
-                                  {source.type === 'database' && <Tag size="small" color="blue">数据库</Tag>}
-                                </Button>
-                              </Tooltip>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </>
-              ) : data.analysis.factorTableData ? (
-                <div style={{ marginTop: 16, marginBottom: 24 }}>
-                  <div className="result-block">
-                    <div className="block-header">
-                      <h4 className="block-title">因子分解明细表</h4>
-                      <div className="table-actions">
-                        <Tooltip title="表格">
-                          <Button 
-                            icon={<TableOutlined />} 
-                            type="primary"
-                            size="small" 
-                            className="table-action-btn"
-                          />
-                        </Tooltip>
-                        <Tooltip title="导出">
-                          <Button 
-                            icon={<DownloadOutlined />} 
-                            onClick={() => handleExport({ tableData: data.analysis.factorTableData })} 
-                            size="small" 
-                            className="table-action-btn" 
-                          />
-                        </Tooltip>
-                        <Tooltip title="添加到仪表盘">
-                          <Button 
-                            icon={<PlusSquareOutlined />} 
-                            onClick={() => handleAddToDashboard(
-                              { 
-                                title: '因子分解明细表', 
-                                tableData: data.analysis.factorTableData, 
-                                sources: data.analysis.factorSources 
-                              }, 
-                              'factor', 
-                              'table', 
-                              'bar'
-                            )} 
-                            size="small" 
-                            className="table-action-btn" 
-                          />
-                        </Tooltip>
-                      </div>
-                    </div>
-                    <div className="table-wrapper">
-                      <Table
-                        columns={data.analysis.factorTableData.columns || []}
-                        dataSource={data.analysis.factorTableData.dataSource || []}
-                        pagination={false}
-                        size="middle"
-                        bordered
-                        className="custom-result-table"
-                      />
-                    </div>
-                    
-                    {/* 数据来源区域 */}
-                    <div className="data-sources">
-                      <div className="sources-label">数据来源:</div>
-                      <div className="sources-list">
-                        {data.analysis.factorSources && data.analysis.factorSources.length > 0 ? (
-                          data.analysis.factorSources.map((source, i) => (
-                            <Tooltip key={i} title={source.fullPath || source.name}>
-                              <Button
-                                type="link"
-                                icon={source.type === 'excel' || source.type === 'pdf' ? <FileOutlined /> : <DbIcon />}
-                                size="small"
-                                className="source-link"
-                                onClick={() => console.log('查看来源:', source)}
-                              >
-                                {source.name}
-                                {source.type === 'excel' && <Tag size="small" color="green">Excel</Tag>}
-                                {source.type === 'pdf' && <Tag size="small" color="red">PDF</Tag>}
-                                {source.type === 'database' && <Tag size="small" color="blue">数据库</Tag>}
-                              </Button>
-                            </Tooltip>
-                          ))
-                        ) : (
-                          <span style={{ color: '#999', fontSize: '12px' }}>暂无数据来源</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="analysis-subtitle" style={{ marginTop: 16 }}>2-2. 解读</div>
-                  <div className="analysis-text" style={{ whiteSpace: 'pre-wrap' }}>{data.analysis.factorAnalysis}</div>
-                </div>
-              ) : data.analysis.factors ? (
-                <>
-                  <div className="analysis-subtitle">2-1. 关键因子及其影响</div>
-                  <ul className="factor-list">
-                    <li>数量：变化率约 +{data.analysis.factors?.qtyGrowth}%</li>
-                    <li>价格：变化率约 +{data.analysis.factors?.priceGrowth}%</li>
-                    <li>结构：变化率约 +{data.analysis.factors?.mixEffect}%</li>
-                  </ul>
-                  <div className="analysis-subtitle">2-2. 解读</div>
-                  <div className="analysis-text" style={{ whiteSpace: 'pre-wrap' }}>{data.analysis.factorAnalysis}</div>
-                </>
-              ) : null}
-            </div>
             <div className="analysis-card dimension">
-              <div className="analysis-header"><span className="badge">3</span> 三. 维度影响</div>
+              <div className="analysis-header"><span className="badge">2</span> 二. 维度影响</div>
               {data.analysis.dimensionTableData && (
                 <div style={{ marginTop: 16, marginBottom: 24 }}>
                   <div className="result-block">
@@ -580,6 +522,13 @@ const QueryResult = ({ data }) => {
                             />
                           </Tooltip>
                         </Dropdown>
+                        <Tooltip title="查看SQL">
+                          <Button 
+                            icon={<DatabaseOutlined />} 
+                            size="small" 
+                            className="table-action-btn" 
+                          />
+                        </Tooltip>
                         <Tooltip title="导出">
                           <Button 
                             icon={<DownloadOutlined />} 
@@ -625,33 +574,117 @@ const QueryResult = ({ data }) => {
                     <div className="data-sources">
                       <div className="sources-label">数据来源:</div>
                       <div className="sources-list">
-                        {data.analysis.dimensionSources && data.analysis.dimensionSources.length > 0 ? (
-                          data.analysis.dimensionSources.map((source, i) => (
-                            <Tooltip key={i} title={source.fullPath || source.name}>
-                              <Button
-                                type="link"
-                                icon={source.type === 'excel' || source.type === 'pdf' ? <FileOutlined /> : <DbIcon />}
-                                size="small"
-                                className="source-link"
-                                onClick={() => console.log('查看来源:', source)}
-                              >
-                                {source.name}
-                                {source.type === 'excel' && <Tag size="small" color="green">Excel</Tag>}
-                                {source.type === 'pdf' && <Tag size="small" color="red">PDF</Tag>}
-                                {source.type === 'database' && <Tag size="small" color="blue">数据库</Tag>}
-                              </Button>
-                            </Tooltip>
-                          ))
-                        ) : (
-                          <span style={{ color: '#999', fontSize: '12px' }}>暂无数据来源</span>
-                        )}
+                        {renderDataSources(data.analysis.dimensionSources, 'dimension')}
                       </div>
                     </div>
                   </div>
                 </div>
               )}
-              <div className="analysis-subtitle">3-2. 解读</div>
+              <div className="analysis-subtitle">2-2. 解读</div>
               <div className="analysis-text" style={{ whiteSpace: 'pre-wrap' }}>{data.analysis.dimensionAnalysis}</div>
+            </div>
+            <div className="analysis-card factor">
+              <div className="analysis-header"><span className="badge">3</span> 三. 因子影响</div>
+              {data.analysis.factorAnalysisList ? (
+                <>
+                  {/* 因子分析列表 - 每个因子一个区块 */}
+                  {data.analysis.factorAnalysisList.map((factor, idx) => (
+                    <div key={idx} style={{ marginBottom: 16 }}>
+                      <div className="analysis-subtitle">③-{idx + 1}. {factor.title}</div>
+                      <div className="analysis-text" style={{ marginBottom: 8 }}>{factor.content}</div>
+                      {factor.sources && factor.sources.length > 0 && (
+                        <div className="data-sources" style={{ marginTop: 8, marginBottom: 8 }}>
+                          <div className="sources-label">数据来源:</div>
+                          <div className="sources-list">
+                            {renderDataSources(factor.sources, `factor-${idx}`)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </>
+              ) : data.analysis.factorTableData ? (
+                <div style={{ marginTop: 16, marginBottom: 24 }}>
+                  <div className="result-block">
+                    <div className="block-header">
+                      <h4 className="block-title">因子分解明细表</h4>
+                      <div className="table-actions">
+                        <Tooltip title="表格">
+                          <Button 
+                            icon={<TableOutlined />} 
+                            type="primary"
+                            size="small" 
+                            className="table-action-btn"
+                          />
+                        </Tooltip>
+                        <Tooltip title="查看SQL">
+                          <Button 
+                            icon={<DatabaseOutlined />} 
+                            size="small" 
+                            className="table-action-btn" 
+                          />
+                        </Tooltip>
+                        <Tooltip title="导出">
+                          <Button 
+                            icon={<DownloadOutlined />} 
+                            onClick={() => handleExport({ tableData: data.analysis.factorTableData })} 
+                            size="small" 
+                            className="table-action-btn" 
+                          />
+                        </Tooltip>
+                        <Tooltip title="添加到仪表盘">
+                          <Button 
+                            icon={<PlusSquareOutlined />} 
+                            onClick={() => handleAddToDashboard(
+                              { 
+                                title: '因子分解明细表', 
+                                tableData: data.analysis.factorTableData, 
+                                sources: data.analysis.factorSources 
+                              }, 
+                              'factor', 
+                              'table', 
+                              'bar'
+                            )} 
+                            size="small" 
+                            className="table-action-btn" 
+                          />
+                        </Tooltip>
+                      </div>
+                    </div>
+                    <div className="table-wrapper">
+                      <Table
+                        columns={data.analysis.factorTableData.columns || []}
+                        dataSource={data.analysis.factorTableData.dataSource || []}
+                        pagination={false}
+                        size="middle"
+                        bordered
+                        className="custom-result-table"
+                      />
+                    </div>
+                    
+                    {/* 数据来源区域 */}
+                    <div className="data-sources">
+                      <div className="sources-label">数据来源:</div>
+                      <div className="sources-list">
+                        {renderDataSources(data.analysis.factorSources, 'factorTable')}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="analysis-subtitle" style={{ marginTop: 16 }}>3-2. 解读</div>
+                  <div className="analysis-text" style={{ whiteSpace: 'pre-wrap' }}>{data.analysis.factorAnalysis}</div>
+                </div>
+              ) : data.analysis.factors ? (
+                <>
+                  <div className="analysis-subtitle">3-1. 关键因子及其影响</div>
+                  <ul className="factor-list">
+                    <li>数量：变化率约 +{data.analysis.factors?.qtyGrowth}%</li>
+                    <li>价格：变化率约 +{data.analysis.factors?.priceGrowth}%</li>
+                    <li>结构：变化率约 +{data.analysis.factors?.mixEffect}%</li>
+                  </ul>
+                  <div className="analysis-subtitle">3-2. 解读</div>
+                  <div className="analysis-text" style={{ whiteSpace: 'pre-wrap' }}>{data.analysis.factorAnalysis}</div>
+                </>
+              ) : null}
             </div>
             <div className="analysis-card conclusion">
               <div className="analysis-header"><span className="badge">4</span> 四. 结论</div>

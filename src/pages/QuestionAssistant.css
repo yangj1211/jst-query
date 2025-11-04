@@ -104,6 +104,56 @@
   font-weight: normal;
 }
 
+.conversation-search {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e8e8e8;
+  position: relative;
+}
+
+.conversation-search-input {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.conversation-search-input:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.conversation-search-input::placeholder {
+  color: #bfbfbf;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #999;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.search-clear-btn:hover {
+  background: #f0f0f0;
+  color: #666;
+}
+
 .conversation-items {
   flex: 1;
   overflow-y: auto;
@@ -340,6 +390,7 @@
 /* 消息气泡 */
 .message {
   display: flex;
+  flex-direction: column;
   max-width: 80%;
   animation: fadeIn 0.3s ease-in;
 }
@@ -357,17 +408,18 @@
 
 .user-message {
   align-self: flex-end;
-  flex-direction: row-reverse;
+  align-items: flex-end;
 }
 
 .ai-message {
   align-self: flex-start;
+  align-items: flex-start;
 }
 
 .message-content {
   padding: 0;
   border-radius: 12px;
-  width: 100%;
+  max-width: 100%;
   line-height: 1.5;
   word-wrap: break-word;
   white-space: pre-wrap;
@@ -444,12 +496,11 @@
   white-space: nowrap;
 }
 
-.message.user .message-time {
-  text-align: right;
-}
-
-.message.ai .message-time {
-  text-align: left;
+.message-time {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+  white-space: nowrap;
 }
 
 /* 输入区域 */
@@ -556,13 +607,13 @@
 }
 
 .conversation-group-label {
-  padding: 8px 16px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #999;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  background: #f5f5f5;
+  border-radius: 4px;
+  margin: 12px 0 8px 0;
 }
 
 /* 置顶分组特殊样式 */
