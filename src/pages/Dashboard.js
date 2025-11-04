@@ -256,8 +256,8 @@ const Dashboard = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>我的图表</h2>
             <span style={{ color: '#999', fontSize: 14 }}>{dashboardItems.length} 个图表</span>
-          </div>
-          
+      </div>
+
           <Row gutter={[24, 24]}>
             {dashboardItems.map((item) => {
               const currentView = itemViews[item.id] || { viewType: item.viewType, chartType: item.chartType };
@@ -348,7 +348,7 @@ const Dashboard = () => {
                         <Tooltip title="从仪表盘移除">
                           <Button 
                             type="text" 
-                            size="small" 
+              size="small"
                             danger
                             icon={<DeleteOutlined />}
                             onClick={() => handleDeleteItem(item.id)}
@@ -358,22 +358,22 @@ const Dashboard = () => {
                     }
                   >
                     {currentView.viewType === 'table' ? (
-                      <Table
+            <Table
                         columns={item.tableData?.columns || []}
                         dataSource={item.tableData?.dataSource || []}
-                        pagination={false}
-                        size="small"
+              pagination={false}
+              size="small"
                         bordered
                         scroll={{ x: 'max-content' }}
-                      />
+            />
                     ) : (
                       renderChart(item.tableData, currentView.chartType)
                     )}
-                  </Card>
-                </Col>
+          </Card>
+        </Col>
               );
             })}
-          </Row>
+      </Row>
         </div>
       )}
 
