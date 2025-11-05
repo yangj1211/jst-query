@@ -1,0 +1,275 @@
+.tag-management-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tag-management-modal-content {
+  background: #fff;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.tag-management-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.tag-management-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  color: #333;
+}
+
+.tag-management-modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.tag-management-modal-close-btn:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.tag-management-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.tag-management-add-section {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.tag-management-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.tag-management-input:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.tag-management-add-btn {
+  padding: 8px 16px;
+  border: none;
+  background: #1890ff;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.tag-management-add-btn:hover {
+  background: #40a9ff;
+}
+
+.tag-management-add-btn:active {
+  background: #096dd9;
+}
+
+.tag-management-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tag-management-empty {
+  text-align: center;
+  color: #999;
+  padding: 40px 20px;
+  font-size: 14px;
+}
+
+.tag-management-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.tag-management-item:hover {
+  border-color: #d9d9d9;
+  background: #fafafa;
+}
+
+.tag-management-tag-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #f0f0f0;
+  color: #333;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.tag-management-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.tag-management-edit-btn,
+.tag-management-delete-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tag-management-edit-btn:hover {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.tag-management-delete-btn:hover {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+
+.tag-management-delete-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tag-management-delete-btn.disabled:hover {
+  background: transparent;
+  color: #999;
+}
+
+.tag-management-edit-form {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  align-items: center;
+}
+
+.tag-management-edit-form .tag-management-input {
+  flex: 1;
+  margin: 0;
+}
+
+.tag-management-save-btn {
+  padding: 6px 12px;
+  border: none;
+  background: #1890ff;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tag-management-save-btn:hover {
+  background: #40a9ff;
+}
+
+.tag-management-cancel-btn {
+  padding: 6px 12px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  color: #666;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tag-management-cancel-btn:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.tag-management-modal-footer {
+  padding: 12px 24px;
+  border-top: 1px solid #e8e8e8;
+  display: flex;
+  justify-content: flex-end;
+  background: #fafafa;
+}
+
+.tag-management-close-btn {
+  padding: 8px 24px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  color: #333;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tag-management-close-btn:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+

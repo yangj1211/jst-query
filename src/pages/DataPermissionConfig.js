@@ -15,7 +15,7 @@ const DataPermissionConfig = () => {
   console.log('location.state:', location.state);
   console.log('currentRole:', currentRole);
 
-  const [objectName, setObjectName] = useState(null);
+  const [objectName, setObjectName] = useState([]); // 改为数组，支持多选
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   
   // 数据权限配置相关状态
@@ -51,6 +51,46 @@ const DataPermissionConfig = () => {
       id: 4, 
       name: '测试表2',
       objectType: 'table',
+    },
+    { 
+      id: 5, 
+      name: '测试表3',
+      objectType: 'table',
+    },
+    { 
+      id: 6, 
+      name: '测试表4',
+      objectType: 'table',
+    },
+    { 
+      id: 7, 
+      name: '测试表5',
+      objectType: 'table',
+    },
+    { 
+      id: 8, 
+      name: '测试表6',
+      objectType: 'table',
+    },
+    { 
+      id: 9, 
+      name: '测试表7',
+      objectType: 'table',
+    },
+    { 
+      id: 10, 
+      name: '测试表8',
+      objectType: 'table',
+    },
+    { 
+      id: 11, 
+      name: '测试表9',
+      objectType: 'table',
+    },
+    { 
+      id: 12, 
+      name: '测试表10',
+      objectType: 'table',
     }
   ];
 
@@ -84,14 +124,8 @@ const DataPermissionConfig = () => {
 
   // 添加对象权限
   const handleAddObjectPermission = () => {
-    if (!objectName) {
+    if (!objectName || objectName.length === 0) {
       alert('请选择表对象');
-      return;
-    }
-    
-    // 检查是否已经添加过这个对象
-    if (objectPermissions.some(obj => obj.objectName === objectName)) {
-      alert('该对象已添加，请勿重复添加');
       return;
     }
 
@@ -107,20 +141,29 @@ const DataPermissionConfig = () => {
       permissions = [...selectedPermissions];
     }
 
-    const newObjectPermission = {
-      id: Date.now(),
-      objectType: '表',
-      objectName,
-      permissions,
-      columnConfigs: tempColumnConfigs.length > 0 ? [...tempColumnConfigs] : [], // 使用临时配置的行列权限
-    };
+    // 批量添加选中的表对象
+    const addedObjectNames = objectPermissions.map(obj => obj.objectName);
+    
+    const newObjectPermissions = objectName
+      .filter(name => !addedObjectNames.includes(name)) // 过滤掉已添加的对象
+      .map(name => ({
+        id: Date.now() + Math.random(), // 确保每个对象有唯一ID
+        objectType: '表',
+        objectName: name,
+        permissions: [...permissions],
+        columnConfigs: [], // 统一在列表中添加后再配置行列权限
+      }));
 
-    setObjectPermissions([...objectPermissions, newObjectPermission]);
+    if (newObjectPermissions.length === 0) {
+      alert('所选对象已全部添加，请勿重复添加');
+      return;
+    }
+
+    setObjectPermissions([...objectPermissions, ...newObjectPermissions]);
     
     // 重置选择
-    setObjectName(null);
+    setObjectName([]);
     setSelectedPermissions([]);
-    setTempColumnConfigs([]); // 清空临时行列权限配置
   };
 
   // 删除对象权限
@@ -204,7 +247,7 @@ const DataPermissionConfig = () => {
 
   // 单个权限选择
   const handlePermissionChange = (value) => {
-    if (!objectName) {
+    if (!objectName || objectName.length === 0) {
       return;
     }
     const newSelected = selectedPermissions.includes(value)
@@ -346,23 +389,521 @@ const DataPermissionConfig = () => {
           sampleData: ['华北', '华东', '华南']
         },
       ],
+      '测试表3': [ // 人力资源表
+        { 
+          name: '员工编号', 
+          type: 'varchar(50)', 
+          description: '员工唯一标识',
+          sampleData: ['EMP-001', 'EMP-002', 'EMP-003']
+        },
+        { 
+          name: '员工姓名', 
+          type: 'varchar(50)', 
+          description: '员工姓名',
+          sampleData: ['张明', '李华', '王芳']
+        },
+        { 
+          name: '部门', 
+          type: 'varchar(50)', 
+          description: '所属部门',
+          sampleData: ['技术部', '市场部', '人事部']
+        },
+        { 
+          name: '职位', 
+          type: 'varchar(50)', 
+          description: '职位名称',
+          sampleData: ['高级工程师', '市场经理', '人事专员']
+        },
+        { 
+          name: '入职日期', 
+          type: 'date', 
+          description: '入职日期',
+          sampleData: ['2020-03-15', '2021-06-20', '2022-09-10']
+        },
+        { 
+          name: '薪资', 
+          type: 'decimal(10,2)', 
+          description: '月薪',
+          sampleData: ['15000.00', '12000.00', '10000.00']
+        },
+        { 
+          name: '工作地点', 
+          type: 'varchar(50)', 
+          description: '工作城市',
+          sampleData: ['北京', '上海', '深圳']
+        },
+        { 
+          name: '联系方式', 
+          type: 'varchar(50)', 
+          description: '联系电话',
+          sampleData: ['13800138001', '13800138002', '13800138003']
+        },
+        { 
+          name: '邮箱', 
+          type: 'varchar(100)', 
+          description: '电子邮箱',
+          sampleData: ['zhangming@example.com', 'lihua@example.com', 'wangfang@example.com']
+        },
+        { 
+          name: '状态', 
+          type: 'varchar(20)', 
+          description: '员工状态',
+          sampleData: ['在职', '试用期', '离职']
+        },
+      ],
+      '测试表4': [ // 库存表
+        { 
+          name: '商品编号', 
+          type: 'varchar(50)', 
+          description: '商品唯一标识',
+          sampleData: ['PROD-001', 'PROD-002', 'PROD-003']
+        },
+        { 
+          name: '商品名称', 
+          type: 'varchar(100)', 
+          description: '商品名称',
+          sampleData: ['笔记本电脑', '智能手机', '平板电脑']
+        },
+        { 
+          name: '商品类别', 
+          type: 'varchar(50)', 
+          description: '商品分类',
+          sampleData: ['电子产品', '办公用品', '数码配件']
+        },
+        { 
+          name: '库存数量', 
+          type: 'int', 
+          description: '当前库存数量',
+          sampleData: ['500', '300', '200']
+        },
+        { 
+          name: '单价', 
+          type: 'decimal(10,2)', 
+          description: '商品单价',
+          sampleData: ['5999.00', '3999.00', '2999.00']
+        },
+        { 
+          name: '仓库位置', 
+          type: 'varchar(50)', 
+          description: '仓库位置',
+          sampleData: ['A区-001', 'B区-002', 'C区-003']
+        },
+        { 
+          name: '供应商', 
+          type: 'varchar(100)', 
+          description: '供应商名称',
+          sampleData: ['XX电子有限公司', 'YY科技股份有限公司', 'ZZ数码科技有限公司']
+        },
+        { 
+          name: '入库日期', 
+          type: 'date', 
+          description: '入库日期',
+          sampleData: ['2025-01-10', '2025-02-15', '2025-03-20']
+        },
+        { 
+          name: '最低库存', 
+          type: 'int', 
+          description: '最低库存预警值',
+          sampleData: ['100', '50', '30']
+        },
+        { 
+          name: '库存状态', 
+          type: 'varchar(20)', 
+          description: '库存状态',
+          sampleData: ['充足', '正常', '预警']
+        },
+      ],
+      '测试表5': [ // 客户表
+        { 
+          name: '客户编号', 
+          type: 'varchar(50)', 
+          description: '客户唯一标识',
+          sampleData: ['CUST-001', 'CUST-002', 'CUST-003']
+        },
+        { 
+          name: '客户名称', 
+          type: 'varchar(100)', 
+          description: '客户公司名称',
+          sampleData: ['北京科技发展有限公司', '上海贸易集团', '深圳创新科技有限公司']
+        },
+        { 
+          name: '联系人', 
+          type: 'varchar(50)', 
+          description: '联系人姓名',
+          sampleData: ['王总', '李经理', '张主任']
+        },
+        { 
+          name: '联系电话', 
+          type: 'varchar(50)', 
+          description: '联系电话',
+          sampleData: ['010-12345678', '021-87654321', '0755-11223344']
+        },
+        { 
+          name: '邮箱', 
+          type: 'varchar(100)', 
+          description: '电子邮箱',
+          sampleData: ['wang@example.com', 'li@example.com', 'zhang@example.com']
+        },
+        { 
+          name: '客户等级', 
+          type: 'varchar(20)', 
+          description: '客户等级',
+          sampleData: ['VIP', '普通', '金牌']
+        },
+        { 
+          name: '注册地址', 
+          type: 'varchar(200)', 
+          description: '注册地址',
+          sampleData: ['北京市海淀区中关村大街1号', '上海市浦东新区陆家嘴金融区', '深圳市南山区科技园']
+        },
+        { 
+          name: '成立日期', 
+          type: 'date', 
+          description: '公司成立日期',
+          sampleData: ['2010-05-15', '2015-08-20', '2020-03-10']
+        },
+        { 
+          name: '注册资本', 
+          type: 'decimal(15,2)', 
+          description: '注册资本（万元）',
+          sampleData: ['1000.00', '5000.00', '10000.00']
+        },
+        { 
+          name: '客户状态', 
+          type: 'varchar(20)', 
+          description: '客户状态',
+          sampleData: ['活跃', '休眠', '流失']
+        },
+      ],
+      '测试表6': [ // 供应商表
+        { 
+          name: '供应商编号', 
+          type: 'varchar(50)', 
+          description: '供应商唯一标识',
+          sampleData: ['SUPP-001', 'SUPP-002', 'SUPP-003']
+        },
+        { 
+          name: '供应商名称', 
+          type: 'varchar(100)', 
+          description: '供应商公司名称',
+          sampleData: ['XX制造有限公司', 'YY材料股份有限公司', 'ZZ配件科技有限公司']
+        },
+        { 
+          name: '联系人', 
+          type: 'varchar(50)', 
+          description: '联系人姓名',
+          sampleData: ['陈经理', '刘总', '周主任']
+        },
+        { 
+          name: '联系电话', 
+          type: 'varchar(50)', 
+          description: '联系电话',
+          sampleData: ['020-12345678', '027-87654321', '028-11223344']
+        },
+        { 
+          name: '邮箱', 
+          type: 'varchar(100)', 
+          description: '电子邮箱',
+          sampleData: ['chen@example.com', 'liu@example.com', 'zhou@example.com']
+        },
+        { 
+          name: '供应类别', 
+          type: 'varchar(50)', 
+          description: '供应产品类别',
+          sampleData: ['原材料', '零部件', '成品']
+        },
+        { 
+          name: '地址', 
+          type: 'varchar(200)', 
+          description: '公司地址',
+          sampleData: ['广州市天河区工业园', '武汉市东湖新技术开发区', '成都市高新区科技园']
+        },
+        { 
+          name: '合作开始日期', 
+          type: 'date', 
+          description: '合作开始日期',
+          sampleData: ['2018-01-10', '2019-06-15', '2021-03-20']
+        },
+        { 
+          name: '信用等级', 
+          type: 'varchar(20)', 
+          description: '供应商信用等级',
+          sampleData: ['AAA', 'AA', 'A']
+        },
+        { 
+          name: '合作状态', 
+          type: 'varchar(20)', 
+          description: '合作状态',
+          sampleData: ['合作中', '暂停', '终止']
+        },
+      ],
+      '测试表7': [ // 产品表
+        { 
+          name: '产品编号', 
+          type: 'varchar(50)', 
+          description: '产品唯一标识',
+          sampleData: ['PRD-001', 'PRD-002', 'PRD-003']
+        },
+        { 
+          name: '产品名称', 
+          type: 'varchar(100)', 
+          description: '产品名称',
+          sampleData: ['智能办公系统', '数据分析平台', '云存储服务']
+        },
+        { 
+          name: '产品类别', 
+          type: 'varchar(50)', 
+          description: '产品分类',
+          sampleData: ['软件产品', '硬件产品', '服务产品']
+        },
+        { 
+          name: '规格型号', 
+          type: 'varchar(100)', 
+          description: '产品规格型号',
+          sampleData: ['标准版', '专业版', '企业版']
+        },
+        { 
+          name: '单价', 
+          type: 'decimal(10,2)', 
+          description: '产品单价',
+          sampleData: ['9999.00', '19999.00', '29999.00']
+        },
+        { 
+          name: '单位', 
+          type: 'varchar(20)', 
+          description: '计量单位',
+          sampleData: ['套', '台', '年']
+        },
+        { 
+          name: '生产日期', 
+          type: 'date', 
+          description: '生产日期',
+          sampleData: ['2024-12-01', '2025-01-15', '2025-02-20']
+        },
+        { 
+          name: '保质期', 
+          type: 'int', 
+          description: '保质期（天）',
+          sampleData: ['365', '730', '1095']
+        },
+        { 
+          name: '产品状态', 
+          type: 'varchar(20)', 
+          description: '产品状态',
+          sampleData: ['在售', '停售', '下架']
+        },
+        { 
+          name: '备注', 
+          type: 'varchar(200)', 
+          description: '备注信息',
+          sampleData: ['热销产品', '新产品', '促销产品']
+        },
+      ],
+      '测试表8': [ // 项目表
+        { 
+          name: '项目编号', 
+          type: 'varchar(50)', 
+          description: '项目唯一标识',
+          sampleData: ['PRJ-001', 'PRJ-002', 'PRJ-003']
+        },
+        { 
+          name: '项目名称', 
+          type: 'varchar(100)', 
+          description: '项目名称',
+          sampleData: ['企业管理系统升级', '移动端应用开发', '数据分析平台建设']
+        },
+        { 
+          name: '项目类型', 
+          type: 'varchar(50)', 
+          description: '项目类型',
+          sampleData: ['软件开发', '系统集成', '咨询服务']
+        },
+        { 
+          name: '项目经理', 
+          type: 'varchar(50)', 
+          description: '项目经理姓名',
+          sampleData: ['张经理', '李经理', '王经理']
+        },
+        { 
+          name: '开始日期', 
+          type: 'date', 
+          description: '项目开始日期',
+          sampleData: ['2025-01-01', '2025-02-01', '2025-03-01']
+        },
+        { 
+          name: '结束日期', 
+          type: 'date', 
+          description: '项目结束日期',
+          sampleData: ['2025-06-30', '2025-08-31', '2025-12-31']
+        },
+        { 
+          name: '项目预算', 
+          type: 'decimal(15,2)', 
+          description: '项目预算（元）',
+          sampleData: ['500000.00', '800000.00', '1200000.00']
+        },
+        { 
+          name: '项目状态', 
+          type: 'varchar(20)', 
+          description: '项目状态',
+          sampleData: ['进行中', '已暂停', '已完成']
+        },
+        { 
+          name: '客户名称', 
+          type: 'varchar(100)', 
+          description: '客户公司名称',
+          sampleData: ['ABC科技有限公司', 'XYZ贸易有限公司', 'DEF电子股份有限公司']
+        },
+        { 
+          name: '项目进度', 
+          type: 'varchar(20)', 
+          description: '项目进度百分比',
+          sampleData: ['30%', '50%', '80%']
+        },
+      ],
+      '测试表9': [ // 员工表
+        { 
+          name: '员工ID', 
+          type: 'varchar(50)', 
+          description: '员工唯一标识',
+          sampleData: ['E001', 'E002', 'E003']
+        },
+        { 
+          name: '姓名', 
+          type: 'varchar(50)', 
+          description: '员工姓名',
+          sampleData: ['赵明', '钱华', '孙芳']
+        },
+        { 
+          name: '工号', 
+          type: 'varchar(50)', 
+          description: '员工工号',
+          sampleData: ['GH001', 'GH002', 'GH003']
+        },
+        { 
+          name: '部门', 
+          type: 'varchar(50)', 
+          description: '所属部门',
+          sampleData: ['研发部', '运营部', '财务部']
+        },
+        { 
+          name: '职位', 
+          type: 'varchar(50)', 
+          description: '职位名称',
+          sampleData: ['软件工程师', '运营专员', '财务分析师']
+        },
+        { 
+          name: '直接上级', 
+          type: 'varchar(50)', 
+          description: '直接上级姓名',
+          sampleData: ['周总监', '吴经理', '郑主管']
+        },
+        { 
+          name: '入职日期', 
+          type: 'date', 
+          description: '入职日期',
+          sampleData: ['2021-03-15', '2022-06-20', '2023-09-10']
+        },
+        { 
+          name: '基本工资', 
+          type: 'decimal(10,2)', 
+          description: '基本工资',
+          sampleData: ['12000.00', '10000.00', '11000.00']
+        },
+        { 
+          name: '绩效系数', 
+          type: 'decimal(3,2)', 
+          description: '绩效系数',
+          sampleData: ['1.2', '1.0', '1.1']
+        },
+        { 
+          name: '员工状态', 
+          type: 'varchar(20)', 
+          description: '员工状态',
+          sampleData: ['在职', '请假', '离职']
+        },
+      ],
+      '测试表10': [ // 合同表
+        { 
+          name: '合同编号', 
+          type: 'varchar(50)', 
+          description: '合同唯一标识',
+          sampleData: ['CON-2025-001', 'CON-2025-002', 'CON-2025-003']
+        },
+        { 
+          name: '合同名称', 
+          type: 'varchar(100)', 
+          description: '合同名称',
+          sampleData: ['软件服务合同', '设备采购合同', '技术服务合同']
+        },
+        { 
+          name: '合同类型', 
+          type: 'varchar(50)', 
+          description: '合同类型',
+          sampleData: ['销售合同', '采购合同', '服务合同']
+        },
+        { 
+          name: '甲方', 
+          type: 'varchar(100)', 
+          description: '甲方公司名称',
+          sampleData: ['我司名称', '我司名称', '我司名称']
+        },
+        { 
+          name: '乙方', 
+          type: 'varchar(100)', 
+          description: '乙方公司名称',
+          sampleData: ['客户A公司', '供应商B公司', '客户C公司']
+        },
+        { 
+          name: '合同金额', 
+          type: 'decimal(15,2)', 
+          description: '合同总金额（元）',
+          sampleData: ['1000000.00', '500000.00', '2000000.00']
+        },
+        { 
+          name: '签约日期', 
+          type: 'date', 
+          description: '签约日期',
+          sampleData: ['2025-01-10', '2025-02-15', '2025-03-20']
+        },
+        { 
+          name: '生效日期', 
+          type: 'date', 
+          description: '合同生效日期',
+          sampleData: ['2025-01-15', '2025-02-20', '2025-03-25']
+        },
+        { 
+          name: '到期日期', 
+          type: 'date', 
+          description: '合同到期日期',
+          sampleData: ['2026-01-14', '2026-02-19', '2026-03-24']
+        },
+        { 
+          name: '合同状态', 
+          type: 'varchar(20)', 
+          description: '合同状态',
+          sampleData: ['生效中', '待审批', '已到期']
+        },
+      ],
     };
     return tableColumnsMap[tableName] || [];
   };
 
   // 配置行列权限（添加前配置）
   const handleConfigColumnPermissionBeforeAdd = () => {
-    if (!objectName) {
-      alert('请先选择表对象');
+    // 只有单选时才能配置行列权限
+    if (!objectName || objectName.length !== 1) {
+      alert('请先选择单个表对象');
       return;
     }
     
-    console.log('配置行列权限（添加前）:', objectName);
+    const selectedTableName = objectName[0];
+    console.log('配置行列权限（添加前）:', selectedTableName);
     setCurrentEditingObject(null); // 标记为添加前配置
     setIsEditingMode(false);
     
     // 获取当前表的列并初始化配置
-    const columns = getTableColumns(objectName);
+    const columns = getTableColumns(selectedTableName);
     
     // 如果已有临时配置则使用，否则初始化
     if (tempColumnConfigs.length > 0) {
@@ -824,34 +1365,21 @@ const DataPermissionConfig = () => {
           <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div style={{ width: '300px' }}>
               <Select
+                mode="multiple"
                 value={objectName}
                 onChange={(value) => {
                   setObjectName(value);
                   // 表类型默认选中"表查询"权限
                   setSelectedPermissions(['DT8']);
-                  setTempColumnConfigs([]); // 切换对象时清空临时配置
                 }}
                 style={{ width: '100%' }}
                 placeholder="请选择表对象"
+                maxTagCount="responsive"
               >
                 {getObjectNameOptions().map(name => (
                   <Option key={name} value={name}>{name}</Option>
                 ))}
               </Select>
-            </div>
-
-            {/* 配置行列权限按钮 */}
-            <div style={{ paddingBottom: '4px' }}>
-              <Button
-                type="link"
-                size="small"
-                icon={<SettingOutlined />}
-                onClick={handleConfigColumnPermissionBeforeAdd}
-                disabled={!objectName}
-                style={{ padding: 0 }}
-              >
-                配置行列权限 {tempColumnConfigs.length > 0 && '(已配置)'}
-              </Button>
             </div>
 
             {/* 添加按钮 */}
@@ -931,15 +1459,14 @@ const DataPermissionConfig = () => {
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      {/* 非管理员才显示编辑按钮 */}
-                      {!(currentRole?.roleName === '管理员' || currentRole?.roleId === '2') && (
-                        <Button
-                          size="small"
-                          onClick={() => handleEditObjectPermission(obj)}
-                        >
-                          编辑
-                        </Button>
-                      )}
+                      {/* 配置行列权限按钮 */}
+                      <Button
+                        size="small"
+                        icon={<SettingOutlined />}
+                        onClick={() => handleConfigColumnPermissionFromList(obj)}
+                      >
+                        配置行列权限
+                      </Button>
                       <Button
                         danger
                         size="small"

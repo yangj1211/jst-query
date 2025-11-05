@@ -15,6 +15,7 @@ const DataImport = () => {
   const [conflictStrategy, setConflictStrategy] = useState('fail');
   const [tableName, setTableName] = useState('');
   const [tableDescription, setTableDescription] = useState('');
+  const [selectedTag, setSelectedTag] = useState('');
   
   // 载入任务列表
   const [importTasks, setImportTasks] = useState([
@@ -136,12 +137,19 @@ const DataImport = () => {
   const [inputDescription, setInputDescription] = useState('');
   const [isFileNameValid, setIsFileNameValid] = useState(true);
   
+  // 标签选择弹窗（用于公告导入）
+  const [showTagModal, setShowTagModal] = useState(false);
+  const [pendingImportType, setPendingImportType] = useState(null); // 'single' 或 'batch'
+  const [pendingImportItem, setPendingImportItem] = useState(null); // 单个公告项
+  const [announcementTag, setAnnouncementTag] = useState(''); // 选择的标签
+  
   // 模拟已保存的表数据
   const [savedTables] = useState([
     { 
       id: 3, 
       name: '测试表1',
       description: '用户信息表',
+      tag: '收入成本',
       objectType: 'table',
       fieldCount: 3,
       rowCount: 1523,
@@ -155,6 +163,7 @@ const DataImport = () => {
       id: 4, 
       name: '测试表2',
       description: '订单数据表',
+      tag: '费用明细',
       objectType: 'table',
       fieldCount: 2,
       rowCount: 8942,
@@ -266,6 +275,7 @@ const DataImport = () => {
     setConflictStrategy('fail');
     setTableName('');
     setTableDescription('');
+    setSelectedTag('');
   };
 
   const handleUpdateField = (id, key, value) => {
@@ -288,6 +298,10 @@ const DataImport = () => {
     }
     if (!tableName.trim()) {
       alert('请填写表名');
+      return;
+    }
+    if (!selectedTag) {
+      alert('请选择标签');
       return;
     }
     const hasEmptyNames = fields.some(field => !field.name.trim());
@@ -381,13 +395,31 @@ const DataImport = () => {
 
   // 直接导入公告，使用公告内容作为文件名
   const handleImportOnlineDoc = (item) => {
+    setPendingImportType('single');
+    setPendingImportItem(item);
+    setAnnouncementTag('');
+    setShowTagModal(true);
+  };
+
+  // 确认标签选择后执行单个导入
+  const handleConfirmSingleImport = () => {
+    if (!announcementTag) {
+      alert('请选择标签');
+      return;
+    }
+    
+    const item = pendingImportItem;
     let fileName = item.content.length > 30 
       ? item.content.substring(0, 30) 
       : item.content;
     fileName = fileName.replace(/[^\u4e00-\u9fa5A-Za-z0-9_-]/g, '_');
     
-    // 直接执行导入
-    alert(`已成功导入文档！\n文件名：${fileName}.pdf`);
+    alert(`已成功导入文档！\n文件名：${fileName}.pdf\n标签：${announcementTag}`);
+    
+    setShowTagModal(false);
+    setPendingImportType(null);
+    setPendingImportItem(null);
+    setAnnouncementTag('');
   };
 
   // 切换单个公告的选中状态
@@ -426,6 +458,19 @@ const DataImport = () => {
       return;
     }
 
+    setPendingImportType('batch');
+    setPendingImportItem(null);
+    setAnnouncementTag('');
+    setShowTagModal(true);
+  };
+
+  // 确认标签选择后执行批量导入
+  const handleConfirmBatchImport = () => {
+    if (!announcementTag) {
+      alert('请选择标签');
+      return;
+    }
+
     const allAnnouncements = getFilteredAnnouncements();
     const selectedItems = allAnnouncements.filter(item => selectedAnnouncements.includes(item.id));
     
@@ -436,8 +481,21 @@ const DataImport = () => {
       return fileName.replace(/[^\u4e00-\u9fa5A-Za-z0-9_-]/g, '_') + '.pdf';
     });
 
-    alert(`已成功批量导入 ${selectedItems.length} 个文档！\n\n文件列表：\n${fileNames.join('\n')}`);
+    alert(`已成功批量导入 ${selectedItems.length} 个文档！\n标签：${announcementTag}\n\n文件列表：\n${fileNames.join('\n')}`);
     setSelectedAnnouncements([]); // 导入后清空选择
+    
+    setShowTagModal(false);
+    setPendingImportType(null);
+    setPendingImportItem(null);
+    setAnnouncementTag('');
+  };
+
+  // 取消标签选择
+  const handleCancelTagSelection = () => {
+    setShowTagModal(false);
+    setPendingImportType(null);
+    setPendingImportItem(null);
+    setAnnouncementTag('');
   };
 
   // 检查当前页是否全选
@@ -501,6 +559,7 @@ const DataImport = () => {
     setSelectedTableId(null);
     setTableName('');
     setTableDescription('');
+    setSelectedTag('');
   };
 
   // 获取状态显示文本
@@ -999,6 +1058,22 @@ const DataImport = () => {
                   />
                 </div>
                 <div className="config-row">
+                  <label className="config-label">
+                    <span className="required">*</span>标签：
+                  </label>
+                  <select
+                    className="config-input"
+                    value={selectedTag}
+                    onChange={(e) => setSelectedTag(e.target.value)}
+                    disabled={!uploadedFile}
+                  >
+                    <option value="">请选择标签</option>
+                    <option value="收入成本">收入成本</option>
+                    <option value="费用明细">费用明细</option>
+                    <option value="财务报告">财务报告</option>
+                  </select>
+                </div>
+                <div className="config-row">
                   <label className="config-label">表描述：</label>
                   <input
                     type="text"
@@ -1049,6 +1124,17 @@ const DataImport = () => {
                     ))}
                   </select>
                 </div>
+
+                {/* 显示已选表的标签 */}
+                {selectedTableId && (() => {
+                  const selectedTable = savedTables.find(table => table.id === selectedTableId);
+                  return selectedTable && selectedTable.tag ? (
+                    <div className="config-row">
+                      <label className="config-label">标签：</label>
+                      <div className="tag-display">{selectedTable.tag}</div>
+                    </div>
+                  ) : null;
+                })()}
 
                 {/* 唯一字段冲突处理 */}
                 <div className="conflict-strategy-selector">
@@ -1432,6 +1518,56 @@ const DataImport = () => {
         </div>
         )}
 
+        {/* 标签选择弹窗（用于公告导入） */}
+        {showTagModal && (
+          <div className="modal-overlay" onClick={handleCancelTagSelection}>
+            <div className="filename-modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="filename-modal-header">
+                <h3>{pendingImportType === 'batch' ? '批量导入公告' : '导入公告'}</h3>
+                <button className="modal-close-btn" onClick={handleCancelTagSelection}>✕</button>
+              </div>
+              <div className="filename-modal-body">
+                <div className="config-row" style={{ marginBottom: '20px' }}>
+                  <label className="config-label">
+                    <span className="required">*</span>标签：
+                  </label>
+                  <select
+                    className="config-input"
+                    value={announcementTag}
+                    onChange={(e) => setAnnouncementTag(e.target.value)}
+                    style={{ maxWidth: '500px' }}
+                  >
+                    <option value="">请选择标签</option>
+                    <option value="收入成本">收入成本</option>
+                    <option value="费用明细">费用明细</option>
+                    <option value="财务报告">财务报告</option>
+                  </select>
+                </div>
+                {pendingImportType === 'single' && pendingImportItem && (
+                  <div className="filename-hint" style={{ marginTop: '12px' }}>
+                    将导入：{pendingImportItem.content}
+                  </div>
+                )}
+                {pendingImportType === 'batch' && (
+                  <div className="filename-hint" style={{ marginTop: '12px' }}>
+                    将批量导入 {selectedAnnouncements.length} 个公告
+                  </div>
+                )}
+              </div>
+              <div className="filename-modal-footer">
+                <button className="cancel-import-btn" onClick={handleCancelTagSelection}>取消</button>
+                <button 
+                  className="confirm-import-btn" 
+                  onClick={pendingImportType === 'batch' ? handleConfirmBatchImport : handleConfirmSingleImport}
+                  disabled={!announcementTag}
+                >
+                  确认导入
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
@@ -1439,4 +1575,3 @@ const DataImport = () => {
 };
 
 export default DataImport;
-

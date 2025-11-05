@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './PageStyle.css';
 import './DataCenter.css';
+import DateTimeRangePicker from '../components/DateTimeRangePicker';
+import TagManagementModal from '../components/TagManagementModal';
 
 const DataCenter = () => {
   const [savedTables, setSavedTables] = useState([
     {
       id: 1,
       name: '2024年财务报告.pdf',
-      description: '2024年度公司财务报告',
       objectType: 'file', // 文件类型
+      tag: '财务',
       fileSize: '2.5MB',
       createTime: '2025-01-15 09:00:00',
       updateTime: '2025-01-15 09:00:00'
@@ -16,8 +18,8 @@ const DataCenter = () => {
     {
       id: 2,
       name: '2023年对外披露数据.pdf',
-      description: '2023年度对外披露的数据文档',
       objectType: 'file', // 文件类型
+      tag: '披露',
       fileSize: '1.8MB',
       createTime: '2024-12-20 10:30:00',
       updateTime: '2024-12-20 10:30:00'
@@ -27,6 +29,7 @@ const DataCenter = () => {
       name: '测试表1',
       description: '财务数据表',
       objectType: 'table', // 表类型
+      tag: '财务',
       fieldCount: 10,
       rowCount: 1523,
       createTime: '2025-10-20 10:30:00',
@@ -49,6 +52,7 @@ const DataCenter = () => {
       name: '测试表2',
       description: '销售数据表',
       objectType: 'table', // 表类型
+      tag: '销售',
       fieldCount: 10,
       rowCount: 8942,
       createTime: '2025-10-21 14:20:00',
@@ -72,6 +76,122 @@ const DataCenter = () => {
   const [currentPage, setCurrentPage] = useState(1); // 当前页码
   const [pageSize] = useState(10); // 每页显示条数
   const [detailTab, setDetailTab] = useState('fields'); // 表详情tab: 'fields' 或 'data'
+  const [objectTypeFilter, setObjectTypeFilter] = useState('all'); // 对象类型筛选: 'all' | 'file' | 'table'
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false); // 对象类型筛选下拉菜单是否打开
+  const [tagFilter, setTagFilter] = useState('all'); // 标签筛选: 'all' | tag名称
+  const [isTagFilterDropdownOpen, setIsTagFilterDropdownOpen] = useState(false); // 标签筛选下拉菜单是否打开
+  const [createTimeRange, setCreateTimeRange] = useState({ startDate: null, endDate: null }); // 创建时间范围筛选
+  const [isTagManagementModalVisible, setIsTagManagementModalVisible] = useState(false); // 标签管理模态框显示状态
+  const [allTags, setAllTags] = useState([]); // 所有可用标签列表
+
+  // 初始化标签列表
+  useEffect(() => {
+    const tags = new Set();
+    savedTables.forEach(item => {
+      if (item.tag) {
+        tags.add(item.tag);
+      }
+    });
+    const newTags = Array.from(tags);
+    setAllTags(newTags);
+    
+    // 如果当前选中的标签不再存在，重置为"全部标签"
+    if (tagFilter !== 'all' && !newTags.includes(tagFilter)) {
+      setTagFilter('all');
+    }
+  }, [savedTables, tagFilter]);
+
+  // 检查标签是否被使用
+  const checkTagInUse = (tag) => {
+    return savedTables.some(item => item.tag === tag);
+  };
+
+  // 下载单个对象
+  const handleDownloadObject = (item) => {
+    if (item.objectType === 'file') {
+      // 下载文件（模拟下载PDF文件）
+      // 在实际项目中，这里应该调用后端API获取文件内容
+      alert(`正在下载文件：${item.name}\n此功能需要后端API支持`);
+      // 模拟下载
+      const link = document.createElement('a');
+      link.href = '#'; // 实际应该使用文件URL
+      link.download = item.name;
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (item.objectType === 'table') {
+      // 下载表数据为CSV格式
+      const table = savedTables.find(t => t.id === item.id);
+      if (!table || !table.fields) {
+        alert('表数据不存在');
+        return;
+      }
+
+      // 生成表数据
+      const sampleData = generateSampleData(table, table.rowCount || 100);
+      
+      // 创建CSV内容
+      const headers = table.fields.map(field => field.name);
+      const rows = sampleData.map(row => 
+        headers.map(header => `"${row[header] || ''}"`).join(',')
+      );
+      
+      const csvContent = [
+        headers.join(','),
+        ...rows
+      ].join('\n');
+
+      // 添加BOM以支持中文
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${item.name}_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  // 处理标签变更
+  const handleTagsChange = (newTags, oldTagName = null, newTagName = null) => {
+    const oldTags = new Set(allTags);
+    const newTagsSet = new Set(newTags);
+    
+    // 如果提供了重命名信息，更新使用该标签的数据项
+    if (oldTagName && newTagName && oldTagName !== newTagName) {
+      setSavedTables(savedTables.map(item => {
+        if (item.tag === oldTagName) {
+          return { ...item, tag: newTagName };
+        }
+        return item;
+      }));
+    }
+    
+    // 找出被删除的标签
+    const deletedTags = [];
+    oldTags.forEach(tag => {
+      if (!newTagsSet.has(tag)) {
+        deletedTags.push(tag);
+      }
+    });
+    
+    // 更新数据项中的标签（删除的标签）
+    setSavedTables(savedTables.map(item => {
+      // 如果标签被删除，移除标签
+      if (item.tag && deletedTags.includes(item.tag)) {
+        return { ...item, tag: '' };
+      }
+      return item;
+    }));
+    
+    setAllTags(newTags);
+  };
 
   // 清空表数据
   const handleClearTable = (id) => {
@@ -150,15 +270,96 @@ const DataCenter = () => {
     return '-';
   };
 
-  // 根据搜索关键词过滤表列表
-  const getFilteredTables = () => {
-    if (!searchKeyword.trim()) {
-      return savedTables;
-    }
-    return savedTables.filter(table => 
-      table.name.toLowerCase().includes(searchKeyword.toLowerCase())
-    );
+  // 解析日期时间字符串为Date对象
+  const parseDateTimeString = (dateTimeStr) => {
+    if (!dateTimeStr) return null;
+    const match = dateTimeStr.match(/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+    if (!match) return null;
+    const [, year, month, day, hour, minute, second] = match.map(Number);
+    return new Date(year, month - 1, day, hour, minute, second);
   };
+
+  // 根据搜索关键词和对象类型过滤表列表
+  const getFilteredTables = () => {
+    let filtered = savedTables;
+
+    // 按搜索关键词筛选
+    if (searchKeyword.trim()) {
+      filtered = filtered.filter(table => 
+        table.name.toLowerCase().includes(searchKeyword.toLowerCase())
+      );
+    }
+
+    // 按对象类型筛选
+    if (objectTypeFilter !== 'all') {
+      filtered = filtered.filter(table => table.objectType === objectTypeFilter);
+    }
+
+    // 按标签筛选
+    if (tagFilter !== 'all') {
+      filtered = filtered.filter(table => table.tag === tagFilter);
+    }
+
+    // 按创建时间范围筛选
+    if (createTimeRange.startDate || createTimeRange.endDate) {
+      filtered = filtered.filter(table => {
+        const createTime = parseDateTimeString(table.createTime);
+        if (!createTime) return false;
+
+        if (createTimeRange.startDate && createTimeRange.endDate) {
+          return createTime >= createTimeRange.startDate && createTime <= createTimeRange.endDate;
+        } else if (createTimeRange.startDate) {
+          return createTime >= createTimeRange.startDate;
+        } else if (createTimeRange.endDate) {
+          return createTime <= createTimeRange.endDate;
+        }
+        return true;
+      });
+    }
+
+    return filtered;
+  };
+
+  // 获取筛选选项的显示文本
+  const getFilterLabel = () => {
+    switch (objectTypeFilter) {
+      case 'file':
+        return '文件';
+      case 'table':
+        return '表';
+      default:
+        return '全部对象类型';
+    }
+  };
+
+  // 处理筛选选项点击
+  const handleFilterSelect = (value) => {
+    setObjectTypeFilter(value);
+    setIsFilterDropdownOpen(false);
+  };
+
+  // 处理标签筛选选项点击
+  const handleTagFilterSelect = (value) => {
+    setTagFilter(value);
+    setIsTagFilterDropdownOpen(false);
+  };
+
+  // 点击外部关闭下拉菜单
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isFilterDropdownOpen && !event.target.closest('.object-type-filter-wrapper')) {
+        setIsFilterDropdownOpen(false);
+      }
+      if (isTagFilterDropdownOpen && !event.target.closest('.tag-filter-wrapper')) {
+        setIsTagFilterDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isFilterDropdownOpen, isTagFilterDropdownOpen]);
 
   // 生成表数据（模拟）
   const generateSampleData = (table, count = 100) => {
@@ -224,18 +425,36 @@ const DataCenter = () => {
           <>
             {/* 搜索栏 */}
             <div className="table-search-bar">
-              <input
-                type="text"
-                className="search-input"
-                placeholder="搜索文件名/表名..."
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
+              <div className="search-input-wrapper">
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="搜索文件名/表名..."
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                />
+                {searchKeyword && (
+                  <button className="clear-search-btn" onClick={() => setSearchKeyword('')}>
+                    ✕
+                  </button>
+                )}
+              </div>
+              <DateTimeRangePicker
+                value={createTimeRange}
+                onChange={setCreateTimeRange}
+                placeholder="选择创建时间范围"
               />
-              {searchKeyword && (
-                <button className="clear-search-btn" onClick={() => setSearchKeyword('')}>
-                  ✕
-                </button>
-              )}
+              <button 
+                className="tag-management-btn"
+                onClick={() => setIsTagManagementModalVisible(true)}
+                title="标签管理"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M2 2h12v12H2V2zm1 1v10h10V3H3zm2 1h6v1H5V4zm0 2h6v1H5V6zm0 2h4v1H5V8z"/>
+                  <path d="M3 2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H3zm0 1h10v10H3V3z"/>
+                </svg>
+                <span>标签管理</span>
+              </button>
             </div>
 
             {/* 表列表 */}
@@ -247,7 +466,104 @@ const DataCenter = () => {
               <div className="table-list-container">
                 <div className="table-list-header">
                   <div className="list-col-name">文件名/表名</div>
-                  <div className="list-col-type">对象类型</div>
+                  <div className="list-col-type">
+                    <div className={`object-type-filter-wrapper ${isFilterDropdownOpen ? 'active' : ''}`}>
+                      <button 
+                        className="object-type-filter-btn"
+                        onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+                      >
+                        <span>对象类型</span>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                          <path d="M6 9L1 4h10L6 9z"/>
+                        </svg>
+                      </button>
+                      {isFilterDropdownOpen && (
+                        <div className="filter-dropdown">
+                          <div 
+                            className={`filter-dropdown-item ${objectTypeFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => handleFilterSelect('all')}
+                          >
+                            {objectTypeFilter === 'all' && (
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
+                              </svg>
+                            )}
+                            <span>全部对象类型</span>
+                          </div>
+                          <div 
+                            className={`filter-dropdown-item ${objectTypeFilter === 'file' ? 'active' : ''}`}
+                            onClick={() => handleFilterSelect('file')}
+                          >
+                            {objectTypeFilter === 'file' && (
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
+                              </svg>
+                            )}
+                            <span>文件</span>
+                          </div>
+                          <div 
+                            className={`filter-dropdown-item ${objectTypeFilter === 'table' ? 'active' : ''}`}
+                            onClick={() => handleFilterSelect('table')}
+                          >
+                            {objectTypeFilter === 'table' && (
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
+                              </svg>
+                            )}
+                            <span>表</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="list-col-tags">
+                    <div className={`tag-filter-wrapper ${isTagFilterDropdownOpen ? 'active' : ''}`}>
+                      <button 
+                        className="tag-filter-btn"
+                        onClick={() => setIsTagFilterDropdownOpen(!isTagFilterDropdownOpen)}
+                      >
+                        <span>标签</span>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                          <path d="M6 9L1 4h10L6 9z"/>
+                        </svg>
+                      </button>
+                      {isTagFilterDropdownOpen && (
+                        <div className="filter-dropdown">
+                          <div 
+                            className={`filter-dropdown-item ${tagFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => handleTagFilterSelect('all')}
+                          >
+                            {tagFilter === 'all' && (
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
+                              </svg>
+                            )}
+                            <span>全部标签</span>
+                          </div>
+                          {allTags.length === 0 ? (
+                            <div className="filter-dropdown-item disabled">
+                              <span>暂无标签</span>
+                            </div>
+                          ) : (
+                            allTags.map((tag) => (
+                              <div 
+                                key={tag}
+                                className={`filter-dropdown-item ${tagFilter === tag ? 'active' : ''}`}
+                                onClick={() => handleTagFilterSelect(tag)}
+                              >
+                                {tagFilter === tag && (
+                                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
+                                  </svg>
+                                )}
+                                <span>{tag}</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <div className="list-col-desc">描述</div>
                   <div className="list-col-size">大小</div>
                   <div className="list-col-time">创建时间</div>
@@ -266,7 +582,14 @@ const DataCenter = () => {
                         {item.objectType === 'file' ? '文件' : '表'}
                       </span>
                     </div>
-                    <div className="list-col-desc">{item.description || '-'}</div>
+                    <div className="list-col-tags">
+                      {item.tag ? (
+                        <span className="tag-badge">{item.tag}</span>
+                      ) : (
+                        <span style={{ color: '#999' }}>-</span>
+                      )}
+                    </div>
+                    <div className="list-col-desc">{item.objectType === 'file' ? '-' : (item.description || '-')}</div>
                     <div className="list-col-size">{getSizeDisplay(item)}</div>
                     <div className="list-col-time">{item.createTime}</div>
                     <div className="list-col-time">{item.updateTime}</div>
@@ -281,6 +604,15 @@ const DataCenter = () => {
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                               <path d="M8 3C4.5 3 1.5 5.5 0 8c1.5 2.5 4.5 5 8 5s6.5-2.5 8-5c-1.5-2.5-4.5-5-8-5zm0 8.5c-1.93 0-3.5-1.57-3.5-3.5S6.07 4.5 8 4.5s3.5 1.57 3.5 3.5S9.93 11.5 8 11.5z"/>
                               <circle cx="8" cy="8" r="2"/>
+                            </svg>
+                          </button>
+                          <button 
+                            className="list-action-btn"
+                            onClick={() => handleDownloadObject(item)}
+                            title="下载"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M8 10l-3-3h2V3h2v4h2l-3 3zM3 11v2h10v-2H3z"/>
                             </svg>
                           </button>
                           <button 
@@ -314,6 +646,15 @@ const DataCenter = () => {
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                               <path d="M8 3C4.5 3 1.5 5.5 0 8c1.5 2.5 4.5 5 8 5s6.5-2.5 8-5c-1.5-2.5-4.5-5-8-5zm0 8.5c-1.93 0-3.5-1.57-3.5-3.5S6.07 4.5 8 4.5s3.5 1.57 3.5 3.5S9.93 11.5 8 11.5z"/>
                               <circle cx="8" cy="8" r="2"/>
+                            </svg>
+                          </button>
+                          <button 
+                            className="list-action-btn"
+                            onClick={() => handleDownloadObject(item)}
+                            title="下载"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M8 10l-3-3h2V3h2v4h2l-3 3zM3 11v2h10v-2H3z"/>
                             </svg>
                           </button>
                           <button 
@@ -473,6 +814,15 @@ const DataCenter = () => {
           })()
         )}
       </div>
+      
+      {/* 标签管理模态框 */}
+      <TagManagementModal
+        visible={isTagManagementModalVisible}
+        onClose={() => setIsTagManagementModalVisible(false)}
+        allTags={allTags}
+        onTagsChange={handleTagsChange}
+        checkTagInUse={checkTagInUse}
+      />
     </div>
   );
 };

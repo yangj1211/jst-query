@@ -872,6 +872,19 @@
   margin-right: 4px;
 }
 
+/* 标签显示 */
+.tag-display {
+  flex: 1;
+  max-width: 500px;
+  padding: 8px 12px;
+  background: #f0f7ff;
+  border: 1px solid #d6e9ff;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #1890ff;
+  font-weight: 500;
+}
+
 /* 已有表选择 */
 .existing-table-selector {
   margin-bottom: 20px;
