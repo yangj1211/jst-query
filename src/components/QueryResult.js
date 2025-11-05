@@ -91,7 +91,7 @@ const QueryResult = ({ data }) => {
             style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
           >
             {displayName}
-            {isFile && <Tag size="small" color="orange">网页</Tag>}
+            {isFile && <Tag size="small" color="orange">文件</Tag>}
             {source.type === 'database' && <Tag size="small" color="blue">表</Tag>}
             
             {/* 如果是文件且有引用，在后面显示圆形数字 */}
@@ -323,19 +323,8 @@ const QueryResult = ({ data }) => {
     console.log('Added to dashboard:', dashboardItem);
   };
 
-  const headerActions = (
-    <div className="header-actions">
-      <Tooltip title="下载报告">
-        <Button type="text" icon={<DownloadOutlined />} size="small" />
-      </Tooltip>
-    </div>
-  );
-
   return (
     <div className="query-result-wrapper">
-      <div className="result-params-header">
-        {headerActions}
-      </div>
 
       <div className="result-content">
         {summary && <p className="summary-text">{summary}</p>}

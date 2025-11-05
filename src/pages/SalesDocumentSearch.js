@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
-import { Button, Checkbox, Tag, Input, List, Tooltip, Pagination, Modal, Table } from 'antd';
+import React, { useState, useMemo } from 'react';
+import { Button, Checkbox, Tag, Input, List, Tooltip, Pagination, Modal, Table, Select, message } from 'antd';
 import { 
   SyncOutlined, 
   RightOutlined, 
   PlusOutlined, 
-  PaperClipOutlined, 
   EyeOutlined, 
   InfoCircleOutlined, 
   DownloadOutlined, 
@@ -91,6 +90,71 @@ const SalesDocumentSearch = () => {
   const [expandedItems, setExpandedItems] = useState([1]); // 默认展开第一项
   const [detailVisible, setDetailVisible] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10); // 默认每页10条
+  const [selectedItems, setSelectedItems] = useState([]); // 选中的项目ID列表
+  
+  // 计算分页后的数据
+  const paginatedResults = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return mockResults.slice(start, end);
+  }, [currentPage, pageSize]);
+  
+  // 总数据量
+  const total = mockResults.length;
+  
+  // 当前页是否全选
+  const isAllSelected = useMemo(() => {
+    return paginatedResults.length > 0 && 
+           paginatedResults.every(item => selectedItems.includes(item.id));
+  }, [paginatedResults, selectedItems]);
+  
+  // 部分选中（用于全选checkbox的indeterminate状态）
+  const isIndeterminate = useMemo(() => {
+    const selectedInPage = paginatedResults.filter(item => selectedItems.includes(item.id)).length;
+    return selectedInPage > 0 && selectedInPage < paginatedResults.length;
+  }, [paginatedResults, selectedItems]);
+  
+  // 处理单个项目的选中/取消选中
+  const handleItemSelect = (itemId, checked) => {
+    if (checked) {
+      setSelectedItems(prev => [...prev, itemId]);
+    } else {
+      setSelectedItems(prev => prev.filter(id => id !== itemId));
+    }
+  };
+  
+  // 处理全选/取消全选
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      const currentPageIds = paginatedResults.map(item => item.id);
+      setSelectedItems(prev => {
+        const newSelected = [...prev];
+        currentPageIds.forEach(id => {
+          if (!newSelected.includes(id)) {
+            newSelected.push(id);
+          }
+        });
+        return newSelected;
+      });
+    } else {
+      const currentPageIds = paginatedResults.map(item => item.id);
+      setSelectedItems(prev => prev.filter(id => !currentPageIds.includes(id)));
+    }
+  };
+  
+  // 处理批量下载
+  const handleBatchDownload = () => {
+    if (selectedItems.length === 0) {
+      message.warning('请先选择要下载的订单');
+      return;
+    }
+    const selectedProjects = mockResults.filter(item => selectedItems.includes(item.id));
+    message.success(`开始下载 ${selectedItems.length} 个订单的文件`);
+    console.log('批量下载选中的订单:', selectedProjects);
+    // 这里可以调用实际的下载API
+  };
 
   const toggleExpand = (id) => {
     setExpandedItems(prev => 
@@ -101,7 +165,6 @@ const SalesDocumentSearch = () => {
   const renderDocumentItem = (doc) => (
     <div key={doc.id} className="document-item">
       <div className="document-info">
-        <PaperClipOutlined className="doc-icon" />
         <span className="doc-name">{doc.name}</span>
         <Tag color={doc.tagColor}>{doc.tag}</Tag>
       </div>
@@ -248,23 +311,45 @@ const SalesDocumentSearch = () => {
       {/* Right Panel */}
       <div className="search-results-panel">
         <div className="results-header">
-          <span>找到 41 个结果</span>
-          <Button icon={<SyncOutlined />}>重置</Button>
+          <div className="results-header-left">
+            <Checkbox
+              checked={isAllSelected}
+              indeterminate={isIndeterminate}
+              onChange={(e) => handleSelectAll(e.target.checked)}
+            >
+              全选
+            </Checkbox>
+            <span>找到 41 个结果</span>
+            {selectedItems.length > 0 && (
+              <span className="selected-count">已选 {selectedItems.length} 个订单</span>
+            )}
+          </div>
+          <div className="results-header-right">
+            <Button 
+              type="primary" 
+              icon={<DownloadOutlined />}
+              onClick={handleBatchDownload}
+              disabled={selectedItems.length === 0}
+            >
+              下载文件
+            </Button>
+            <Button icon={<SyncOutlined />}>重置</Button>
+          </div>
         </div>
         <div className="results-list">
           <List
-            dataSource={mockResults}
+            dataSource={paginatedResults}
             renderItem={item => (
               <div className="result-item-wrapper">
                 <div className="result-item-header">
                   <div className="result-item-title-group">
-                    <Checkbox />
+                    <Checkbox
+                      checked={selectedItems.includes(item.id)}
+                      onChange={(e) => handleItemSelect(item.id, e.target.checked)}
+                    />
                     <span className="result-item-title">{item.title}</span>
                   </div>
                   <div className="result-item-actions">
-                    <Tooltip title="下载全部文件">
-                      <Button type="text" icon={<DownloadOutlined />} />
-                    </Tooltip>
                     <Tooltip title="查看详情">
                       <Button
                         type="text"
@@ -293,7 +378,24 @@ const SalesDocumentSearch = () => {
           />
         </div>
         <div className="results-pagination">
-          <Pagination defaultCurrent={1} total={57640} showSizeChanger={false} />
+          <Pagination 
+            current={currentPage}
+            total={57640}
+            pageSize={pageSize}
+            showSizeChanger={true}
+            pageSizeOptions={['10', '20', '50', '100']}
+            showTotal={(total, range) => `共 ${total} 条`}
+            locale={{
+              items_per_page: '条/页'
+            }}
+            onChange={(page) => {
+              setCurrentPage(page);
+            }}
+            onShowSizeChange={(current, size) => {
+              setPageSize(size);
+              setCurrentPage(1); // 改变每页条数时，重置到第一页
+            }}
+          />
         </div>
       </div>
       {/* 详情弹窗 */}

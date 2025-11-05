@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { DownloadOutlined, LikeOutlined, DislikeOutlined } from '@ant-design/icons';
 import './PageStyle.css';
 import './QuestionAssistant.css';
 import dayjs from 'dayjs';
@@ -75,7 +76,11 @@ const QuestionAssistant = () => {
   const [editingTitle, setEditingTitle] = useState('');
   const [pendingQuestion, setPendingQuestion] = useState('');
   const [searchKeyword, setSearchKeyword] = useState(''); // 搜索关键词
+  const [collapsedGroups, setCollapsedGroups] = useState({}); // 折叠的分组 {groupKey: boolean}
+  const [isGenerating, setIsGenerating] = useState(false); // 是否正在生成答案
   const messagesEndRef = useRef(null);
+  const generationTimeoutsRef = useRef([]); // 存储生成过程中的所有 timeout ID
+  const currentCombinedIdRef = useRef(null); // 当前正在生成的消息 ID
 
   // 配置弹窗状态
   const [configVisible, setConfigVisible] = useState(false);
@@ -117,8 +122,39 @@ const QuestionAssistant = () => {
     };
   }, [openMenuId]);
 
+  // 停止生成
+  const handleStopGeneration = () => {
+    // 清除所有待执行的 timeout
+    generationTimeoutsRef.current.forEach(timeoutId => {
+      clearTimeout(timeoutId);
+    });
+    generationTimeoutsRef.current = [];
+    
+    // 标记当前生成的消息为已停止
+    if (currentCombinedIdRef.current) {
+      setMessages(prev => prev.map(m => {
+        if (m.id === currentCombinedIdRef.current && m.type === 'combined') {
+          return {
+            ...m,
+            isComplete: true,
+            isStopped: true // 标记为已停止
+          };
+        }
+        return m;
+      }));
+    }
+    
+    // 重置状态
+    setIsGenerating(false);
+    currentCombinedIdRef.current = null;
+  };
+
   // 选择对话
   const handleSelectConversation = (id) => {
+    // 如果正在生成，先停止
+    if (isGenerating) {
+      handleStopGeneration();
+    }
     setActiveConversationId(id);
     const conversation = conversations.find(c => c.id === id);
     setMessages(conversation.messages || []);
@@ -126,6 +162,10 @@ const QuestionAssistant = () => {
 
   // 创建新对话
   const handleNewConversation = () => {
+    // 如果正在生成，先停止
+    if (isGenerating) {
+      handleStopGeneration();
+    }
     const newId = Math.max(...conversations.map(c => c.id), 0) + 1;
     const newConversation = {
       id: newId,
@@ -141,6 +181,11 @@ const QuestionAssistant = () => {
   // 发送消息（含槽位应答）
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
+    
+    // 如果正在生成，先停止
+    if (isGenerating) {
+      handleStopGeneration();
+    }
 
     const userMessage = {
       id: Date.now(),
@@ -400,9 +445,86 @@ const QuestionAssistant = () => {
     setMessages(prev => [...prev, askMsg]);
   };
 
+  /**
+   * 生成推荐问题
+   * @param {string} question - 原始问题
+   * @param {Object} data - 回答的数据
+   */
+  const generateSuggestedQuestions = (question, data) => {
+    const suggestions = [];
+    
+    // 提取关键词
+    const hasTopN = /前\d+大|最高的?\d+个/.test(question);
+    const hasYoY = /同比|环比|增长|上升|下降/.test(question);
+    const hasProduct = /产品/.test(question);
+    const hasRegion = /地区|区域/.test(question);
+    const hasCustomer = /客户/.test(question);
+    const hasSales = /销售|收入/.test(question);
+    const isAnalysis = /分析/.test(question);
+    
+    // 根据问题类型生成推荐
+    if (hasTopN) {
+      // Top N查询推荐
+      suggestions.push(`${question.replace(/\?|？/g, '')}，为什么？`);
+      if (hasSales) {
+        suggestions.push('分析一下销售趋势');
+      }
+      if (hasProduct || hasRegion) {
+        suggestions.push('同比变化情况如何？');
+      }
+    } else if (hasYoY || /增长|上升|下降/.test(question)) {
+      // 同比/增长查询推荐
+      suggestions.push('主要原因是什么？');
+      if (hasProduct) {
+        suggestions.push('不同产品的增长情况对比');
+      }
+      if (hasRegion) {
+        suggestions.push('各地区增长情况');
+      }
+    } else if (isAnalysis) {
+      // 分析类查询推荐
+      suggestions.push('同比变化如何？');
+      suggestions.push('各维度详细对比');
+      suggestions.push('有什么改进建议？');
+    } else {
+      // 普通查询推荐
+      suggestions.push('同比变化情况如何？');
+      if (hasProduct || hasRegion || hasCustomer) {
+        suggestions.push('详细分析一下');
+      } else {
+        suggestions.push('按产品维度拆分');
+      }
+      suggestions.push('为什么会这样？');
+    }
+    
+    // 确保返回3个推荐问题
+    return suggestions.slice(0, 3);
+  };
+
+  // 处理推荐问题点击
+  const handleSuggestedQuestionClick = (suggestedQuestion) => {
+    // 将推荐问题填充到输入框
+    setInputValue(suggestedQuestion);
+    
+    // 聚焦到输入框（通过延迟确保 DOM 已更新）
+    setTimeout(() => {
+      const textarea = document.querySelector('.message-input');
+      if (textarea) {
+        textarea.focus();
+        // 将光标移动到文本末尾
+        textarea.setSelectionRange(suggestedQuestion.length, suggestedQuestion.length);
+      }
+    }, 0);
+  };
+
   const proceedWithQuery = (params, baseMessages, originalQuestion) => {
+    // 设置生成状态
+    setIsGenerating(true);
+    generationTimeoutsRef.current = []; // 清空之前的 timeout 列表
+    
     // 创建合并的思考过程消息
     const combinedId = `combined_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    currentCombinedIdRef.current = combinedId;
     
     // 分析问题，识别意图
     const question = originalQuestion || '查询';
@@ -481,13 +603,14 @@ const QuestionAssistant = () => {
       dataInfo: dataInfo,
       steps: thinkingSteps.map(step => ({ ...step, status: 'loading' })),
       isComplete: false,
+      originalQuestion: question, // 保存原始问题用于生成推荐问题
       time: formatDateTime(new Date())
     };
     
     setMessages(prev => [...baseMessages, combinedMessage]);
 
     // 阶段1: 意图识别完成
-    setTimeout(() => {
+    const timeout1 = setTimeout(() => {
       setMessages(prev => prev.map(m => {
         if (m.id === combinedId) {
           return {
@@ -498,10 +621,11 @@ const QuestionAssistant = () => {
         return m;
       }));
     }, 800);
+    generationTimeoutsRef.current.push(timeout1);
 
     // 阶段2: 逐步完成思考步骤
     thinkingSteps.forEach((step, index) => {
-      setTimeout(() => {
+      const timeout2 = setTimeout(() => {
         setMessages(prev => prev.map(m => {
           if (m.id === combinedId) {
             const newSteps = [...m.steps];
@@ -515,10 +639,11 @@ const QuestionAssistant = () => {
           return m;
         }));
       }, 1200 + 400 * (index + 1));
+      generationTimeoutsRef.current.push(timeout2);
     });
 
     // 阶段3: 显示结果
-    setTimeout(() => {
+    const timeout3 = setTimeout(() => {
       let resultData;
       
       if (isCompositeQuestion) {
@@ -540,12 +665,19 @@ const QuestionAssistant = () => {
           params: params,
           ...resultData
         },
+        originalQuestion: question, // 保存原始问题用于生成推荐问题
         time: formatDateTime(new Date())
       };
       setMessages(prev => [...prev, aiResponseMessage]);
       setPendingQuestion('');
       setPendingParams({});
+      
+      // 生成完成，重置状态
+      setIsGenerating(false);
+      generationTimeoutsRef.current = [];
+      currentCombinedIdRef.current = null;
     }, 1200 + 400 * thinkingSteps.length + 500);
+    generationTimeoutsRef.current.push(timeout3);
   };
 
   /**
@@ -850,10 +982,10 @@ const QuestionAssistant = () => {
         growthRate: `${growth}%`
       }];
       return {
-        summary,
+        summary: '',
         resultBlocks: [{
           title: `${compareType}增长分析`,
-          description: '',
+          description: summary,
           sources: [
             { type: 'database', name: '业务数据库-销售汇总表', fullPath: 'sales_db.sales_summary' },
             { type: 'excel', name: '2025年销售数据.xlsx', fullPath: '/data/sales/2025_sales.xlsx', 
@@ -925,10 +1057,10 @@ const QuestionAssistant = () => {
       growthRate: `${growth}%`
     }];
     return {
-      summary,
+      summary: '',
       resultBlocks: [{
         title: `${productName}${compareType}增长分析`,
-        description: '',
+        description: summary,
         sources: [
           { type: 'database', name: '业务数据库-产品主表', fullPath: 'main_db.products' },
           { type: 'pdf', name: '产品销售报告2024.pdf', fullPath: '/reports/product_sales_2024.pdf',
@@ -1286,11 +1418,9 @@ ${growth > 0 ? '头部市场表现亮眼，新客户拓展效果显著，产品�
       };
     });
     
-    // 生成总体summary
-    const summary = `${timeRangeText || `${currentYear}年`}销售数据多维度分析完成。共分析${dimensions.length}个维度（${dimensions.map(d => dimensionNameMap[d]).join('、')}），关注${metrics.length}个指标（${metrics.join('、')}），各维度整体表现良好，同比均有增长。`;
-    
+    // 不需要总体summary，每个表格有自己的description
     return {
-      summary,
+      summary: '',
       resultBlocks,
       analysis: undefined
     };
@@ -1679,7 +1809,7 @@ ${growth > 0 ? '头部市场表现亮眼，新客户拓展效果显著，产品�
           const ratios = idx === 0 ? [0.50, 0.30, 0.20] : 
                         idx === 1 ? [0.40, 0.35, 0.25] : 
                         [0.35, 0.40, 0.25];
-          return {
+      return {
             name: item.name,
             regions: regions.map((region, ridx) => ({
               region,
@@ -1729,10 +1859,10 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
       }
       
       return {
-        summary,
+        summary: '',
         resultBlocks: [{
           title: `前${topN}大${dimensionType}${metric}排名`,
-          description: '',
+          description: summary,
           sources,
           tableData: {
             columns,
@@ -1772,15 +1902,14 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
         const yearMatch = question.match(/(\d{4})年/);
         const year = yearMatch ? yearMatch[1] : '2025';
         
-        summary = `${year}年${industryName}${metric}为8500万元。`;
-        blockDescription = '';
+        blockDescription = `${year}年${industryName}${metric}为8500万元。`;
         sources = [
           { type: 'database', name: '业务数据库-行业数据表', fullPath: 'sales_db.industry_data' },
           { type: 'database', name: '财务系统-收入明细', fullPath: 'finance_db.revenue_detail' }
         ];
         
         return {
-          summary,
+          summary: '',
           resultBlocks: [{
             title: `${year}年${industryName}${metric}`,
             description: blockDescription,
@@ -1809,8 +1938,7 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
             { key: '1', product: productName, value: 3200 }
           ];
           
-          summary = `${year}年${productName}${metric}为3200万元。`;
-          blockDescription = '';
+          blockDescription = `${year}年${productName}${metric}为3200万元。`;
           sources = [
             { type: 'database', name: '业务数据库-产品主表', fullPath: 'main_db.products' },
             { type: 'database', name: '财务系统-收入明细', fullPath: 'finance_db.revenue_detail' }
@@ -1825,8 +1953,7 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
           ];
           const sorted = [...dataSource].sort((a, b) => b.value - a.value);
           const total = dataSource.reduce((sum, item) => sum + item.value, 0);
-          summary = `从产品${metric}来看，${sorted[0].product}以${sorted[0].value}万元领跑，占比${((sorted[0].value / total) * 100).toFixed(1)}%。`;
-          blockDescription = `${sorted[0].product}以${sorted[0].value}万元的${metric}位居第一，${sorted[1].product}(${sorted[1].value}万元)和${sorted[2].product}(${sorted[2].value}万元)分列二、三位。三大产品线总计贡献${total}万元${metric}。`;
+          blockDescription = `从产品${metric}来看，${sorted[0].product}以${sorted[0].value}万元领跑，占比${((sorted[0].value / total) * 100).toFixed(1)}%。`;
           sources = [
             { type: 'database', name: '业务数据库-产品主表', fullPath: 'main_db.products' },
             { type: 'excel', name: '产品销售明细.xlsx', fullPath: '/data/sales/product_sales_detail.xlsx',
@@ -1846,8 +1973,7 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
         ];
         const sorted = [...dataSource].sort((a, b) => b.value - a.value);
         const total = dataSource.reduce((sum, item) => sum + item.value, 0);
-        summary = `区域${metric}分布中，${sorted[0].region}表现最强（${sorted[0].value}万元），${sorted[1].region}、${sorted[2].region}紧随其后，三地合计${total}万元。`;
-        blockDescription = `${sorted[0].region}区域${metric}达${sorted[0].value}万元，占比${((sorted[0].value / total) * 100).toFixed(1)}%；${sorted[1].region}区域${sorted[1].value}万元，占比${((sorted[1].value / total) * 100).toFixed(1)}%；${sorted[2].region}区域${sorted[2].value}万元，占比${((sorted[2].value / total) * 100).toFixed(1)}%。`;
+        blockDescription = `区域${metric}分布中，${sorted[0].region}表现最强（${sorted[0].value}万元），${sorted[1].region}、${sorted[2].region}紧随其后，三地合计${total}万元。`;
         sources = [
           { type: 'pdf', name: '区域市场报告.pdf', fullPath: '/reports/regional_market_report.pdf',
             references: [
@@ -1868,7 +1994,7 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
       }
 
       return {
-        summary,
+        summary: '',
         resultBlocks: [{
           title,
           description: blockDescription,
@@ -1880,7 +2006,7 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
 
     // 场景3: 默认回退
     return {
-      summary: '已为您完成查询，数据详情如下。',
+      summary: '',
       resultBlocks: [
         {
           sources: [],
@@ -2064,13 +2190,40 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
         <div className="conversation-items">
           {/* 渲染对话分组的函数 */}
           {(() => {
-            const renderConversationGroup = (conversations, groupLabel) => {
+            const renderConversationGroup = (conversations, groupLabel, isPinned = false) => {
               if (conversations.length === 0) return null;
+              
+              const groupKey = groupLabel || 'pinned';
+              const isCollapsed = collapsedGroups[groupKey];
+              
+              const toggleCollapse = (e) => {
+                e.stopPropagation();
+                setCollapsedGroups(prev => ({
+                  ...prev,
+                  [groupKey]: !prev[groupKey]
+                }));
+              };
               
               return (
                 <div key={groupLabel} className="conversation-group">
-                  {groupLabel && <div className="conversation-group-label">{groupLabel}</div>}
-          {conversations.map(conversation => (
+                  {/* 置顶分组不显示标签 */}
+                  {!isPinned && groupLabel && (
+                    <div className="conversation-group-label" onClick={toggleCollapse}>
+                      <span>{groupLabel}</span>
+                      <svg 
+                        className={`collapse-icon ${isCollapsed ? 'collapsed' : ''}`}
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2"
+                      >
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </div>
+                  )}
+          {!isCollapsed && conversations.map(conversation => (
             <div
               key={conversation.id}
                       className={`conversation-item ${activeConversationId === conversation.id ? 'active' : ''} ${conversation.pinned ? 'pinned' : ''}`}
@@ -2190,14 +2343,15 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
             // 按顺序渲染各个分组
             return (
               <>
-                {/* 渲染置顶对话 */}
-                {renderConversationGroup(groupedConversations.pinned, '置顶')}
+                {/* 渲染置顶对话 - 不显示标题 */}
+                {renderConversationGroup(groupedConversations.pinned, null, true)}
                 
                 {/* 渲染按日期分组的对话 */}
                 {groupedConversations.sortedDates.map(dateGroup => 
                   renderConversationGroup(
                     dateGroup.conversations, 
-                    formatDateLabel(dateGroup.date)
+                    formatDateLabel(dateGroup.date),
+                    false
                   )
                 )}
               </>
@@ -2242,7 +2396,33 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                         <>
                           <QueryResult data={message.data} />
                           <div className="message-footer">
-                            <div className="footer-actions"></div>
+                            <div className="footer-actions">
+                              <button 
+                                className="footer-icon-btn"
+                                onClick={() => console.log('导出报告')}
+                                title="导出报告"
+                              >
+                                <DownloadOutlined style={{ fontSize: 16 }} />
+                                <span>导出报告</span>
+                              </button>
+                              <span className="footer-divider">|</span>
+                              <div className="footer-rating-btns">
+                                <button 
+                                  className="footer-icon-btn"
+                                  onClick={() => console.log('点赞')}
+                                  title="点赞"
+                                >
+                                  <LikeOutlined style={{ fontSize: 16 }} />
+                                </button>
+                                <button 
+                                  className="footer-icon-btn"
+                                  onClick={() => console.log('点踩')}
+                                  title="点踩"
+                                >
+                                  <DislikeOutlined style={{ fontSize: 16 }} />
+                                </button>
+                              </div>
+                            </div>
                             <div className="footer-time">{message.time}</div>
                           </div>
                         </>
@@ -2253,6 +2433,23 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                     {/* 文本消息的时间显示在气泡外面 */}
                     {message.type !== 'result' && message.type !== 'combined' && (
                       <div className="message-time">{message.time}</div>
+                    )}
+                    {/* 在AI回答消息下方显示推荐问题 - 只有result类型显示，因为combined会变成result */}
+                    {message.type === 'result' && message.originalQuestion && (
+                      <div className="suggested-questions-wrapper">
+                        <div className="suggested-questions-label">你还可以继续问：</div>
+                        <div className="suggested-questions">
+                          {generateSuggestedQuestions(message.originalQuestion, message.data || {}).map((suggestedQuestion, idx) => (
+                            <button
+                              key={idx}
+                              className="suggested-question-btn"
+                              onClick={() => handleSuggestedQuestionClick(suggestedQuestion)}
+                            >
+                              {suggestedQuestion}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))
@@ -2276,12 +2473,20 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                     <span className="action-icon">⚙️</span>
                     <span>问数配置</span>
                   </button>
-                  <button className="send-button-round" onClick={handleSendMessage}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="22" y1="2" x2="11" y2="13"></line>
-                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                    </svg>
-                  </button>
+                  {isGenerating ? (
+                    <button className="send-button-round stop-button" onClick={handleStopGeneration}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="6" width="12" height="12" rx="1" />
+                      </svg>
+                    </button>
+                  ) : (
+                    <button className="send-button-round" onClick={handleSendMessage} disabled={!inputValue.trim()}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
