@@ -460,7 +460,7 @@
 .footer-actions {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 8px;
 }
 
 .footer-action-btn {
@@ -496,11 +496,83 @@
   white-space: nowrap;
 }
 
+.footer-icon-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.footer-icon-btn:hover {
+  color: #1677ff;
+}
+
+.footer-divider {
+  color: #d9d9d9;
+  font-size: 14px;
+  margin: 0 4px;
+}
+
+.footer-rating-btns {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .message-time {
   font-size: 12px;
   color: #999;
   margin-top: 4px;
   white-space: nowrap;
+}
+
+/* 推荐问题样式 */
+.suggested-questions-wrapper {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.suggested-questions-label {
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+.suggested-questions {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.suggested-question-btn {
+  padding: 6px 14px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #666;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.suggested-question-btn:hover {
+  background: #f5f5f5;
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.suggested-question-btn:active {
+  background: #e6f7ff;
 }
 
 /* 输入区域 */
@@ -601,19 +673,56 @@
   margin-left: 2px;
 }
 
+.send-button-round:disabled {
+  background: #d9d9d9;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.send-button-round:disabled:hover {
+  background: #d9d9d9;
+  transform: none;
+}
+
+.stop-button {
+  background: #ff4d4f !important;
+}
+
+.stop-button:hover {
+  background: #ff7875 !important;
+}
+
 /* 对话分组样式 */
 .conversation-group {
   margin-bottom: 8px;
 }
 
 .conversation-group-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 10px 16px;
   font-size: 13px;
   font-weight: 600;
   color: #333;
-  background: #f5f5f5;
+  background: #fafafa;
   border-radius: 4px;
   margin: 12px 0 8px 0;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.conversation-group-label:hover {
+  background: #f0f0f0;
+}
+
+.collapse-icon {
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.collapse-icon.collapsed {
+  transform: rotate(-90deg);
 }
 
 /* 置顶分组特殊样式 */
