@@ -742,7 +742,13 @@ const QuestionAssistant = () => {
             id: resultId,
             sender: 'ai',
             type: 'result',
-            data: null, // 初始时没有数据
+            data: {
+              params,
+              summary: '',
+              resultBlocks: [],
+              tableData: null,
+              analysis: undefined
+            },
             resultStatus: 'generating', // 标记为正在生成
             originalQuestion: question,
             time: formatDateTime(new Date()),
@@ -759,54 +765,138 @@ const QuestionAssistant = () => {
               return;
             }
             
-            // 再次检查消息状态，如果已停止则不继续生成
-            setMessages(prev => {
-              const currentMessage = prev.find(m => m.id === resultId && m.type === 'result');
-              if (!currentMessage || currentMessage.resultStatus === 'stopped') {
-                // 如果消息不存在或已停止，不更新
-                return prev;
-              }
-              
-              // 继续生成结果
-              let resultData;
-              
-              if (isCompositeQuestion) {
-                // 复合问题：生成查询结果并同时进行分析
-                resultData = generateMockResult(question, params, true); // 传入true表示需要分析
-              } else if (isAnalysis && previousResult) {
-                // 单纯分析问题：基于上一次结果
-                resultData = generateAnalysisFromPreviousResult(question, params, previousResult);
-              } else {
-                // 单纯查询问题：生成查询结果
-                resultData = generateMockResult(question, params, false);
-              }
-              
-              // 更新结果消息，设置数据和完成状态
-              return prev.map(m => {
+            const updateResultMessage = (updater) => {
+              setMessages(prev => prev.map(m => {
                 if (m.id === resultId && m.type === 'result') {
-                  return {
-                    ...m,
-                    data: {
-                      params: params,
-                      ...resultData
-                    },
-                    resultStatus: 'completed' // 标记为已完成
-                  };
+                  if (m.resultStatus === 'stopped') {
+                    return m;
+                  }
+                  return updater(m);
                 }
                 return m;
+              }));
+            };
+
+            const finalizeResult = () => {
+              if (currentResultIdRef.current === resultId) {
+                setPendingQuestion('');
+                setPendingParams({});
+                setIsGenerating(false);
+                generationTimeoutsRef.current = [];
+                currentCombinedIdRef.current = null;
+                currentResultIdRef.current = null;
+              }
+            };
+
+            let resultData;
+
+            if (isCompositeQuestion) {
+              // 复合问题：生成查询结果并同时进行分析
+              resultData = generateMockResult(question, params, true); // 传入true表示需要分析
+            } else if (isAnalysis && previousResult) {
+              // 单纯分析问题：基于上一次结果
+              resultData = generateAnalysisFromPreviousResult(question, params, previousResult);
+            } else {
+              // 单纯查询问题：生成查询结果
+              resultData = generateMockResult(question, params, false);
+            }
+
+            const streamableBlocks = Array.isArray(resultData?.resultBlocks) ? resultData.resultBlocks : [];
+            const shouldStream = streamableBlocks.length > 0;
+
+            if (shouldStream) {
+              const finalSummary = resultData.summary || '';
+              const finalAnalysis = resultData.analysis;
+
+              updateResultMessage(m => ({
+                ...m,
+                data: {
+                  params,
+                  summary: finalSummary ? '' : resultData.summary || '',
+                  resultBlocks: [],
+                },
+                resultStatus: 'generating'
+              }));
+
+              let delay = 400;
+              const schedule = (fn, step = 600) => {
+                const timeout = setTimeout(() => {
+                  if (!currentResultIdRef.current || currentResultIdRef.current !== resultId) {
+                    return;
+                  }
+                  fn();
+                }, delay);
+                generationTimeoutsRef.current.push(timeout);
+                delay += step;
+              };
+
+              if (finalSummary) {
+                schedule(() => {
+                  updateResultMessage(m => ({
+                    ...m,
+                    data: {
+                      ...(m.data || { params }),
+                      summary: finalSummary,
+                      resultBlocks: m.data?.resultBlocks || []
+                    }
+                  }));
+                });
+              }
+
+              streamableBlocks.forEach((block, index) => {
+                schedule(() => {
+                  updateResultMessage(m => {
+                    const prevBlocks = Array.isArray(m.data?.resultBlocks) ? m.data.resultBlocks : [];
+                    return {
+                      ...m,
+                      data: {
+                        ...(m.data || { params }),
+                        summary: m.data?.summary || '',
+                        resultBlocks: [...prevBlocks, block]
+                      }
+                    };
+                  });
+                }, 700);
               });
-            });
-            
-            // 只有在成功生成结果后才重置状态
-            if (currentResultIdRef.current === resultId) {
-              setPendingQuestion('');
-              setPendingParams({});
-              
-              // 生成完成，重置状态
-              setIsGenerating(false);
-              generationTimeoutsRef.current = [];
-              currentCombinedIdRef.current = null;
-              currentResultIdRef.current = null;
+
+              if (finalAnalysis) {
+                schedule(() => {
+                  updateResultMessage(m => ({
+                    ...m,
+                    data: {
+                      ...(m.data || { params }),
+                      summary: m.data?.summary || '',
+                      resultBlocks: m.data?.resultBlocks || [],
+                      analysis: finalAnalysis
+                    }
+                  }));
+                }, 700);
+              }
+
+              schedule(() => {
+                if (!currentResultIdRef.current || currentResultIdRef.current !== resultId) {
+                  return;
+                }
+                updateResultMessage(m => ({
+                  ...m,
+                  data: {
+                    params,
+                    ...resultData
+                  },
+                  resultStatus: 'completed'
+                }));
+                finalizeResult();
+              }, 600);
+            } else {
+              updateResultMessage(m => ({
+                ...m,
+                data: {
+                  params,
+                  ...resultData
+                },
+                resultStatus: 'completed'
+              }));
+              finalizeResult();
             }
           }, 3000); // 思考步骤完成后，延迟3秒再生成结果数据
           generationTimeoutsRef.current.push(timeout3);
@@ -2643,18 +2733,37 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                             </div>
                           )}
                           {/* 结果内容 */}
-                          {message.resultStatus === 'generating' ? (
-                            <div className="result-loading-placeholder">
-                              <div className="result-loading-spinner"></div>
-                              <span className="result-loading-text">正在生成结果...</span>
-                            </div>
-                          ) : message.resultStatus === 'stopped' ? (
-                            <div className="result-loading-placeholder">
-                              <span className="result-loading-text" style={{ color: '#999' }}>输出已停止</span>
-                            </div>
-                          ) : message.data ? (
-                            <QueryResult data={message.data} />
-                          ) : null}
+                          {(() => {
+                            const data = message.data || {};
+                            const hasSummary = typeof data.summary === 'string' && data.summary.trim().length > 0;
+                            const hasBlocks = Array.isArray(data.resultBlocks) && data.resultBlocks.some(block => {
+                              if (!block) return false;
+                              const hasTable = block.tableData && Array.isArray(block.tableData.dataSource) && block.tableData.dataSource.length > 0;
+                              const hasDescription = typeof block.description === 'string' && block.description.trim().length > 0;
+                              return hasTable || hasDescription;
+                            });
+                            const hasTableData = data.tableData && Array.isArray(data.tableData.dataSource) && data.tableData.dataSource.length > 0;
+                            const hasContent = hasSummary || hasBlocks || hasTableData;
+
+                            if (hasContent) {
+                              return <QueryResult data={data} />;
+                            }
+
+                            if (message.resultStatus === 'stopped') {
+                              return (
+                                <div className="result-loading-placeholder">
+                                  <span className="result-loading-text" style={{ color: '#999' }}>输出已停止</span>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div className="result-loading-placeholder">
+                                <div className="result-loading-spinner"></div>
+                                <span className="result-loading-text">正在生成结果...</span>
+                              </div>
+                            );
+                          })()}
                           {/* 只有在结果完成后才显示导出报告、点赞、点踩等功能 */}
                           {message.resultStatus === 'completed' && (
                             <div className="message-footer">

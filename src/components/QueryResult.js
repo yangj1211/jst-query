@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Tooltip, Tag, Dropdown, Input, message } from 'antd';
 import { DownOutlined, RightOutlined, DownloadOutlined, ExportOutlined, DatabaseOutlined, TableOutlined, BarChartOutlined, EyeOutlined, FileOutlined, DatabaseOutlined as DbIcon, LineChartOutlined, PieChartOutlined, BulbOutlined, ClockCircleOutlined, PlusSquareOutlined } from '@ant-design/icons';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -14,6 +14,137 @@ import './QueryResult.css';
  *   tableData?, sources?
  * }
  */
+const StreamingText = ({
+  text,
+  as: Component = 'p',
+  className,
+  style,
+  chunkSize = 6,
+  stepDelay = 120,
+  startDelay = 80,
+}) => {
+  const [visibleText, setVisibleText] = useState(text || '');
+
+  useEffect(() => {
+    if (!text) {
+      setVisibleText('');
+      return;
+    }
+
+    const normalized = text;
+    const chars = Array.from(normalized);
+    const effectiveChunk = Math.max(1, chunkSize);
+    const segments = [];
+    for (let i = 0; i < chars.length; i += effectiveChunk) {
+      segments.push(chars.slice(i, i + effectiveChunk).join(''));
+    }
+
+    if (segments.length <= 1) {
+      setVisibleText(normalized);
+      return;
+    }
+
+    setVisibleText(segments[0]);
+    let index = 1;
+    const timers = [];
+
+    const emit = () => {
+      setVisibleText((prev) => prev + (segments[index] || ''));
+      index += 1;
+      if (index < segments.length) {
+        timers.push(setTimeout(emit, stepDelay));
+      }
+    };
+
+    timers.push(setTimeout(emit, startDelay));
+
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, [text, chunkSize, stepDelay, startDelay]);
+
+  if (!text) {
+    return null;
+  }
+
+  return (
+    <Component className={className} style={style}>
+      {visibleText}
+    </Component>
+  );
+};
+
+const StreamingParagraphs = ({
+  text,
+  as: Component = 'div',
+  className,
+  paragraphClass,
+  paragraphSpacing = 16,
+  chunkSize = 8,
+  stepDelay = 120,
+  initialDelay = 140,
+  paragraphDelay = 260,
+  textStyle,
+}) => {
+  const paragraphs = useMemo(() => {
+    if (!text) return [];
+    const splitted = String(text)
+      .split(/\n\s*\n/)
+      .map(p => p.trim())
+      .filter(Boolean);
+    if (splitted.length === 0 && String(text).trim()) {
+      return [String(text).trim()];
+    }
+    return splitted;
+  }, [text]);
+
+  const [visibleCount, setVisibleCount] = useState(() => (paragraphs.length > 0 ? 1 : 0));
+
+  useEffect(() => {
+    if (paragraphs.length === 0) {
+      setVisibleCount(0);
+      return;
+    }
+
+    setVisibleCount(1);
+    const timers = [];
+    for (let i = 1; i < paragraphs.length; i += 1) {
+      const timer = setTimeout(() => {
+        setVisibleCount(prev => (prev < i + 1 ? i + 1 : prev));
+      }, initialDelay + paragraphDelay * i);
+      timers.push(timer);
+    }
+
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, [paragraphs, initialDelay, paragraphDelay]);
+
+  if (paragraphs.length === 0) {
+    return null;
+  }
+
+  return (
+    <Component className={className}>
+      {paragraphs.slice(0, visibleCount).map((paragraph, idx) => (
+        <StreamingText
+          key={`streaming-paragraph-${idx}`}
+          text={paragraph}
+          as="div"
+          className={paragraphClass}
+          style={{
+            marginBottom: idx < visibleCount - 1 ? paragraphSpacing : 0,
+            ...textStyle,
+          }}
+          chunkSize={chunkSize}
+          stepDelay={stepDelay}
+          startDelay={idx === 0 ? initialDelay : 80}
+        />
+      ))}
+    </Component>
+  );
+};
+
 const QueryResult = ({ data }) => {
   const { summary } = data;
   const { openPreview, isPreviewVisible } = useFilePreview();
@@ -46,6 +177,26 @@ const QueryResult = ({ data }) => {
       setActiveReferences({});
     }
   }, [isPreviewVisible]);
+
+  useEffect(() => {
+    setActiveViews(prev => {
+      if (prev.length === blocks.length) return prev;
+      const next = [...prev];
+      while (next.length < blocks.length) {
+        next.push('table');
+      }
+      return next.slice(0, blocks.length);
+    });
+
+    setChartTypes(prev => {
+      if (prev.length === blocks.length) return prev;
+      const next = [...prev];
+      while (next.length < blocks.length) {
+        next.push('bar');
+      }
+      return next.slice(0, blocks.length);
+    });
+  }, [blocks.length]);
 
   const handleViewChange = (blockIdx, view) => {
     setActiveViews(prev => {
@@ -417,9 +568,17 @@ const QueryResult = ({ data }) => {
 
   return (
     <div className="query-result-wrapper">
-
       <div className="result-content">
-        {summary && <p className="summary-text">{summary}</p>}
+        {summary && (
+          <StreamingText
+            key="summary"
+            text={summary}
+            className="summary-text"
+            chunkSize={6}
+            stepDelay={110}
+            startDelay={60}
+          />
+        )}
 
         {/* 查询结果表格 - 先显示 */}
         {blocks.map((block, idx) => (
@@ -429,9 +588,15 @@ const QueryResult = ({ data }) => {
               <>
                 {block.summary && <p className="summary-text">{block.summary}</p>}
                 {block.description && (
-                  <p className="block-description" style={{ whiteSpace: 'pre-line' }}>
-                    {block.description}
-                  </p>
+                  <StreamingText
+                    key={`block-desc-${idx}`}
+                    text={block.description}
+                    className="block-description"
+                    style={{ whiteSpace: 'pre-line' }}
+                    chunkSize={8}
+                    stepDelay={120}
+                    startDelay={120}
+                  />
                 )}
                 {/* 数据来源区域 */}
                 {block.sources && block.sources.length > 0 && (
@@ -445,7 +610,16 @@ const QueryResult = ({ data }) => {
               </>
             ) : (
               <>
-                {block.description && <p className="block-description">{block.description}</p>}
+                {block.description && (
+                  <StreamingText
+                    key={`block-desc-bottom-${idx}`}
+                    text={block.description}
+                    className="block-description"
+                    chunkSize={8}
+                    stepDelay={120}
+                    startDelay={120}
+                  />
+                )}
                 <div className="result-block" style={{ marginBottom: idx === blocks.length - 1 ? 16 : 0 }}>
                   <div className="block-header">
                     {block.title && <h4 className="block-title">{block.title}</h4>}
@@ -562,7 +736,14 @@ const QueryResult = ({ data }) => {
           <div className="analysis-sections" style={{ marginTop: 24 }}>
             <div className="analysis-card overview">
               <div className="analysis-header"><span className="badge">1</span> 一. 概览</div>
-              <div className="analysis-text">{data.analysis.resultSummary}</div>
+              <StreamingText
+                text={data.analysis.resultSummary}
+                as="div"
+                className="analysis-text"
+                chunkSize={8}
+                stepDelay={120}
+                startDelay={140}
+              />
             </div>
             <div className="analysis-card dimension">
               <div className="analysis-header"><span className="badge">2</span> 二. 维度影响</div>
@@ -686,7 +867,16 @@ const QueryResult = ({ data }) => {
                 </div>
               )}
               <div className="analysis-subtitle">2-2. 解读</div>
-              <div className="analysis-text" style={{ whiteSpace: 'pre-wrap' }}>{data.analysis.dimensionAnalysis}</div>
+              <StreamingParagraphs
+                text={data.analysis.dimensionAnalysis}
+                paragraphClass="analysis-text"
+                paragraphSpacing={16}
+                chunkSize={8}
+                stepDelay={120}
+                initialDelay={160}
+                paragraphDelay={260}
+                textStyle={{ whiteSpace: 'pre-wrap' }}
+              />
             </div>
             <div className="analysis-card factor">
               <div className="analysis-header"><span className="badge">3</span> 三. 因子影响</div>
@@ -696,7 +886,16 @@ const QueryResult = ({ data }) => {
                   {data.analysis.factorAnalysisList.map((factor, idx) => (
                     <div key={idx} style={{ marginBottom: 16 }}>
                       <div className="analysis-subtitle">③-{idx + 1}. {factor.title}</div>
-                      <div className="analysis-text" style={{ marginBottom: 8 }}>{factor.content}</div>
+                      <StreamingParagraphs
+                        text={factor.content}
+                        paragraphClass="analysis-text"
+                        paragraphSpacing={12}
+                        chunkSize={8}
+                        stepDelay={120}
+                        initialDelay={140}
+                        paragraphDelay={240}
+                        textStyle={{ marginBottom: 8 }}
+                      />
                       {factor.sources && factor.sources.length > 0 && (
                         <div className="data-sources" style={{ marginTop: 8, marginBottom: 8 }}>
                           <div className="sources-label">数据来源:</div>
@@ -777,7 +976,16 @@ const QueryResult = ({ data }) => {
                     </div>
                   </div>
                   <div className="analysis-subtitle" style={{ marginTop: 16 }}>3-2. 解读</div>
-                  <div className="analysis-text" style={{ whiteSpace: 'pre-wrap' }}>{data.analysis.factorAnalysis}</div>
+                  <StreamingParagraphs
+                    text={data.analysis.factorAnalysis}
+                    paragraphClass="analysis-text"
+                    paragraphSpacing={16}
+                    chunkSize={8}
+                    stepDelay={120}
+                    initialDelay={160}
+                    paragraphDelay={260}
+                    textStyle={{ whiteSpace: 'pre-wrap' }}
+                  />
                 </div>
               ) : data.analysis.factors ? (
                 <>
@@ -788,13 +996,30 @@ const QueryResult = ({ data }) => {
                     <li>结构：变化率约 +{data.analysis.factors?.mixEffect}%</li>
                   </ul>
                   <div className="analysis-subtitle">3-2. 解读</div>
-                  <div className="analysis-text" style={{ whiteSpace: 'pre-wrap' }}>{data.analysis.factorAnalysis}</div>
+                  <StreamingParagraphs
+                    text={data.analysis.factorAnalysis}
+                    paragraphClass="analysis-text"
+                    paragraphSpacing={16}
+                    chunkSize={8}
+                    stepDelay={120}
+                    initialDelay={160}
+                    paragraphDelay={260}
+                    textStyle={{ whiteSpace: 'pre-wrap' }}
+                  />
                 </>
               ) : null}
             </div>
             <div className="analysis-card conclusion">
               <div className="analysis-header"><span className="badge">4</span> 四. 结论</div>
-              <div className="analysis-text">{data.analysis.conclusion}</div>
+              <StreamingParagraphs
+                text={data.analysis.conclusion}
+                paragraphClass="analysis-text"
+                paragraphSpacing={16}
+                chunkSize={8}
+                stepDelay={120}
+                initialDelay={160}
+                paragraphDelay={260}
+              />
             </div>
           </div>
         )}
