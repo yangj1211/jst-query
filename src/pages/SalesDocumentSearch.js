@@ -14,6 +14,7 @@ import {
 import './SalesDocumentSearch.css';
 
 const { TextArea } = Input;
+const { Option } = Select;
 
 // 模拟数据
 const mockResults = [
@@ -93,6 +94,20 @@ const SalesDocumentSearch = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10); // 默认每页10条
   const [selectedItems, setSelectedItems] = useState([]); // 选中的项目ID列表
+  const [selectedDocumentTypes, setSelectedDocumentTypes] = useState(['__ALL__']); // 选中的文件类型（默认全部）
+  
+  // 提取所有唯一的文件类型
+  const allDocumentTypes = useMemo(() => {
+    const typesSet = new Set();
+    mockResults.forEach(item => {
+      if (item.documents && item.documents.length > 0) {
+        item.documents.forEach(doc => {
+          typesSet.add(doc.tag);
+        });
+      }
+    });
+    return Array.from(typesSet).sort();
+  }, []);
   
   // 计算分页后的数据
   const paginatedResults = useMemo(() => {
@@ -106,8 +121,8 @@ const SalesDocumentSearch = () => {
   
   // 当前页是否全选
   const isAllSelected = useMemo(() => {
-    return paginatedResults.length > 0 && 
-           paginatedResults.every(item => selectedItems.includes(item.id));
+    if (paginatedResults.length === 0) return false;
+    return paginatedResults.every(item => selectedItems.includes(item.id));
   }, [paginatedResults, selectedItems]);
   
   // 部分选中（用于全选checkbox的indeterminate状态）
@@ -160,6 +175,35 @@ const SalesDocumentSearch = () => {
     setExpandedItems(prev => 
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
+  };
+
+  // 处理文件类型选择变化
+  const handleDocumentTypeChange = (values) => {
+    const ALL_VALUE = '__ALL__';
+    
+    // 如果选择了"全部"和其他类型，移除"全部"，只保留具体类型
+    if (values.includes(ALL_VALUE) && values.length > 1) {
+      // 用户选择了"全部"和其他类型，移除"全部"
+      const filteredValues = values.filter(val => val !== ALL_VALUE);
+      setSelectedDocumentTypes(filteredValues);
+    } else if (values.length === 0) {
+      // 如果清空所有选择，默认回到"全部"
+      setSelectedDocumentTypes([ALL_VALUE]);
+    } else {
+      // 其他情况：只选择了"全部"，或只选择了具体类型
+      setSelectedDocumentTypes(values);
+    }
+  };
+
+  // 根据选中的文件类型过滤文档
+  const getFilteredDocuments = (documents) => {
+    if (!documents || documents.length === 0) return [];
+    const ALL_VALUE = '__ALL__';
+    // 如果选择了"全部"或未选择任何类型，显示全部
+    if (selectedDocumentTypes.length === 0 || selectedDocumentTypes.includes(ALL_VALUE)) {
+      return documents;
+    }
+    return documents.filter(doc => selectedDocumentTypes.includes(doc.tag));
   };
 
   const renderDocumentItem = (doc) => (
@@ -325,6 +369,20 @@ const SalesDocumentSearch = () => {
             )}
           </div>
           <div className="results-header-right">
+            <Select
+              mode="multiple"
+              placeholder="文件类型"
+              value={selectedDocumentTypes}
+              onChange={handleDocumentTypeChange}
+              style={{ width: 200, marginRight: 12 }}
+              allowClear
+              maxTagCount="responsive"
+            >
+              <Option key="__ALL__" value="__ALL__">全部</Option>
+              {allDocumentTypes.map(type => (
+                <Option key={type} value={type}>{type}</Option>
+              ))}
+            </Select>
             <Button 
               type="primary" 
               icon={<DownloadOutlined />}
@@ -333,7 +391,16 @@ const SalesDocumentSearch = () => {
             >
               下载文件
             </Button>
-            <Button icon={<SyncOutlined />}>重置</Button>
+            <Button 
+              icon={<SyncOutlined />} 
+              onClick={() => {
+                setSelectedDocumentTypes(['__ALL__']);
+                setSelectedItems([]);
+                setCurrentPage(1);
+              }}
+            >
+              重置
+            </Button>
           </div>
         </div>
         <div className="results-list">
@@ -370,7 +437,12 @@ const SalesDocumentSearch = () => {
                 </div>
                 {expandedItems.includes(item.id) && (
                   <div className="result-item-details">
-                    {item.documents.map(doc => renderDocumentItem(doc))}
+                    {getFilteredDocuments(item.documents).map(doc => renderDocumentItem(doc))}
+                    {getFilteredDocuments(item.documents).length === 0 && item.documents && item.documents.length > 0 && (
+                      <div style={{ padding: '16px', textAlign: 'center', color: '#999' }}>
+                        当前筛选条件下暂无文档
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

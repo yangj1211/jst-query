@@ -1,0 +1,169 @@
+.file-previewer-panel {
+  width: 800px;
+  height: 100%;
+  background: #ffffff;
+  border-left: 1px solid #e8e8e8;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 标题栏：显示文件名 */
+.file-previewer-title-bar {
+  padding: 12px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.file-title-content {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.file-name {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  word-break: break-all;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+/* 工具栏：翻页、缩放、旋转 */
+.file-previewer-toolbar {
+  padding: 8px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  flex-shrink: 0;
+  gap: 24px;
+}
+
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-previewer-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-preview-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.file-preview-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+}
+
+.file-preview-body {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+  background: #ffffff;
+  min-height: 0; /* 允许 flex 收缩 */
+}
+
+.file-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+}
+
+.file-preview-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: #d9d9d9;
+}
+
+.excel-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+}
+
+.excel-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px dashed #d9d9d9;
+}
+
+.pdf-preview-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.pdf-preview {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  background: #f5f5f5;
+  overflow: hidden;
+}
+
+.pdf-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fafafa;
+  border-top: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.text-preview {
+  width: 100%;
+  height: 100%;
+}
+
+.text-content {
+  padding: 16px;
+  background: #fafafa;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-x: auto;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+

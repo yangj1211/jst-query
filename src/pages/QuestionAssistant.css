@@ -54,7 +54,7 @@
 /* 聊天容器 */
 .chat-container {
   display: flex;
-  height: calc(100vh - 190px);
+  height: calc(100vh - 80px);
   min-height: 600px;
   border: 1px solid #e8e8e8;
   border-radius: 0;
@@ -530,13 +530,14 @@
   color: #999;
   margin-top: 4px;
   white-space: nowrap;
+  align-self: flex-end;
+  margin-left: auto;
 }
 
 /* 推荐问题样式 */
 .suggested-questions-wrapper {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
 }
 
 .suggested-questions-label {
@@ -685,11 +686,11 @@
 }
 
 .stop-button {
-  background: #ff4d4f !important;
+  background: #1677ff !important;
 }
 
 .stop-button:hover {
-  background: #ff7875 !important;
+  background: #4096ff !important;
 }
 
 /* 对话分组样式 */
@@ -750,5 +751,125 @@
 
 .menu-item.delete .menu-icon {
   stroke: #ff4d4f;
+}
+
+/* 结果输出状态样式 */
+.result-status-header {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6f0ff 100%);
+  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid #d6e4ff;
+}
+
+.result-status-content {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #666;
+}
+
+.result-status-text {
+  font-weight: 500;
+}
+
+/* 结果加载占位符样式 */
+.result-loading-placeholder {
+  padding: 40px 20px;
+  text-align: center;
+  background: #fafafa;
+  border-radius: 0 0 8px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.result-loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e8e8e8;
+  border-top-color: #1890ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.result-loading-text {
+  color: #999;
+  font-size: 14px;
+}
+
+/* 配置提示样式 */
+.config-button-wrapper {
+  position: relative;
+}
+
+.config-hint-card {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 16px;
+  z-index: 10;
+  background: #1890ff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  padding: 12px 20px;
+  width: 400px;
+  max-width: calc(100vw - 300px);
+}
+
+.config-hint-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.config-hint-close:hover {
+  color: #fff;
+}
+
+.config-hint-content {
+  display: flex;
+  align-items: center;
+}
+
+.config-hint-text {
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+  white-space: nowrap;
+  padding-right: 24px;
+}
+
+.config-hint-arrow-beak {
+  position: absolute;
+  bottom: -8px;
+  left: 20px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid #1890ff;
+  filter: drop-shadow(0 2px 4px rgba(24, 144, 255, 0.2));
 }
 

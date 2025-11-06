@@ -20,15 +20,21 @@ import DataPermissionConfig from '../pages/DataPermissionConfig';
 import DocumentSearch from '../pages/DocumentSearch';
 import DataImport from '../pages/DataImport';
 import Dashboard from '../pages/Dashboard';
+import { FilePreviewProvider, useFilePreview } from '../contexts/FilePreviewContext';
+import FilePreviewer from './FilePreviewer';
 import './MainLayout.css';
 
 const { Sider, Content } = Layout;
 
-const MainLayout = () => {
+/**
+ * MainLayout 内部组件
+ * 使用 FilePreviewContext 来访问文件预览器状态
+ */
+const MainLayoutContent = ({ collapsed, setCollapsed }) => {
   const [selectedKey, setSelectedKey] = useState('question');
-  const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { previewFile, isPreviewVisible, closePreview } = useFilePreview();
 
   // 假设路由结构为 /question, /document, /data, /permission
   const [activeTab, setActiveTab] = useState('question');
@@ -213,12 +219,41 @@ const MainLayout = () => {
         className="collapse-btn-overlay"
       />
       
-      <Layout>
-        <Content className="main-content">
+      <Layout style={{ display: 'flex', flexDirection: 'row', height: '100vh', overflow: 'hidden' }}>
+        <Content 
+          className="main-content"
+          style={{ 
+            flex: isPreviewVisible ? '0 0 calc(100% - 800px)' : '1 1 auto',
+            overflow: 'auto'
+          }}
+        >
           {renderContent()}
         </Content>
+        
+        {/* 文件预览器 */}
+        {isPreviewVisible && (
+          <FilePreviewer 
+            visible={isPreviewVisible}
+            file={previewFile}
+            onClose={closePreview}
+          />
+        )}
       </Layout>
     </Layout>
+  );
+};
+
+/**
+ * MainLayout 主组件
+ * 提供 FilePreviewProvider Context
+ */
+const MainLayout = () => {
+  const [collapsed, setCollapsed] = useState(false);
+
+  return (
+    <FilePreviewProvider onSidebarCollapse={(shouldCollapse) => setCollapsed(shouldCollapse)}>
+      <MainLayoutContent collapsed={collapsed} setCollapsed={setCollapsed} />
+    </FilePreviewProvider>
   );
 };
 

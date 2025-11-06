@@ -249,7 +249,9 @@
 .main-content {
   background: #f5f7fa;
   overflow: auto;
-  padding: 24px;
+  padding: 8px;
+  min-width: 0; /* 允许 flex 收缩 */
+  transition: flex 0.3s ease;
 }
 
 .ant-layout-content {
@@ -258,7 +260,7 @@
 
 .main-tabs {
   background: #f0f2f5;
-  padding: 0 24px;
+  padding: 0 8px;
   display: flex;
   gap: 8px;
 }
@@ -286,9 +288,9 @@
 }
 
 .main-tab-content {
-  height: calc(100vh - 160px); /* 调整高度以适应新的布局 */
+  height: calc(100vh - 80px); /* 调整高度以适应新的布局 */
   background: #fff;
-  margin: 0 24px;
+  margin: 0 8px;
   padding: 0;
   border: 1px solid #e8e8e8;
   border-top: none;

@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Radio, Select, Divider, Typography, Space, Tag } from 'antd';
+import { Modal, Radio, Select, Divider, Typography, Space, Tag, Button } from 'antd';
 import { TableOutlined, FileTextOutlined, DatabaseOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 const { Text } = Typography;
+
+// 假数据（常量，定义在组件外部）
+const tableOptions = ['销售月报', '用户区域统计', '订单明细', '库存快照'];
+const fileOptions = ['销售数据2024.xlsx', '仓储盘点.pdf', '市场跟踪.xlsx'];
+const branchList = ['分公司 A', '分公司 B', '分公司 C', '分公司 D'];
 
 /**
  * 查询配置弹窗（优化视觉与交互）
@@ -20,24 +25,30 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
   const [scopeType, setScopeType] = useState(initialConfig.scopeType || 'group'); // group | branches
   const [branches, setBranches] = useState(initialConfig.branches || []);
   const [caliber, setCaliber] = useState(initialConfig.caliber || 'internal'); // internal | external
-  const [applyScope, setApplyScope] = useState(initialConfig.applyScope || 'current'); // current | all
 
   useEffect(() => {
     if (visible) {
       setSourceMode(initialConfig.sourceMode || 'all');
-      setTables(initialConfig.tables || []);
-      setFiles(initialConfig.files || []);
+      
+      // 恢复表选择：如果表列表等于全部表，则显示"全部表"标记
+      const initialTables = initialConfig.tables || [];
+      const isAllTables = Array.isArray(initialTables) && 
+                         initialTables.length === tableOptions.length &&
+                         tableOptions.every(table => initialTables.includes(table));
+      setTables(isAllTables ? ['__ALL_TABLES__'] : initialTables);
+      
+      // 恢复文件选择：如果文件列表等于全部文件，则显示"全部文件"标记
+      const initialFiles = initialConfig.files || [];
+      const isAllFiles = Array.isArray(initialFiles) && 
+                        initialFiles.length === fileOptions.length &&
+                        fileOptions.every(file => initialFiles.includes(file));
+      setFiles(isAllFiles ? ['__ALL_FILES__'] : initialFiles);
+      
       setScopeType(initialConfig.scopeType || 'group');
       setBranches(initialConfig.branches || []);
       setCaliber(initialConfig.caliber || 'internal');
-      setApplyScope(initialConfig.applyScope || 'current');
     }
   }, [visible, initialConfig]);
-
-  // 假数据
-  const tableOptions = ['sales_monthly_report', 'users_regional_stats', 'orders_detail', 'inventory_snapshot'];
-  const fileOptions = ['销售数据2024.xlsx', '仓储盘点.pdf', '市场跟踪.xlsx'];
-  const branchList = ['分公司 A', '分公司 B', '分公司 C', '分公司 D'];
 
   const tagRender = (props) => {
     const { label, value, closable, onClose } = props;
@@ -97,7 +108,7 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
     }
   };
 
-  const handleOk = () => {
+  const handleSave = (applyScope) => {
     // 处理全选标记，转换为实际的表/文件列表
     const finalTables = tables.includes('__ALL_TABLES__') ? tableOptions : tables;
     const finalFiles = files.includes('__ALL_FILES__') ? fileOptions : files;
@@ -117,10 +128,25 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
     <Modal
       open={visible}
       title="问数配置"
-      onOk={handleOk}
       onCancel={onCancel}
-      okText="保存配置"
-      cancelText="取消"
+      footer={[
+        <Button key="cancel" onClick={onCancel}>
+          取消
+        </Button>,
+        <Button 
+          key="current" 
+          onClick={() => handleSave('current')}
+          style={{ 
+            borderColor: '#1890ff', 
+            color: '#1890ff' 
+          }}
+        >
+          应用到本对话
+        </Button>,
+        <Button key="all" type="primary" onClick={() => handleSave('all')}>
+          应用到全部对话
+        </Button>
+      ]}
       width={720}
       destroyOnClose
     >
@@ -253,22 +279,6 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
         <Radio.Group value={caliber} onChange={(e) => setCaliber(e.target.value)}>
           <Radio value="internal">内部管理用（管口）</Radio>
           <Radio value="external">对外披露用（法口）</Radio>
-        </Radio.Group>
-      </Space>
-
-      <Divider />
-
-      {/* 应用范围 */}
-      <Space direction="vertical" size={6} style={{ width: '100%' }}>
-        <Space align="center" size={8}>
-          <Text strong>应用范围</Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            选择本配置的生效范围
-          </Text>
-        </Space>
-        <Radio.Group value={applyScope} onChange={(e) => setApplyScope(e.target.value)}>
-          <Radio value="current">仅当前对话</Radio>
-          <Radio value="all">全部对话</Radio>
         </Radio.Group>
       </Space>
     </Modal>
