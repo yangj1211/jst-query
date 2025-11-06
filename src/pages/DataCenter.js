@@ -82,7 +82,7 @@ const DataCenter = () => {
   const [detailTab, setDetailTab] = useState('fields'); // 表详情tab: 'fields' 或 'data'
   const [objectTypeFilter, setObjectTypeFilter] = useState('all'); // 对象类型筛选: 'all' | 'file' | 'table'
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false); // 对象类型筛选下拉菜单是否打开
-  const [tagFilter, setTagFilter] = useState('all'); // 标签筛选: 'all' | tag名称
+  const [tagFilter, setTagFilter] = useState([]); // 标签筛选: 数组，支持多选，OR关系
   const [isTagFilterDropdownOpen, setIsTagFilterDropdownOpen] = useState(false); // 标签筛选下拉菜单是否打开
   const [sourceFilter, setSourceFilter] = useState('all'); // 来源筛选: 'all' | source名称
   const [isSourceFilterDropdownOpen, setIsSourceFilterDropdownOpen] = useState(false); // 来源筛选下拉菜单是否打开
@@ -112,9 +112,12 @@ const DataCenter = () => {
     setAllTags(newTags);
     setAllSources(newSources);
     
-    // 如果当前选中的标签不再存在，重置为"全部标签"
-    if (tagFilter !== 'all' && !newTags.includes(tagFilter)) {
-      setTagFilter('all');
+    // 如果当前选中的标签不再存在，从筛选列表中移除
+    if (Array.isArray(tagFilter) && tagFilter.length > 0) {
+      const validTags = tagFilter.filter(tag => newTags.includes(tag));
+      if (validTags.length !== tagFilter.length) {
+        setTagFilter(validTags);
+      }
     }
     // 如果当前选中的来源不再存在，重置为"全部来源"
     if (sourceFilter !== 'all' && !newSources.includes(sourceFilter)) {
@@ -324,10 +327,11 @@ const DataCenter = () => {
       filtered = filtered.filter(table => table.objectType === objectTypeFilter);
     }
 
-    // 按标签筛选
-    if (tagFilter !== 'all') {
+    // 按标签筛选（OR关系：只要包含任意一个选中的标签就显示）
+    if (Array.isArray(tagFilter) && tagFilter.length > 0) {
       filtered = filtered.filter(table => 
-        table.tags && Array.isArray(table.tags) && table.tags.includes(tagFilter)
+        table.tags && Array.isArray(table.tags) && 
+        tagFilter.some(selectedTag => table.tags.includes(selectedTag))
       );
     }
 
@@ -374,10 +378,29 @@ const DataCenter = () => {
     setIsFilterDropdownOpen(false);
   };
 
-  // 处理标签筛选选项点击
+  // 处理标签筛选选项点击（支持多选）
   const handleTagFilterSelect = (value) => {
-    setTagFilter(value);
-    setIsTagFilterDropdownOpen(false);
+    if (value === 'all') {
+      // 点击"全部标签"时清空所有选择
+      setTagFilter([]);
+    } else {
+      // 切换标签选择状态
+      setTagFilter(prev => {
+        if (Array.isArray(prev)) {
+          if (prev.includes(value)) {
+            // 如果已选中，则取消选择
+            const newFilter = prev.filter(tag => tag !== value);
+            return newFilter;
+          } else {
+            // 如果未选中，则添加选择
+            return [...prev, value];
+          }
+        }
+        return [value];
+      });
+    }
+    // 多选时不自动关闭下拉菜单
+    // setIsTagFilterDropdownOpen(false);
   };
 
   // 处理来源筛选选项点击
@@ -461,7 +484,7 @@ const DataCenter = () => {
               </svg>
             </button>
           )}
-          <h2>{viewingTableId ? '表详情' : '数据管理'}</h2>
+          <h2>{viewingTableId ? '表详情' : '数据总览'}</h2>
         </div>
       </div>
       <div className="page-content">
@@ -567,7 +590,12 @@ const DataCenter = () => {
                         className="tag-filter-btn"
                         onClick={() => setIsTagFilterDropdownOpen(!isTagFilterDropdownOpen)}
                       >
-                        <span>标签</span>
+                        <span>
+                          标签
+                          {Array.isArray(tagFilter) && tagFilter.length > 0 && (
+                            <span className="tag-filter-count">({tagFilter.length})</span>
+                          )}
+                        </span>
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
                           <path d="M6 9L1 4h10L6 9z"/>
                         </svg>
@@ -575,10 +603,10 @@ const DataCenter = () => {
                       {isTagFilterDropdownOpen && (
                         <div className="filter-dropdown">
                           <div 
-                            className={`filter-dropdown-item ${tagFilter === 'all' ? 'active' : ''}`}
+                            className={`filter-dropdown-item ${Array.isArray(tagFilter) && tagFilter.length === 0 ? 'active' : ''}`}
                             onClick={() => handleTagFilterSelect('all')}
                           >
-                            {tagFilter === 'all' && (
+                            {Array.isArray(tagFilter) && tagFilter.length === 0 && (
                               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                                 <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
                               </svg>
@@ -590,20 +618,23 @@ const DataCenter = () => {
                               <span>暂无标签</span>
                             </div>
                           ) : (
-                            allTags.map((tag) => (
-                              <div 
-                                key={tag}
-                                className={`filter-dropdown-item ${tagFilter === tag ? 'active' : ''}`}
-                                onClick={() => handleTagFilterSelect(tag)}
-                              >
-                                {tagFilter === tag && (
-                                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                    <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
-                                  </svg>
-                                )}
-                                <span>{tag}</span>
-                              </div>
-                            ))
+                            allTags.map((tag) => {
+                              const isSelected = Array.isArray(tagFilter) && tagFilter.includes(tag);
+                              return (
+                                <div 
+                                  key={tag}
+                                  className={`filter-dropdown-item ${isSelected ? 'active' : ''}`}
+                                  onClick={() => handleTagFilterSelect(tag)}
+                                >
+                                  {isSelected && (
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                      <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
+                                    </svg>
+                                  )}
+                                  <span>{tag}</span>
+                                </div>
+                              );
+                            })
                           )}
                         </div>
                       )}

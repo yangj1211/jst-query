@@ -907,6 +907,12 @@
   color: #333;
 }
 
+.tag-filter-count {
+  color: #1890ff;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
 .tag-filter-btn svg {
   color: #1890ff;
   transition: transform 0.3s;

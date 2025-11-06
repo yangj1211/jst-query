@@ -105,6 +105,19 @@ const DataPermissionConfig = () => {
       .map(obj => obj.name);
   };
 
+  // 处理全选表对象
+  const handleSelectAllObjects = (checked) => {
+    const availableOptions = getObjectNameOptions();
+    if (checked) {
+      setObjectName(availableOptions);
+      // 表类型默认选中"表查询"权限
+      setSelectedPermissions(['DT8']);
+    } else {
+      setObjectName([]);
+      setSelectedPermissions([]);
+    }
+  };
+
   useEffect(() => {
     // 如果没有角色信息，返回到角色权限列表
     if (!currentRole) {
@@ -1375,6 +1388,31 @@ const DataPermissionConfig = () => {
                 style={{ width: '100%' }}
                 placeholder="请选择表对象"
                 maxTagCount="responsive"
+                dropdownRender={(menu) => {
+                  const availableOptions = getObjectNameOptions();
+                  const allSelected = availableOptions.length > 0 && 
+                    availableOptions.every(name => objectName.includes(name));
+                  const someSelected = objectName.length > 0 && !allSelected;
+                  
+                  return (
+                    <div>
+                      <div style={{ 
+                        padding: '8px 12px',
+                        borderBottom: '1px solid #e8e8e8',
+                        backgroundColor: '#fafafa'
+                      }}>
+                        <Checkbox
+                          checked={allSelected}
+                          indeterminate={someSelected}
+                          onChange={(e) => handleSelectAllObjects(e.target.checked)}
+                        >
+                          <span style={{ fontWeight: 500 }}>全选</span>
+                        </Checkbox>
+                      </div>
+                      {menu}
+                    </div>
+                  );
+                }}
               >
                 {getObjectNameOptions().map(name => (
                   <Option key={name} value={name}>{name}</Option>
