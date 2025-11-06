@@ -10,7 +10,7 @@ const DataCenter = () => {
       id: 1,
       name: '2024年财务报告.pdf',
       objectType: 'file', // 文件类型
-      tag: '财务',
+      tags: ['财务', '报告', '2024'],
       source: '上市公司公告', // 文件来源
       fileSize: '2.5MB',
       createTime: '2025-01-15 09:00:00',
@@ -20,7 +20,7 @@ const DataCenter = () => {
       id: 2,
       name: '2023年对外披露数据.pdf',
       objectType: 'file', // 文件类型
-      tag: '披露',
+      tags: ['披露'],
       source: '上市公司公告', // 文件来源
       fileSize: '1.8MB',
       createTime: '2024-12-20 10:30:00',
@@ -31,7 +31,7 @@ const DataCenter = () => {
       name: '测试表1',
       description: '财务数据表',
       objectType: 'table', // 表类型
-      tag: '财务',
+      tags: ['财务', '数据'],
       source: '本地上传', // 表来源
       fieldCount: 10,
       rowCount: 1523,
@@ -55,7 +55,7 @@ const DataCenter = () => {
       name: '测试表2',
       description: '销售数据表',
       objectType: 'table', // 表类型
-      tag: '销售',
+      tags: ['销售'],
       source: '中台', // 表来源
       fieldCount: 10,
       rowCount: 8942,
@@ -96,8 +96,12 @@ const DataCenter = () => {
     const tags = new Set();
     const sources = new Set();
     savedTables.forEach(item => {
-      if (item.tag) {
-        tags.add(item.tag);
+      if (item.tags && Array.isArray(item.tags)) {
+        item.tags.forEach(tag => {
+          if (tag) {
+            tags.add(tag);
+          }
+        });
       }
       if (item.source) {
         sources.add(item.source);
@@ -120,7 +124,9 @@ const DataCenter = () => {
 
   // 检查标签是否被使用
   const checkTagInUse = (tag) => {
-    return savedTables.some(item => item.tag === tag);
+    return savedTables.some(item => 
+      item.tags && Array.isArray(item.tags) && item.tags.includes(tag)
+    );
   };
 
   // 下载单个对象
@@ -183,8 +189,11 @@ const DataCenter = () => {
     // 如果提供了重命名信息，更新使用该标签的数据项
     if (oldTagName && newTagName && oldTagName !== newTagName) {
       setSavedTables(savedTables.map(item => {
-        if (item.tag === oldTagName) {
-          return { ...item, tag: newTagName };
+        if (item.tags && Array.isArray(item.tags) && item.tags.includes(oldTagName)) {
+          return { 
+            ...item, 
+            tags: item.tags.map(tag => tag === oldTagName ? newTagName : tag)
+          };
         }
         return item;
       }));
@@ -200,9 +209,12 @@ const DataCenter = () => {
     
     // 更新数据项中的标签（删除的标签）
     setSavedTables(savedTables.map(item => {
-      // 如果标签被删除，移除标签
-      if (item.tag && deletedTags.includes(item.tag)) {
-        return { ...item, tag: '' };
+      // 如果标签被删除，从数组中移除该标签
+      if (item.tags && Array.isArray(item.tags)) {
+        const filteredTags = item.tags.filter(tag => !deletedTags.includes(tag));
+        if (filteredTags.length !== item.tags.length) {
+          return { ...item, tags: filteredTags.length > 0 ? filteredTags : [] };
+        }
       }
       return item;
     }));
@@ -314,7 +326,9 @@ const DataCenter = () => {
 
     // 按标签筛选
     if (tagFilter !== 'all') {
-      filtered = filtered.filter(table => table.tag === tagFilter);
+      filtered = filtered.filter(table => 
+        table.tags && Array.isArray(table.tags) && table.tags.includes(tagFilter)
+      );
     }
 
     // 按来源筛选
@@ -662,8 +676,17 @@ const DataCenter = () => {
                       </span>
                     </div>
                     <div className="list-col-tags">
-                      {item.tag ? (
-                        <span className="tag-badge">{item.tag}</span>
+                      {item.tags && Array.isArray(item.tags) && item.tags.length > 0 ? (
+                        <div className="tags-container">
+                          {item.tags.slice(0, 5).map((tag, index) => (
+                            <span key={index} className="tag-badge">{tag}</span>
+                          ))}
+                          {item.tags.length > 5 && (
+                            <span className="tag-more" title={item.tags.slice(5).join('、')}>
+                              +{item.tags.length - 5}
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <span style={{ color: '#999' }}>-</span>
                       )}
