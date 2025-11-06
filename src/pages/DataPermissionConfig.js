@@ -40,7 +40,7 @@ const DataPermissionConfig = () => {
     { value: 'DT8', label: '表查询', hasConfig: true },
   ];
 
-  // 模拟从数据中心获取对象列表（与数据中心的数据保持一致，只包含表）
+  // 模拟从数据管理获取对象列表（与数据管理的数据保持一致，只包含表）
   const dataCenterObjects = [
     { 
       id: 3, 

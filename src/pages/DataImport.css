@@ -2161,3 +2161,83 @@
   }
 }
 
+/* 多选标签组件样式 */
+.tag-select-input {
+  position: relative;
+}
+
+.tag-select-input:focus-within {
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border-radius: 4px;
+  font-size: 13px;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.tag-chip:hover {
+  background-color: #bae7ff;
+}
+
+.tag-chip button {
+  background: none;
+  border: none;
+  color: #1890ff;
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  transition: all 0.2s;
+}
+
+.tag-chip button:hover {
+  color: #0050b3;
+  transform: scale(1.1);
+}
+
+.tag-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background-color: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.tag-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tag-dropdown::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 3px;
+}
+
+.tag-dropdown::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 3px;
+}
+
+.tag-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+}
+
