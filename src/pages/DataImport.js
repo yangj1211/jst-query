@@ -15,7 +15,9 @@ const DataImport = () => {
   const [conflictStrategy, setConflictStrategy] = useState('fail');
   const [tableName, setTableName] = useState('');
   const [tableDescription, setTableDescription] = useState('');
-  const [selectedTag, setSelectedTag] = useState('');
+  const [selectedTags, setSelectedTags] = useState([]); // 改为数组，支持多标签
+  const [localTagSearchInput, setLocalTagSearchInput] = useState(''); // 本地上传标签搜索输入
+  const [showLocalTagDropdown, setShowLocalTagDropdown] = useState(false); // 是否显示本地上传标签下拉列表
   
   // 载入列表列表
   const [importTasks, setImportTasks] = useState([
@@ -152,7 +154,7 @@ const DataImport = () => {
       id: 3, 
       name: '测试表1',
       description: '用户信息表',
-      tag: '收入成本',
+      tags: ['收入成本'],
       objectType: 'table',
       fieldCount: 3,
       rowCount: 1523,
@@ -166,7 +168,7 @@ const DataImport = () => {
       id: 4, 
       name: '测试表2',
       description: '订单数据表',
-      tag: '费用明细',
+      tags: ['费用明细'],
       objectType: 'table',
       fieldCount: 2,
       rowCount: 8942,
@@ -278,7 +280,9 @@ const DataImport = () => {
     setConflictStrategy('fail');
     setTableName('');
     setTableDescription('');
-    setSelectedTag('');
+    setSelectedTags([]);
+    setLocalTagSearchInput('');
+    setShowLocalTagDropdown(false);
   };
 
   const handleUpdateField = (id, key, value) => {
@@ -303,8 +307,12 @@ const DataImport = () => {
       alert('请填写表名');
       return;
     }
-    if (!selectedTag) {
-      alert('请选择标签');
+    if (selectedTags.length === 0) {
+      alert('请选择至少一个标签');
+      return;
+    }
+    if (selectedTags.length > 5) {
+      alert('最多只能选择5个标签');
       return;
     }
     const hasEmptyNames = fields.some(field => !field.name.trim());
@@ -507,12 +515,54 @@ const DataImport = () => {
     setShowTagDropdown(false);
   };
 
+  // 处理本地上传的标签选择
+  const handleLocalTagSelect = (tag) => {
+    if (selectedTags.includes(tag)) {
+      // 如果已选中，则取消选择
+      setSelectedTags(selectedTags.filter(t => t !== tag));
+    } else {
+      // 如果未选中，检查是否已达到上限
+      if (selectedTags.length >= 5) {
+        alert('最多只能选择5个标签');
+        return;
+      }
+      // 添加标签
+      setSelectedTags([...selectedTags, tag]);
+    }
+    setLocalTagSearchInput('');
+  };
+
+  // 移除本地上传的标签
+  const handleRemoveLocalTag = (tagToRemove) => {
+    setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove));
+  };
+
+  // 本地上传标签下拉框的ref
+  const localTagDropdownRef = useRef(null);
+
+  // 点击外部关闭本地上传标签下拉框
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (localTagDropdownRef.current && !localTagDropdownRef.current.contains(event.target)) {
+        setShowLocalTagDropdown(false);
+      }
+    };
+
+    if (showLocalTagDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showLocalTagDropdown]);
+
   // 所有可用的标签选项
   const availableTags = ['收入成本', '费用明细', '财务报告'];
 
-  // 过滤后的标签选项（根据搜索输入）
-  const filteredTags = availableTags.filter(tag => 
-    tag.toLowerCase().includes(tagSearchInput.toLowerCase())
+  // 过滤后的本地上传标签选项（根据搜索输入）
+  const filteredLocalTags = availableTags.filter(tag => 
+    tag.toLowerCase().includes(localTagSearchInput.toLowerCase())
   );
 
   // 处理标签选择
@@ -521,7 +571,12 @@ const DataImport = () => {
       // 如果已选中，则取消选择
       setAnnouncementTags(announcementTags.filter(t => t !== tag));
     } else {
-      // 如果未选中，则添加
+      // 如果未选中，检查是否已达到上限
+      if (announcementTags.length >= 5) {
+        alert('最多只能选择5个标签');
+        return;
+      }
+      // 添加标签
       setAnnouncementTags([...announcementTags, tag]);
     }
     setTagSearchInput('');
@@ -551,6 +606,11 @@ const DataImport = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showTagDropdown]);
+
+  // 过滤后的标签选项（根据搜索输入，用于公告导入）
+  const filteredTags = availableTags.filter(tag => 
+    tag.toLowerCase().includes(tagSearchInput.toLowerCase())
+  );
 
   // 检查当前页是否全选
   const isCurrentPageAllSelected = () => {
@@ -613,7 +673,9 @@ const DataImport = () => {
     setSelectedTableId(null);
     setTableName('');
     setTableDescription('');
-    setSelectedTag('');
+    setSelectedTags([]);
+    setLocalTagSearchInput('');
+    setShowLocalTagDropdown(false);
   };
 
   // 获取状态显示文本
@@ -1153,18 +1215,179 @@ const DataImport = () => {
                 <div className="config-row">
                   <label className="config-label">
                     <span className="required">*</span>标签：
+                    <span className="optional-tag" style={{ marginLeft: '8px', fontSize: '12px', color: '#999', fontWeight: 'normal' }}>
+                      （最多5个）
+                    </span>
                   </label>
-                  <select
-                    className="config-input"
-                    value={selectedTag}
-                    onChange={(e) => setSelectedTag(e.target.value)}
-                    disabled={!uploadedFile}
-                  >
-                    <option value="">请选择标签</option>
-                    <option value="收入成本">收入成本</option>
-                    <option value="费用明细">费用明细</option>
-                    <option value="财务报告">财务报告</option>
-                  </select>
+                  <div ref={localTagDropdownRef} style={{ flex: 1, maxWidth: '500px', position: 'relative' }}>
+                    {/* 多选标签输入框 */}
+                    <div 
+                      className="tag-select-input"
+                      onClick={() => setShowLocalTagDropdown(!showLocalTagDropdown)}
+                      style={{
+                        minHeight: '40px',
+                        padding: '6px 12px',
+                        border: '1px solid #d9d9d9',
+                        borderRadius: '4px',
+                        cursor: 'text',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: uploadedFile ? '#fff' : '#f5f5f5',
+                        transition: 'all 0.3s',
+                        opacity: uploadedFile ? 1 : 0.6
+                      }}
+                    >
+                      {/* 已选择的标签 chips */}
+                      {selectedTags.map(tag => (
+                        <span
+                          key={tag}
+                          className="tag-chip"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            padding: '4px 8px',
+                            backgroundColor: '#e6f7ff',
+                            color: '#1890ff',
+                            borderRadius: '4px',
+                            fontSize: '13px',
+                            gap: '6px'
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveLocalTag(tag);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#1890ff',
+                              cursor: 'pointer',
+                              padding: 0,
+                              fontSize: '14px',
+                              lineHeight: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '16px',
+                              height: '16px'
+                            }}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                      {/* 搜索输入框 */}
+                      <input
+                        type="text"
+                        value={localTagSearchInput}
+                        onChange={(e) => {
+                          setLocalTagSearchInput(e.target.value);
+                          setShowLocalTagDropdown(true);
+                        }}
+                        onFocus={() => setShowLocalTagDropdown(true)}
+                        placeholder={selectedTags.length === 0 ? '请选择标签' : ''}
+                        disabled={!uploadedFile}
+                        style={{
+                          flex: 1,
+                          minWidth: '100px',
+                          border: 'none',
+                          outline: 'none',
+                          fontSize: '14px',
+                          padding: '4px 0',
+                          backgroundColor: 'transparent'
+                        }}
+                      />
+                      {/* 搜索图标 */}
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 16 16" 
+                        fill="none" 
+                        xmlns="http://www.w3.org/2000/svg"
+                        style={{ 
+                          color: '#999',
+                          flexShrink: 0,
+                          marginLeft: '8px'
+                        }}
+                      >
+                        <circle cx="7" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                        <path d="M10.5 10.5L13 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                    </div>
+                    {/* 下拉列表 */}
+                    {showLocalTagDropdown && uploadedFile && (
+                      <div
+                        className="tag-dropdown"
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          marginTop: '4px',
+                          backgroundColor: '#fff',
+                          border: '1px solid #d9d9d9',
+                          borderRadius: '4px',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                          maxHeight: '200px',
+                          overflowY: 'auto',
+                          zIndex: 1000
+                        }}
+                      >
+                        {filteredLocalTags.length === 0 ? (
+                          <div style={{ padding: '12px', color: '#999', fontSize: '14px', textAlign: 'center' }}>
+                            暂无匹配的标签
+                          </div>
+                        ) : (
+                          filteredLocalTags.map(tag => (
+                            <div
+                              key={tag}
+                              onClick={() => {
+                                handleLocalTagSelect(tag);
+                              }}
+                              style={{
+                                padding: '10px 12px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                backgroundColor: selectedTags.includes(tag) ? '#e6f7ff' : '#fff',
+                                transition: 'background-color 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!selectedTags.includes(tag)) {
+                                  e.currentTarget.style.backgroundColor = '#f5f5f5';
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!selectedTags.includes(tag)) {
+                                  e.currentTarget.style.backgroundColor = '#fff';
+                                }
+                              }}
+                            >
+                              <span style={{ fontSize: '14px', color: '#333' }}>{tag}</span>
+                              {selectedTags.includes(tag) && (
+                                <svg 
+                                  width="16" 
+                                  height="16" 
+                                  viewBox="0 0 16 16" 
+                                  fill="currentColor"
+                                  style={{ color: '#1890ff', flexShrink: 0 }}
+                                >
+                                  <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
+                                </svg>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="config-row">
                   <label className="config-label">表描述：</label>
@@ -1221,10 +1444,21 @@ const DataImport = () => {
                 {/* 显示已选表的标签 */}
                 {selectedTableId && (() => {
                   const selectedTable = savedTables.find(table => table.id === selectedTableId);
-                  return selectedTable && selectedTable.tag ? (
+                  return selectedTable && selectedTable.tags && Array.isArray(selectedTable.tags) && selectedTable.tags.length > 0 ? (
                     <div className="config-row">
                       <label className="config-label">标签：</label>
-                      <div className="tag-display">{selectedTable.tag}</div>
+                      <div className="tag-display" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {selectedTable.tags.slice(0, 5).map((tag, index) => (
+                          <span key={index} className="tag-badge" style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', background: '#f0f0f0', color: '#666', borderRadius: '4px', fontSize: '12px' }}>
+                            {tag}
+                          </span>
+                        ))}
+                        {selectedTable.tags.length > 5 && (
+                          <span className="tag-more" style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', background: '#fafafa', color: '#999', borderRadius: '4px', fontSize: '12px', border: '1px dashed #d9d9d9' }} title={selectedTable.tags.slice(5).join('、')}>
+                            +{selectedTable.tags.length - 5}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ) : null;
                 })()}
@@ -1613,6 +1847,9 @@ const DataImport = () => {
                 <div className="config-row" style={{ marginBottom: '20px' }}>
                   <label className="config-label">
                     <span className="required">*</span>标签：
+                    <span className="optional-tag" style={{ marginLeft: '8px', fontSize: '12px', color: '#999', fontWeight: 'normal' }}>
+                      （最多5个）
+                    </span>
                   </label>
                   <div ref={tagDropdownRef} style={{ flex: 1, maxWidth: '500px', position: 'relative' }}>
                     {/* 多选标签输入框 */}
