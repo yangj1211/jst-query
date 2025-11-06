@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import './PageStyle.css';
 import './DataImport.css';
@@ -142,7 +142,9 @@ const DataImport = () => {
   const [showTagModal, setShowTagModal] = useState(false);
   const [pendingImportType, setPendingImportType] = useState(null); // 'single' 或 'batch'
   const [pendingImportItem, setPendingImportItem] = useState(null); // 单个公告项
-  const [announcementTag, setAnnouncementTag] = useState(''); // 选择的标签
+  const [announcementTags, setAnnouncementTags] = useState([]); // 选择的标签（支持多选）
+  const [tagSearchInput, setTagSearchInput] = useState(''); // 标签搜索输入
+  const [showTagDropdown, setShowTagDropdown] = useState(false); // 是否显示标签下拉列表
   
   // 模拟已保存的表数据
   const [savedTables] = useState([
@@ -310,7 +312,7 @@ const DataImport = () => {
       alert('请填写所有字段名称');
       return;
     }
-    alert('表结构保存成功！数据已导入到数据中心。');
+    alert('表结构保存成功！数据已导入到数据管理。');
     handleRemoveFile();
   };
 
@@ -398,14 +400,16 @@ const DataImport = () => {
   const handleImportOnlineDoc = (item) => {
     setPendingImportType('single');
     setPendingImportItem(item);
-    setAnnouncementTag('');
+    setAnnouncementTags([]);
+    setTagSearchInput('');
+    setShowTagDropdown(false);
     setShowTagModal(true);
   };
 
   // 确认标签选择后执行单个导入
   const handleConfirmSingleImport = () => {
-    if (!announcementTag) {
-      alert('请选择标签');
+    if (announcementTags.length === 0) {
+      alert('请至少选择一个标签');
       return;
     }
     
@@ -415,12 +419,12 @@ const DataImport = () => {
       : item.content;
     fileName = fileName.replace(/[^\u4e00-\u9fa5A-Za-z0-9_-]/g, '_');
     
-    alert(`已成功导入文档！\n文件名：${fileName}.pdf\n标签：${announcementTag}`);
+    alert(`已成功导入文档！\n文件名：${fileName}.pdf\n标签：${announcementTags.join('、')}`);
     
     setShowTagModal(false);
     setPendingImportType(null);
     setPendingImportItem(null);
-    setAnnouncementTag('');
+    setAnnouncementTags([]);
   };
 
   // 切换单个公告的选中状态
@@ -461,14 +465,16 @@ const DataImport = () => {
 
     setPendingImportType('batch');
     setPendingImportItem(null);
-    setAnnouncementTag('');
+    setAnnouncementTags([]);
+    setTagSearchInput('');
+    setShowTagDropdown(false);
     setShowTagModal(true);
   };
 
   // 确认标签选择后执行批量导入
   const handleConfirmBatchImport = () => {
-    if (!announcementTag) {
-      alert('请选择标签');
+    if (announcementTags.length === 0) {
+      alert('请至少选择一个标签');
       return;
     }
 
@@ -482,13 +488,13 @@ const DataImport = () => {
       return fileName.replace(/[^\u4e00-\u9fa5A-Za-z0-9_-]/g, '_') + '.pdf';
     });
 
-    alert(`已成功批量导入 ${selectedItems.length} 个文档！\n标签：${announcementTag}\n\n文件列表：\n${fileNames.join('\n')}`);
+    alert(`已成功批量导入 ${selectedItems.length} 个文档！\n标签：${announcementTags.join('、')}\n\n文件列表：\n${fileNames.join('\n')}`);
     setSelectedAnnouncements([]); // 导入后清空选择
     
     setShowTagModal(false);
     setPendingImportType(null);
     setPendingImportItem(null);
-    setAnnouncementTag('');
+    setAnnouncementTags([]);
   };
 
   // 取消标签选择
@@ -496,8 +502,55 @@ const DataImport = () => {
     setShowTagModal(false);
     setPendingImportType(null);
     setPendingImportItem(null);
-    setAnnouncementTag('');
+    setAnnouncementTags([]);
+    setTagSearchInput('');
+    setShowTagDropdown(false);
   };
+
+  // 所有可用的标签选项
+  const availableTags = ['收入成本', '费用明细', '财务报告'];
+
+  // 过滤后的标签选项（根据搜索输入）
+  const filteredTags = availableTags.filter(tag => 
+    tag.toLowerCase().includes(tagSearchInput.toLowerCase())
+  );
+
+  // 处理标签选择
+  const handleTagSelect = (tag) => {
+    if (announcementTags.includes(tag)) {
+      // 如果已选中，则取消选择
+      setAnnouncementTags(announcementTags.filter(t => t !== tag));
+    } else {
+      // 如果未选中，则添加
+      setAnnouncementTags([...announcementTags, tag]);
+    }
+    setTagSearchInput('');
+  };
+
+  // 移除标签
+  const handleRemoveTag = (tagToRemove) => {
+    setAnnouncementTags(announcementTags.filter(tag => tag !== tagToRemove));
+  };
+
+  // 使用 ref 来检测点击外部
+  const tagDropdownRef = useRef(null);
+
+  // 点击外部关闭下拉框
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(event.target)) {
+        setShowTagDropdown(false);
+      }
+    };
+
+    if (showTagDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showTagDropdown]);
 
   // 检查当前页是否全选
   const isCurrentPageAllSelected = () => {
@@ -673,7 +726,7 @@ const DataImport = () => {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h2>数据载入</h2>
+        <h2>数据导入</h2>
         <button className="import-entry-btn" onClick={() => setShowImportModal(true)}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: '6px' }}>
             <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -1561,17 +1614,172 @@ const DataImport = () => {
                   <label className="config-label">
                     <span className="required">*</span>标签：
                   </label>
-                  <select
-                    className="config-input"
-                    value={announcementTag}
-                    onChange={(e) => setAnnouncementTag(e.target.value)}
-                    style={{ maxWidth: '500px' }}
-                  >
-                    <option value="">请选择标签</option>
-                    <option value="收入成本">收入成本</option>
-                    <option value="费用明细">费用明细</option>
-                    <option value="财务报告">财务报告</option>
-                  </select>
+                  <div ref={tagDropdownRef} style={{ flex: 1, maxWidth: '500px', position: 'relative' }}>
+                    {/* 多选标签输入框 */}
+                    <div 
+                      className="tag-select-input"
+                      onClick={() => setShowTagDropdown(!showTagDropdown)}
+                      style={{
+                        minHeight: '40px',
+                        padding: '6px 12px',
+                        border: '1px solid #d9d9d9',
+                        borderRadius: '4px',
+                        cursor: 'text',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: '#fff',
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      {/* 已选择的标签 chips */}
+                      {announcementTags.map(tag => (
+                        <span
+                          key={tag}
+                          className="tag-chip"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            padding: '4px 8px',
+                            backgroundColor: '#e6f7ff',
+                            color: '#1890ff',
+                            borderRadius: '4px',
+                            fontSize: '13px',
+                            gap: '6px'
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveTag(tag);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#1890ff',
+                              cursor: 'pointer',
+                              padding: 0,
+                              fontSize: '14px',
+                              lineHeight: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '16px',
+                              height: '16px'
+                            }}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                      {/* 搜索输入框 */}
+                      <input
+                        type="text"
+                        value={tagSearchInput}
+                        onChange={(e) => {
+                          setTagSearchInput(e.target.value);
+                          setShowTagDropdown(true);
+                        }}
+                        onFocus={() => setShowTagDropdown(true)}
+                        placeholder={announcementTags.length === 0 ? '请选择标签' : ''}
+                        style={{
+                          flex: 1,
+                          minWidth: '100px',
+                          border: 'none',
+                          outline: 'none',
+                          fontSize: '14px',
+                          padding: '4px 0'
+                        }}
+                      />
+                      {/* 搜索图标 */}
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 16 16" 
+                        fill="none" 
+                        xmlns="http://www.w3.org/2000/svg"
+                        style={{ 
+                          color: '#999',
+                          flexShrink: 0,
+                          marginLeft: '8px'
+                        }}
+                      >
+                        <circle cx="7" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                        <path d="M10.5 10.5L13 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                    </div>
+                    {/* 下拉列表 */}
+                    {showTagDropdown && (
+                      <div
+                        className="tag-dropdown"
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          marginTop: '4px',
+                          backgroundColor: '#fff',
+                          border: '1px solid #d9d9d9',
+                          borderRadius: '4px',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                          maxHeight: '200px',
+                          overflowY: 'auto',
+                          zIndex: 1000
+                        }}
+                      >
+                        {filteredTags.length === 0 ? (
+                          <div style={{ padding: '12px', color: '#999', fontSize: '14px', textAlign: 'center' }}>
+                            暂无匹配的标签
+                          </div>
+                        ) : (
+                          filteredTags.map(tag => (
+                            <div
+                              key={tag}
+                              onClick={() => {
+                                handleTagSelect(tag);
+                              }}
+                              style={{
+                                padding: '10px 12px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                backgroundColor: announcementTags.includes(tag) ? '#e6f7ff' : '#fff',
+                                transition: 'background-color 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!announcementTags.includes(tag)) {
+                                  e.currentTarget.style.backgroundColor = '#f5f5f5';
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!announcementTags.includes(tag)) {
+                                  e.currentTarget.style.backgroundColor = '#fff';
+                                }
+                              }}
+                            >
+                              <span style={{ fontSize: '14px', color: '#333' }}>{tag}</span>
+                              {announcementTags.includes(tag) && (
+                                <svg 
+                                  width="16" 
+                                  height="16" 
+                                  viewBox="0 0 16 16" 
+                                  fill="currentColor"
+                                  style={{ color: '#1890ff', flexShrink: 0 }}
+                                >
+                                  <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
+                                </svg>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {pendingImportType === 'single' && pendingImportItem && (
                   <div className="filename-hint" style={{ marginTop: '12px' }}>
@@ -1589,7 +1797,7 @@ const DataImport = () => {
                 <button 
                   className="confirm-import-btn" 
                   onClick={pendingImportType === 'batch' ? handleConfirmBatchImport : handleConfirmSingleImport}
-                  disabled={!announcementTag}
+                  disabled={announcementTags.length === 0}
                 >
                   确认导入
                 </button>

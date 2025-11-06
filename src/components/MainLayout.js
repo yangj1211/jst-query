@@ -117,16 +117,16 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
     {
       key: 'data',
       icon: <DatabaseOutlined />,
-      label: '数据中心',
+      label: '数据管理',
       children: [
         {
           key: 'data-view',
-          label: '数据查看',
+          label: '数据总览',
           path: '/data/view',
         },
         {
           key: 'data-import',
-          label: '数据载入',
+          label: '数据导入',
           path: '/data/import',
         },
       ],

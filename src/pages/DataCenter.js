@@ -447,7 +447,7 @@ const DataCenter = () => {
               </svg>
             </button>
           )}
-          <h2>{viewingTableId ? '表详情' : '数据中心'}</h2>
+          <h2>{viewingTableId ? '表详情' : '数据管理'}</h2>
         </div>
       </div>
       <div className="page-content">
