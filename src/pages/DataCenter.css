@@ -781,7 +781,7 @@
 
 .table-list-header {
   display: grid;
-  grid-template-columns: 1.5fr 0.8fr 1.5fr 2fr 0.8fr 1.3fr 1.3fr 1fr;
+  grid-template-columns: 1.5fr 0.8fr 1.5fr 1fr 2fr 0.8fr 1.3fr 1.3fr 1fr;
   gap: 16px;
   padding: 12px 16px;
   background: #fafafa;
@@ -797,7 +797,7 @@
 
 .table-list-row {
   display: grid;
-  grid-template-columns: 1.5fr 0.8fr 1.5fr 2fr 0.8fr 1.3fr 1.3fr 1fr;
+  grid-template-columns: 1.5fr 0.8fr 1.5fr 1fr 2fr 0.8fr 1.3fr 1.3fr 1fr;
   gap: 16px;
   padding: 12px 16px;
   border-bottom: 1px solid #f0f0f0;
@@ -929,6 +929,52 @@
   transform: rotate(180deg);
 }
 
+/* 来源筛选器 */
+.source-filter-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.source-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #333;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.source-filter-btn span {
+  color: #333;
+}
+
+.source-filter-btn svg {
+  color: #1890ff;
+  transition: transform 0.3s;
+  display: block;
+}
+
+.source-filter-btn:hover {
+  color: #333;
+}
+
+.source-filter-btn:hover span {
+  color: #333;
+}
+
+.source-filter-btn:hover svg {
+  color: #40a9ff;
+}
+
+.source-filter-wrapper.active .source-filter-btn svg {
+  transform: rotate(180deg);
+}
+
 /* 筛选下拉菜单 */
 .filter-dropdown {
   position: absolute;
@@ -1030,6 +1076,25 @@
   border-radius: 4px;
   font-size: 12px;
   white-space: nowrap;
+}
+
+.list-col-source {
+  color: #666;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+}
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #e6f7ff;
+  color: #1890ff;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  font-weight: 500;
 }
 
 .list-col-desc {

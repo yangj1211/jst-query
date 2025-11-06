@@ -11,6 +11,7 @@ const DataCenter = () => {
       name: '2024年财务报告.pdf',
       objectType: 'file', // 文件类型
       tag: '财务',
+      source: '上市公司公告', // 文件来源
       fileSize: '2.5MB',
       createTime: '2025-01-15 09:00:00',
       updateTime: '2025-01-15 09:00:00'
@@ -20,6 +21,7 @@ const DataCenter = () => {
       name: '2023年对外披露数据.pdf',
       objectType: 'file', // 文件类型
       tag: '披露',
+      source: '上市公司公告', // 文件来源
       fileSize: '1.8MB',
       createTime: '2024-12-20 10:30:00',
       updateTime: '2024-12-20 10:30:00'
@@ -30,6 +32,7 @@ const DataCenter = () => {
       description: '财务数据表',
       objectType: 'table', // 表类型
       tag: '财务',
+      source: '本地上传', // 表来源
       fieldCount: 10,
       rowCount: 1523,
       createTime: '2025-10-20 10:30:00',
@@ -53,6 +56,7 @@ const DataCenter = () => {
       description: '销售数据表',
       objectType: 'table', // 表类型
       tag: '销售',
+      source: '中台', // 表来源
       fieldCount: 10,
       rowCount: 8942,
       createTime: '2025-10-21 14:20:00',
@@ -80,26 +84,39 @@ const DataCenter = () => {
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false); // 对象类型筛选下拉菜单是否打开
   const [tagFilter, setTagFilter] = useState('all'); // 标签筛选: 'all' | tag名称
   const [isTagFilterDropdownOpen, setIsTagFilterDropdownOpen] = useState(false); // 标签筛选下拉菜单是否打开
+  const [sourceFilter, setSourceFilter] = useState('all'); // 来源筛选: 'all' | source名称
+  const [isSourceFilterDropdownOpen, setIsSourceFilterDropdownOpen] = useState(false); // 来源筛选下拉菜单是否打开
   const [createTimeRange, setCreateTimeRange] = useState({ startDate: null, endDate: null }); // 创建时间范围筛选
   const [isTagManagementModalVisible, setIsTagManagementModalVisible] = useState(false); // 标签管理模态框显示状态
   const [allTags, setAllTags] = useState([]); // 所有可用标签列表
+  const [allSources, setAllSources] = useState([]); // 所有可用来源列表
 
-  // 初始化标签列表
+  // 初始化标签列表和来源列表
   useEffect(() => {
     const tags = new Set();
+    const sources = new Set();
     savedTables.forEach(item => {
       if (item.tag) {
         tags.add(item.tag);
       }
+      if (item.source) {
+        sources.add(item.source);
+      }
     });
     const newTags = Array.from(tags);
+    const newSources = Array.from(sources);
     setAllTags(newTags);
+    setAllSources(newSources);
     
     // 如果当前选中的标签不再存在，重置为"全部标签"
     if (tagFilter !== 'all' && !newTags.includes(tagFilter)) {
       setTagFilter('all');
     }
-  }, [savedTables, tagFilter]);
+    // 如果当前选中的来源不再存在，重置为"全部来源"
+    if (sourceFilter !== 'all' && !newSources.includes(sourceFilter)) {
+      setSourceFilter('all');
+    }
+  }, [savedTables, tagFilter, sourceFilter]);
 
   // 检查标签是否被使用
   const checkTagInUse = (tag) => {
@@ -300,6 +317,11 @@ const DataCenter = () => {
       filtered = filtered.filter(table => table.tag === tagFilter);
     }
 
+    // 按来源筛选
+    if (sourceFilter !== 'all') {
+      filtered = filtered.filter(table => table.source === sourceFilter);
+    }
+
     // 按创建时间范围筛选
     if (createTimeRange.startDate || createTimeRange.endDate) {
       filtered = filtered.filter(table => {
@@ -344,6 +366,12 @@ const DataCenter = () => {
     setIsTagFilterDropdownOpen(false);
   };
 
+  // 处理来源筛选选项点击
+  const handleSourceFilterSelect = (value) => {
+    setSourceFilter(value);
+    setIsSourceFilterDropdownOpen(false);
+  };
+
   // 点击外部关闭下拉菜单
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -353,13 +381,16 @@ const DataCenter = () => {
       if (isTagFilterDropdownOpen && !event.target.closest('.tag-filter-wrapper')) {
         setIsTagFilterDropdownOpen(false);
       }
+      if (isSourceFilterDropdownOpen && !event.target.closest('.source-filter-wrapper')) {
+        setIsSourceFilterDropdownOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isFilterDropdownOpen, isTagFilterDropdownOpen]);
+  }, [isFilterDropdownOpen, isTagFilterDropdownOpen, isSourceFilterDropdownOpen]);
 
   // 生成表数据（模拟）
   const generateSampleData = (table, count = 100) => {
@@ -564,6 +595,54 @@ const DataCenter = () => {
                       )}
                     </div>
                   </div>
+                  <div className="list-col-source">
+                    <div className={`source-filter-wrapper ${isSourceFilterDropdownOpen ? 'active' : ''}`}>
+                      <button 
+                        className="source-filter-btn"
+                        onClick={() => setIsSourceFilterDropdownOpen(!isSourceFilterDropdownOpen)}
+                      >
+                        <span>来源</span>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                          <path d="M6 9L1 4h10L6 9z"/>
+                        </svg>
+                      </button>
+                      {isSourceFilterDropdownOpen && (
+                        <div className="filter-dropdown">
+                          <div 
+                            className={`filter-dropdown-item ${sourceFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => handleSourceFilterSelect('all')}
+                          >
+                            {sourceFilter === 'all' && (
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
+                              </svg>
+                            )}
+                            <span>全部来源</span>
+                          </div>
+                          {allSources.length === 0 ? (
+                            <div className="filter-dropdown-item disabled">
+                              <span>暂无来源</span>
+                            </div>
+                          ) : (
+                            allSources.map((source) => (
+                              <div 
+                                key={source}
+                                className={`filter-dropdown-item ${sourceFilter === source ? 'active' : ''}`}
+                                onClick={() => handleSourceFilterSelect(source)}
+                              >
+                                {sourceFilter === source && (
+                                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
+                                  </svg>
+                                )}
+                                <span>{source}</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <div className="list-col-desc">描述</div>
                   <div className="list-col-size">大小</div>
                   <div className="list-col-time">创建时间</div>
@@ -588,6 +667,9 @@ const DataCenter = () => {
                       ) : (
                         <span style={{ color: '#999' }}>-</span>
                       )}
+                    </div>
+                    <div className="list-col-source">
+                      <span className="source-badge">{item.source || '-'}</span>
                     </div>
                     <div className="list-col-desc">{item.objectType === 'file' ? '-' : (item.description || '-')}</div>
                     <div className="list-col-size">{getSizeDisplay(item)}</div>
@@ -828,3 +910,4 @@ const DataCenter = () => {
 };
 
 export default DataCenter;
+

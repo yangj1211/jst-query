@@ -17,7 +17,7 @@ const DataImport = () => {
   const [tableDescription, setTableDescription] = useState('');
   const [selectedTag, setSelectedTag] = useState('');
   
-  // 载入任务列表
+  // 载入列表列表
   const [importTasks, setImportTasks] = useState([
     {
       id: 1,
@@ -115,6 +115,7 @@ const DataImport = () => {
   // 筛选条件
   const [filterSource, setFilterSource] = useState('all'); // all, local, online
   const [filterStatus, setFilterStatus] = useState('all'); // all, processing, pausing, paused, completed, failed
+  const [taskSearchKeyword, setTaskSearchKeyword] = useState(''); // 载入对象名搜索关键词
   
   // 任务列表分页
   const [taskPage, setTaskPage] = useState(1);
@@ -643,6 +644,14 @@ const DataImport = () => {
         return false;
       }
       
+      // 载入对象名搜索筛选
+      if (taskSearchKeyword.trim()) {
+        const keyword = taskSearchKeyword.toLowerCase();
+        if (!task.objectName.toLowerCase().includes(keyword)) {
+          return false;
+        }
+      }
+      
       return true;
     });
   };
@@ -674,15 +683,46 @@ const DataImport = () => {
       </div>
 
       <div className="page-content">
-        {/* 载入任务列表 */}
+        {/* 载入列表列表 */}
         <div className="import-tasks-section">
           <div className="tasks-header">
-            <h3>载入任务</h3>
+            <h3>载入列表</h3>
+          </div>
+          
+          {/* 搜索栏 */}
+          <div className="task-search-section">
+            <div className="task-search-bar">
+              <svg className="task-search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <input
+                type="text"
+                className="task-search-input"
+                placeholder="搜索载入对象名..."
+                value={taskSearchKeyword}
+                onChange={(e) => {
+                  setTaskSearchKeyword(e.target.value);
+                  setTaskPage(1);
+                }}
+              />
+              {taskSearchKeyword && (
+                <button 
+                  className="task-clear-search-btn" 
+                  onClick={() => {
+                    setTaskSearchKeyword('');
+                    setTaskPage(1);
+                  }}
+                  title="清除搜索"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
           
           {getFilteredTasks().length === 0 ? (
             <div className="empty-state">
-              {importTasks.length === 0 ? '暂无载入任务' : '没有符合条件的任务'}
+              {importTasks.length === 0 ? '暂无载入列表' : '没有符合条件的任务'}
             </div>
           ) : (
             <div className="tasks-list">
@@ -1391,7 +1431,7 @@ const DataImport = () => {
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: '6px' }}>
                               <path d="M8.5 1.5v9m-3-3l3 3 3-3M2 13h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                             </svg>
-                            批量导入
+                            导入
                           </button>
                         </div>
                       )}
@@ -1420,16 +1460,6 @@ const DataImport = () => {
                                   {item.content}
                                 </a>
                               </div>
-                              <button 
-                                className="import-announcement-btn"
-                                onClick={() => handleImportOnlineDoc(item)}
-                                title="导入此公告"
-                              >
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                  <path d="M8.5 1.5v9m-3-3l3 3 3-3M2 13h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                                </svg>
-                                导入
-                              </button>
                             </div>
                           ))
                         )}
@@ -1523,7 +1553,7 @@ const DataImport = () => {
           <div className="modal-overlay" onClick={handleCancelTagSelection}>
             <div className="filename-modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="filename-modal-header">
-                <h3>{pendingImportType === 'batch' ? '批量导入公告' : '导入公告'}</h3>
+                <h3>导入公告</h3>
                 <button className="modal-close-btn" onClick={handleCancelTagSelection}>✕</button>
               </div>
               <div className="filename-modal-body">
@@ -1550,7 +1580,7 @@ const DataImport = () => {
                 )}
                 {pendingImportType === 'batch' && (
                   <div className="filename-hint" style={{ marginTop: '12px' }}>
-                    将批量导入 {selectedAnnouncements.length} 个公告
+                    将导入 {selectedAnnouncements.length} 个公告
                   </div>
                 )}
               </div>
