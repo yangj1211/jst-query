@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Table, Button, Tooltip, Tag, Dropdown, Input, message } from 'antd';
 import { DownOutlined, RightOutlined, DownloadOutlined, ExportOutlined, DatabaseOutlined, TableOutlined, BarChartOutlined, EyeOutlined, FileOutlined, DatabaseOutlined as DbIcon, LineChartOutlined, PieChartOutlined, BulbOutlined, ClockCircleOutlined, PlusSquareOutlined } from '@ant-design/icons';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useFilePreview } from '../contexts/FilePreviewContext';
 import './QueryResult.css';
 
 /**
@@ -15,6 +16,8 @@ import './QueryResult.css';
  */
 const QueryResult = ({ data }) => {
   const { summary } = data;
+  const { openPreview, isPreviewVisible } = useFilePreview();
+  
   // 兼容老结构
   const blocks = Array.isArray(data.resultBlocks)
     ? data.resultBlocks
@@ -37,6 +40,13 @@ const QueryResult = ({ data }) => {
   // 引用数字的选中状态：记录哪些引用被点击了 {refKey: boolean}
   const [activeReferences, setActiveReferences] = useState({});
 
+  // 当预览器关闭时，清除所有点亮的状态
+  useEffect(() => {
+    if (!isPreviewVisible) {
+      setActiveReferences({});
+    }
+  }, [isPreviewVisible]);
+
   const handleViewChange = (blockIdx, view) => {
     setActiveViews(prev => {
       const newViews = [...prev];
@@ -54,13 +64,35 @@ const QueryResult = ({ data }) => {
   };
 
   /**
-   * 切换引用数字的选中状态
+   * 切换引用数字的选中状态（单选模式：同一文件只有一个数字可以被选中）
    */
   const toggleReferenceActive = (refKey) => {
-    setActiveReferences(prev => ({
-      ...prev,
-      [refKey]: !prev[refKey]
-    }));
+    setActiveReferences(prev => {
+      // 提取当前 refKey 的前缀（去掉最后的索引部分）
+      // refKey 格式: prefix-sourceIndex-refIndex
+      const parts = refKey.split('-');
+      const prefix = parts.slice(0, -1).join('-'); // 获取前缀和 sourceIndex
+      
+      // 如果当前数字已经选中，则取消选中
+      if (prev[refKey]) {
+        const newState = { ...prev };
+        delete newState[refKey];
+        return newState;
+      }
+      
+      // 否则，先清除同一文件下所有其他数字的选中状态
+      const newState = {};
+      Object.keys(prev).forEach(key => {
+        // 如果不是同一文件下的引用，保留其状态
+        if (!key.startsWith(prefix + '-')) {
+          newState[key] = prev[key];
+        }
+      });
+      
+      // 设置当前点击的数字为选中状态
+      newState[refKey] = true;
+      return newState;
+    });
   };
 
   /**
@@ -75,29 +107,52 @@ const QueryResult = ({ data }) => {
       const isFile = source.type === 'excel' || source.type === 'pdf';
       const hasReferences = isFile && source.references && source.references.length > 0;
       
-      // 去掉文件后缀
-      const displayName = isFile 
-        ? source.name.replace(/\.(xlsx?|pdf)$/i, '') 
-        : source.name;
+      // 对于文件类型，统一显示 .pdf 后缀
+      let displayName = source.name;
+      if (isFile) {
+        // 先去掉原有后缀
+        const nameWithoutExt = source.name.replace(/\.(xlsx?|pdf|docx?)$/i, '');
+        // 统一添加 .pdf 后缀
+        displayName = nameWithoutExt + '.pdf';
+      }
+
+      // 获取原始文件名或表名（用于 hover 提示）
+      // 显示名统一显示为 .pdf 后缀，hover 时显示原始完整文件名或表名
+      let tooltipTitle = null;
+      if (isFile) {
+        // 对于文件类型，优先显示原始文件名（source.name），如果没有则显示完整路径
+        // 这样可以在文件名过长时，通过hover看到完整名称
+        tooltipTitle = source.name || source.fullPath || source.path;
+      } else {
+        // 对于表类型，显示用户友好的表名（source.name），而不是技术性表名
+        // 这样可以在表名过长时，通过hover看到完整名称
+        // 总是显示 source.name（用户友好名称），即使与 displayName 相同也可以显示完整名称
+        tooltipTitle = source.name || source.fullPath || source.path;
+      }
 
       return (
-        <Tooltip key={i} title={source.fullPath || source.name}>
-          <Button
-            type="link"
-            icon={isFile ? <FileOutlined /> : <DbIcon />}
-            size="small"
-            className="source-link"
-            onClick={() => console.log('查看来源:', source)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
-          >
-            {displayName}
-            {isFile && <Tag size="small" color="orange">文件</Tag>}
-            {source.type === 'database' && <Tag size="small" color="blue">表</Tag>}
-            
-            {/* 如果是文件且有引用，在后面显示圆形数字 */}
-            {hasReferences && (
-              <span style={{ display: 'inline-flex', gap: 4, marginLeft: 4 }}>
-                {source.references.map((ref, refIdx) => {
+        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Tooltip title={tooltipTitle}>
+            <Button
+              type="link"
+              icon={isFile ? <FileOutlined /> : <DbIcon />}
+              size="small"
+              className="source-link"
+              onClick={() => console.log('查看来源:', source)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              {displayName}
+              {isFile && <Tag size="small" color="orange">文件</Tag>}
+              {source.type === 'database' && <Tag size="small" color="blue">表</Tag>}
+            </Button>
+          </Tooltip>
+          
+          {/* 如果是文件，在后面显示圆形数字（不在 Tooltip 内） */}
+          {isFile && (
+            <span style={{ display: 'inline-flex', gap: 4, marginLeft: 4 }}>
+              {hasReferences ? (
+                // 如果有引用，显示所有引用数字
+                source.references.map((ref, refIdx) => {
                   const refKey = `${prefix}-${i}-${refIdx}`;
                   const isActive = activeReferences[refKey];
                   
@@ -107,7 +162,13 @@ const QueryResult = ({ data }) => {
                       onClick={(e) => {
                         e.stopPropagation(); // 阻止事件冒泡到Button
                         toggleReferenceActive(refKey);
-                        console.log('查看引用:', ref);
+                        // 打开文件预览器
+                        openPreview({
+                          name: displayName || source.name,
+                          type: source.type,
+                          path: source.fullPath || source.path || tooltipTitle,
+                          content: ref.content || null,
+                        });
                       }}
                       style={{ 
                         display: 'inline-block', 
@@ -128,11 +189,42 @@ const QueryResult = ({ data }) => {
                       {refIdx + 1}
                     </span>
                   );
-                })}
-              </span>
-            )}
-          </Button>
-        </Tooltip>
+                })
+              ) : (
+                // 如果没有引用，显示一个序号圆圈数字
+                <span 
+                  onClick={(e) => {
+                    e.stopPropagation(); // 阻止事件冒泡到Button
+                    // 打开文件预览器
+                    openPreview({
+                      name: displayName || source.name,
+                      type: source.type,
+                      path: source.fullPath || source.path || tooltipTitle,
+                      content: null,
+                    });
+                  }}
+                  style={{ 
+                    display: 'inline-block', 
+                    width: 18, 
+                    height: 18, 
+                    lineHeight: '18px',
+                    textAlign: 'center',
+                    background: '#d9d9d9',
+                    color: '#fff',
+                    borderRadius: '50%',
+                    fontSize: 11,
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s'
+                  }}
+                  title="点击预览文件"
+                >
+                  {i + 1}
+                </span>
+              )}
+            </span>
+          )}
+        </span>
       );
     });
   };
@@ -332,11 +424,32 @@ const QueryResult = ({ data }) => {
         {/* 查询结果表格 - 先显示 */}
         {blocks.map((block, idx) => (
           <div key={idx} style={{ marginBottom: idx < blocks.length - 1 ? 24 : 0 }}>
-            {block.description && <p className="block-description">{block.description}</p>}
-            <div className="result-block" style={{ marginBottom: idx === blocks.length - 1 ? 16 : 0 }}>
-              <div className="block-header">
-                {block.title && <h4 className="block-title">{block.title}</h4>}
-                <div className="table-actions">
+            {/* 如果没有 tableData，只显示文字描述和数据来源 */}
+            {!block.tableData ? (
+              <>
+                {block.summary && <p className="summary-text">{block.summary}</p>}
+                {block.description && (
+                  <p className="block-description" style={{ whiteSpace: 'pre-line' }}>
+                    {block.description}
+                  </p>
+                )}
+                {/* 数据来源区域 */}
+                {block.sources && block.sources.length > 0 && (
+                  <div className="data-sources" style={{ marginTop: 16 }}>
+                    <div className="sources-label">数据来源:</div>
+                    <div className="sources-list">
+                      {renderDataSources(block.sources, `block-${idx}`)}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {block.description && <p className="block-description">{block.description}</p>}
+                <div className="result-block" style={{ marginBottom: idx === blocks.length - 1 ? 16 : 0 }}>
+                  <div className="block-header">
+                    {block.title && <h4 className="block-title">{block.title}</h4>}
+                    <div className="table-actions">
                   <Tooltip title="表格">
                     <Button 
                       icon={<TableOutlined />} 
@@ -431,15 +544,16 @@ const QueryResult = ({ data }) => {
               )}
               {activeViews[idx] === 'chart' && renderChart(block.tableData, chartTypes[idx])}
             </div>
-
-              {/* 数据来源区域（每个块独立） */}
-              <div className="data-sources">
-                <div className="sources-label">数据来源:</div>
-                <div className="sources-list">
-                  {renderDataSources(block.sources, `block-${idx}`)}
-                </div>
+            {/* 数据来源区域（每个块独立） */}
+            <div className="data-sources">
+              <div className="sources-label">数据来源:</div>
+              <div className="sources-list">
+                {renderDataSources(block.sources, `block-${idx}`)}
               </div>
             </div>
+          </div>
+          </>
+            )}
           </div>
         ))}
 

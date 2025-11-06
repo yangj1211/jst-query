@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { DownloadOutlined, LikeOutlined, DislikeOutlined } from '@ant-design/icons';
+import { DownloadOutlined, LikeOutlined, DislikeOutlined, LoadingOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import './PageStyle.css';
 import './QuestionAssistant.css';
 import dayjs from 'dayjs';
@@ -81,6 +81,7 @@ const QuestionAssistant = () => {
   const messagesEndRef = useRef(null);
   const generationTimeoutsRef = useRef([]); // 存储生成过程中的所有 timeout ID
   const currentCombinedIdRef = useRef(null); // 当前正在生成的消息 ID
+  const currentResultIdRef = useRef(null); // 当前正在生成的结果消息 ID
 
   // 配置弹窗状态
   const [configVisible, setConfigVisible] = useState(false);
@@ -93,10 +94,38 @@ const QuestionAssistant = () => {
   const [expectDimensions, setExpectDimensions] = useState(false); // 期待维度
   const [expectMetrics, setExpectMetrics] = useState(false); // 期待指标（复数）
   const [pendingParams, setPendingParams] = useState({});
+  const [showConfigHint, setShowConfigHint] = useState(false); // 是否显示配置提示
+  const configHintRef = useRef(null); // 配置提示的引用
+  const configButtonRef = useRef(null); // 配置按钮的引用
 
   const getEffectiveConfig = () => {
     const convCfg = configPerConv[activeConversationId] || {};
     return { ...configGlobal, ...convCfg };
+  };
+
+  // 检测是否为无意义的问题
+  const isMeaninglessQuestion = (text) => {
+    const trimmed = text.trim();
+    if (!trimmed) return true;
+    
+    // 1. 检测重复字符（如：哈哈哈哈哈、啊啊啊、11111等）
+    const repeatPattern = /(.)\1{4,}/;
+    if (repeatPattern.test(trimmed)) {
+      return true;
+    }
+    
+    // 2. 检测只有标点符号或表情符号
+    const onlyPunctuation = /^[^\w\u4e00-\u9fa5]+$/;
+    if (onlyPunctuation.test(trimmed)) {
+      return true;
+    }
+    
+    // 3. 检测非常短且无意义的字符（少于3个字符且全是相同字符）
+    if (trimmed.length <= 3 && /^(.)\1*$/.test(trimmed)) {
+      return true;
+    }
+    
+    return false;
   };
 
   // 滚动到底部
@@ -107,6 +136,13 @@ const QuestionAssistant = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // 当消息变化时，如果有消息则隐藏配置提示
+  useEffect(() => {
+    if (messages.length > 0) {
+      setShowConfigHint(false);
+    }
+  }, [messages.length]);
 
   // 点击外部关闭菜单
   useEffect(() => {
@@ -130,14 +166,38 @@ const QuestionAssistant = () => {
     });
     generationTimeoutsRef.current = [];
     
-    // 标记当前生成的消息为已停止
-    if (currentCombinedIdRef.current) {
+    // 判断当前是在思考阶段还是结果输出阶段
+    const isInResultPhase = currentResultIdRef.current !== null;
+    const isInThinkingPhase = currentCombinedIdRef.current !== null;
+    
+    // 如果正在结果输出中，停止结果生成流程
+    if (isInResultPhase && currentResultIdRef.current) {
       setMessages(prev => prev.map(m => {
-        if (m.id === currentCombinedIdRef.current && m.type === 'combined') {
+        if (m.id === currentResultIdRef.current && m.type === 'result') {
           return {
             ...m,
-            isComplete: true,
-            isStopped: true // 标记为已停止
+            resultStatus: 'stopped' // 标记为已停止
+          };
+        }
+        return m;
+      }));
+    }
+    
+    // 如果正在思考中，停止思考过程（只保持已完成的步骤，不标记未完成的步骤为完成）
+    if (isInThinkingPhase && currentCombinedIdRef.current) {
+      setMessages(prev => prev.map(m => {
+        if (m.id === currentCombinedIdRef.current && m.type === 'combined') {
+          // 只保持当前步骤的状态，不强制将所有步骤标记为完成
+          // 如果思考已完成（isComplete 为 true），则保持 isComplete 状态
+          // 如果思考未完成，则保持当前步骤状态，但标记为已停止
+          return {
+            ...m,
+            isStopped: true, // 标记为已停止
+            intentData: {
+              ...(m.intentData || {}),
+              status: 'done' // 确保状态为 done，才能显示"已停止"
+            }
+            // 不修改 steps 和 isComplete，保持当前状态
           };
         }
         return m;
@@ -147,6 +207,7 @@ const QuestionAssistant = () => {
     // 重置状态
     setIsGenerating(false);
     currentCombinedIdRef.current = null;
+    currentResultIdRef.current = null;
   };
 
   // 选择对话
@@ -157,7 +218,10 @@ const QuestionAssistant = () => {
     }
     setActiveConversationId(id);
     const conversation = conversations.find(c => c.id === id);
-    setMessages(conversation.messages || []);
+    const conversationMessages = conversation.messages || [];
+    setMessages(conversationMessages);
+    // 切换对话时不显示配置提示
+    setShowConfigHint(false);
   };
 
   // 创建新对话
@@ -176,15 +240,41 @@ const QuestionAssistant = () => {
     setConversations([newConversation, ...conversations]);
     setActiveConversationId(newId);
     setMessages([]);
+    // 新建对话时显示配置提示
+    setShowConfigHint(true);
   };
 
   // 发送消息（含槽位应答）
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
     
+    // 隐藏配置提示
+    setShowConfigHint(false);
+    
     // 如果正在生成，先停止
     if (isGenerating) {
       handleStopGeneration();
+    }
+
+    // 检测是否为无意义的问题
+    if (isMeaninglessQuestion(inputValue)) {
+      const userMessage = {
+        id: Date.now(),
+        sender: 'user',
+        text: inputValue,
+        time: formatDateTime(new Date())
+      };
+      
+      const aiMessage = {
+        id: Date.now() + 1,
+        sender: 'ai',
+        text: '抱歉，我没有理解您的问题。请尝试问一些有意义的问题，比如："我们前十大客户是什么？金额是什么？占比多少？" 或者 "今年销售额最高的三个行业是什么？"',
+        time: formatDateTime(new Date())
+      };
+      
+      setMessages([...messages, userMessage, aiMessage]);
+      setInputValue('');
+      return;
     }
 
     const userMessage = {
@@ -603,6 +693,7 @@ const QuestionAssistant = () => {
       dataInfo: dataInfo,
       steps: thinkingSteps.map(step => ({ ...step, status: 'loading' })),
       isComplete: false,
+      isStopped: false, // 初始状态为未停止
       originalQuestion: question, // 保存原始问题用于生成推荐问题
       time: formatDateTime(new Date())
     };
@@ -626,6 +717,7 @@ const QuestionAssistant = () => {
     // 阶段2: 逐步完成思考步骤
     thinkingSteps.forEach((step, index) => {
       const timeout2 = setTimeout(() => {
+        const isLastStep = index === thinkingSteps.length - 1;
         setMessages(prev => prev.map(m => {
           if (m.id === combinedId) {
             const newSteps = [...m.steps];
@@ -633,51 +725,95 @@ const QuestionAssistant = () => {
             return {
               ...m,
               steps: newSteps,
-              isComplete: index === thinkingSteps.length - 1
+              isComplete: isLastStep
             };
           }
           return m;
         }));
+        
+        // 如果是最后一个步骤，在所有思考步骤完成后，开始结果输出流程
+        if (isLastStep) {
+          // 阶段3: 显示结果（思考完成后才执行）
+          // 先创建一个"结果输出中"的消息占位符
+          const resultId = `result_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          currentResultIdRef.current = resultId;
+          
+          const resultMessagePlaceholder = {
+            id: resultId,
+            sender: 'ai',
+            type: 'result',
+            data: null, // 初始时没有数据
+            resultStatus: 'generating', // 标记为正在生成
+            originalQuestion: question,
+            time: formatDateTime(new Date()),
+            liked: false, // 初始状态：未点赞
+            disliked: false // 初始状态：未点踩
+          };
+          setMessages(prev => [...prev, resultMessagePlaceholder]);
+          
+          // 延迟生成结果数据（模拟流式输出）
+          const timeout3 = setTimeout(() => {
+            // 检查是否已停止（检查 currentResultIdRef 是否还存在，或者消息状态是否为 stopped）
+            if (!currentResultIdRef.current || currentResultIdRef.current !== resultId) {
+              // 如果 resultId 不匹配，说明已经被停止或重置，直接返回
+              return;
+            }
+            
+            // 再次检查消息状态，如果已停止则不继续生成
+            setMessages(prev => {
+              const currentMessage = prev.find(m => m.id === resultId && m.type === 'result');
+              if (!currentMessage || currentMessage.resultStatus === 'stopped') {
+                // 如果消息不存在或已停止，不更新
+                return prev;
+              }
+              
+              // 继续生成结果
+              let resultData;
+              
+              if (isCompositeQuestion) {
+                // 复合问题：生成查询结果并同时进行分析
+                resultData = generateMockResult(question, params, true); // 传入true表示需要分析
+              } else if (isAnalysis && previousResult) {
+                // 单纯分析问题：基于上一次结果
+                resultData = generateAnalysisFromPreviousResult(question, params, previousResult);
+              } else {
+                // 单纯查询问题：生成查询结果
+                resultData = generateMockResult(question, params, false);
+              }
+              
+              // 更新结果消息，设置数据和完成状态
+              return prev.map(m => {
+                if (m.id === resultId && m.type === 'result') {
+                  return {
+                    ...m,
+                    data: {
+                      params: params,
+                      ...resultData
+                    },
+                    resultStatus: 'completed' // 标记为已完成
+                  };
+                }
+                return m;
+              });
+            });
+            
+            // 只有在成功生成结果后才重置状态
+            if (currentResultIdRef.current === resultId) {
+              setPendingQuestion('');
+              setPendingParams({});
+              
+              // 生成完成，重置状态
+              setIsGenerating(false);
+              generationTimeoutsRef.current = [];
+              currentCombinedIdRef.current = null;
+              currentResultIdRef.current = null;
+            }
+          }, 3000); // 思考步骤完成后，延迟3秒再生成结果数据
+          generationTimeoutsRef.current.push(timeout3);
+        }
       }, 1200 + 400 * (index + 1));
       generationTimeoutsRef.current.push(timeout2);
     });
-
-    // 阶段3: 显示结果
-    const timeout3 = setTimeout(() => {
-      let resultData;
-      
-      if (isCompositeQuestion) {
-        // 复合问题：生成查询结果并同时进行分析
-        resultData = generateMockResult(question, params, true); // 传入true表示需要分析
-      } else if (isAnalysis && previousResult) {
-        // 单纯分析问题：基于上一次结果
-        resultData = generateAnalysisFromPreviousResult(question, params, previousResult);
-      } else {
-        // 单纯查询问题：生成查询结果
-        resultData = generateMockResult(question, params, false);
-      }
-      
-      const aiResponseMessage = {
-        id: `result_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        sender: 'ai',
-        type: 'result',
-        data: {
-          params: params,
-          ...resultData
-        },
-        originalQuestion: question, // 保存原始问题用于生成推荐问题
-        time: formatDateTime(new Date())
-      };
-      setMessages(prev => [...prev, aiResponseMessage]);
-      setPendingQuestion('');
-      setPendingParams({});
-      
-      // 生成完成，重置状态
-      setIsGenerating(false);
-      generationTimeoutsRef.current = [];
-      currentCombinedIdRef.current = null;
-    }, 1200 + 400 * thinkingSteps.length + 500);
-    generationTimeoutsRef.current.push(timeout3);
   };
 
   /**
@@ -1431,6 +1567,85 @@ ${growth > 0 ? '头部市场表现亮眼，新客户拓展效果显著，产品�
     // needAnalysis参数表示是否需要同时生成分析内容（复合问题）
     console.log('🔧 generateMockResult 调用，问题:', question, '参数:', params);
     
+    // 处理公司对比问题："我们公司这个季度和A公司比表现如何"
+    if (question.includes('公司') && question.includes('比') && (question.includes('表现') || question.includes('对比') || question.includes('比较'))) {
+      console.log('✅ 识别为公司对比查询');
+      return {
+        summary: '',
+        resultBlocks: [
+          {
+            title: '公司表现对比分析',
+            summary: '本季度我们公司在营收规模和利润表现上均优于A公司，营收高出15.2%，净利润率领先3.8个百分点。',
+            description: '根据财报数据显示，我们公司本季度实现营收125.8亿元，同比增长8.5%；净利润为28.3亿元，净利润率为22.5%。相比之下，A公司本季度营收为109.2亿元，同比增长5.2%；净利润为20.4亿元，净利润率为18.7%。\n\n从营收增长来看，我们公司营收同比增长8.5%，而A公司为5.2%，我们领先3.3个百分点。在净利润方面，我们公司净利润为28.3亿元，较A公司的20.4亿元高出38.7%，净利润率方面我们公司为22.5%，A公司为18.7%，我们领先3.8个百分点。',
+            sources: [
+              { 
+                name: '我们公司2025年Q1财报', 
+                type: 'pdf', 
+                fullPath: '我们公司2025年Q1财报.pdf',
+                references: [
+                  { location: '第3页' },
+                  { location: '第5页' },
+                  { location: '第8页' }
+                ]
+              },
+              { 
+                name: 'A公司2025年Q1财报', 
+                type: 'pdf', 
+                fullPath: 'A公司2025年Q1财报.pdf',
+                references: [
+                  { location: '第2页' },
+                  { location: '第4页' }
+                ]
+              }
+            ]
+          },
+          {
+            title: '详细财务数据对比',
+            description: '从财务数据来看，我们公司在各项核心指标上均保持领先优势。',
+            sources: [
+              { 
+                name: '我们公司2025年Q1财报', 
+                type: 'pdf', 
+                fullPath: '我们公司2025年Q1财报.pdf',
+                references: [
+                  { location: '第10页' },
+                  { location: '第12页' }
+                ]
+              },
+              { 
+                name: 'A公司2025年Q1财报', 
+                type: 'pdf', 
+                fullPath: 'A公司2025年Q1财报.pdf',
+                references: [
+                  { location: '第9页' },
+                  { location: '第11页' },
+                  { location: '第13页' }
+                ]
+              }
+            ],
+            tableData: {
+              columns: [
+                { title: '财务指标', dataIndex: 'indicator', key: 'indicator', width: 150 },
+                { title: '我们公司', dataIndex: 'ourValue', key: 'ourValue', align: 'right', width: 150 },
+                { title: 'A公司', dataIndex: 'aValue', key: 'aValue', align: 'right', width: 150 },
+                { title: '对比', dataIndex: 'compare', key: 'compare', align: 'right', width: 120 }
+              ],
+              dataSource: [
+                { key: '1', indicator: '营业收入（亿元）', ourValue: '125.8', aValue: '109.2', compare: '领先15.2%' },
+                { key: '2', indicator: '营业成本（亿元）', ourValue: '78.5', aValue: '72.3', compare: '高8.6%' },
+                { key: '3', indicator: '毛利率', ourValue: '37.6%', aValue: '33.8%', compare: '高3.8pp' },
+                { key: '4', indicator: '净利润（亿元）', ourValue: '28.3', aValue: '20.4', compare: '领先38.7%' },
+                { key: '5', indicator: '净利润率', ourValue: '22.5%', aValue: '18.7%', compare: '高3.8pp' },
+                { key: '6', indicator: '总资产（亿元）', ourValue: '856.2', aValue: '789.5', compare: '高8.4%' },
+                { key: '7', indicator: '净资产（亿元）', ourValue: '425.8', aValue: '398.2', compare: '高6.9%' }
+              ]
+            }
+          }
+        ],
+        analysis: undefined
+      };
+    }
+    
     // 优先处理同比/环比查询（避免被误判为多维度分析）
     if (params.isYoYQuery) {
       console.log('✅ 识别为同比查询');
@@ -1438,9 +1653,18 @@ ${growth > 0 ? '头部市场表现亮眼，新客户拓展效果显著，产品�
     }
     
     // 处理多维度多指标分析（只有在明确是多维度分析请求时才使用）
-    if (params.dimensions && params.metrics && params.timeRangeText) {
+    // 检查 dimensions 和 metrics 是否为数组且长度大于0
+    // 确保 timeRangeText 有值（即使是"今年"、"所有时间"等也应该有值）
+    if (params.dimensions && Array.isArray(params.dimensions) && params.dimensions.length > 0 &&
+        params.metrics && Array.isArray(params.metrics) && params.metrics.length > 0 &&
+        params.timeRangeText && params.timeRangeText.trim() !== '') {
       console.log('✅ 识别为多维度分析，调用 generateMultiDimensionAnalysis');
-      return generateMultiDimensionAnalysis(params);
+      console.log('   - 维度:', params.dimensions);
+      console.log('   - 指标:', params.metrics);
+      console.log('   - 时间:', params.timeRangeText);
+      const result = generateMultiDimensionAnalysis(params);
+      console.log('✅ 多维度分析结果:', result);
+      return result;
     }
     
     // 检测是否为Top N排名查询
@@ -2391,40 +2615,105 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                           dataInfo={message.dataInfo}
                           steps={message.steps}
                           isComplete={message.isComplete} 
+                          isStopped={message.isStopped || false}
                         />
                       ) : message.type === 'result' ? (
                         <>
-                          <QueryResult data={message.data} />
-                          <div className="message-footer">
-                            <div className="footer-actions">
-                              <button 
-                                className="footer-icon-btn"
-                                onClick={() => console.log('导出报告')}
-                                title="导出报告"
-                              >
-                                <DownloadOutlined style={{ fontSize: 16 }} />
-                                <span>导出报告</span>
-                              </button>
-                              <span className="footer-divider">|</span>
-                              <div className="footer-rating-btns">
-                                <button 
-                                  className="footer-icon-btn"
-                                  onClick={() => console.log('点赞')}
-                                  title="点赞"
-                                >
-                                  <LikeOutlined style={{ fontSize: 16 }} />
-                                </button>
-                                <button 
-                                  className="footer-icon-btn"
-                                  onClick={() => console.log('点踩')}
-                                  title="点踩"
-                                >
-                                  <DislikeOutlined style={{ fontSize: 16 }} />
-                                </button>
+                          {/* 结果输出状态显示 */}
+                          {message.resultStatus && (
+                            <div className="result-status-header">
+                              <div className="result-status-content">
+                                {message.resultStatus === 'generating' ? (
+                                  <>
+                                    <LoadingOutlined style={{ fontSize: 16, color: '#f59e0b', marginRight: 8 }} spin />
+                                    <span className="result-status-text">结果输出中</span>
+                                  </>
+                                ) : message.resultStatus === 'completed' ? (
+                                  <>
+                                    <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 16, marginRight: 8 }} />
+                                    <span className="result-status-text">输出完成</span>
+                                  </>
+                                ) : message.resultStatus === 'stopped' ? (
+                                  <>
+                                    <CheckCircleOutlined style={{ color: '#999', fontSize: 16, marginRight: 8 }} />
+                                    <span className="result-status-text">已停止</span>
+                                  </>
+                                ) : null}
                               </div>
                             </div>
-                            <div className="footer-time">{message.time}</div>
-                          </div>
+                          )}
+                          {/* 结果内容 */}
+                          {message.resultStatus === 'generating' ? (
+                            <div className="result-loading-placeholder">
+                              <div className="result-loading-spinner"></div>
+                              <span className="result-loading-text">正在生成结果...</span>
+                            </div>
+                          ) : message.resultStatus === 'stopped' ? (
+                            <div className="result-loading-placeholder">
+                              <span className="result-loading-text" style={{ color: '#999' }}>输出已停止</span>
+                            </div>
+                          ) : message.data ? (
+                            <QueryResult data={message.data} />
+                          ) : null}
+                          {/* 只有在结果完成后才显示导出报告、点赞、点踩等功能 */}
+                          {message.resultStatus === 'completed' && (
+                            <div className="message-footer">
+                              <div className="footer-actions">
+                                <button 
+                                  className="footer-icon-btn"
+                                  onClick={() => console.log('导出报告')}
+                                  title="导出报告"
+                                >
+                                  <DownloadOutlined style={{ fontSize: 16 }} />
+                                  <span>导出报告</span>
+                                </button>
+                                <span className="footer-divider">|</span>
+                                <div className="footer-rating-btns">
+                                  <button 
+                                    className={`footer-icon-btn ${message.liked ? 'active' : ''}`}
+                                    onClick={() => {
+                                      setMessages(prev => prev.map(m => {
+                                        if (m.id === message.id) {
+                                          // 如果已点赞，则取消点赞；否则点赞并取消点踩
+                                          const isCurrentlyLiked = m.liked;
+                                          return {
+                                            ...m,
+                                            liked: !isCurrentlyLiked,
+                                            disliked: false // 点赞时取消点踩
+                                          };
+                                        }
+                                        return m;
+                                      }));
+                                    }}
+                                    title="点赞"
+                                  >
+                                    <LikeOutlined style={{ fontSize: 16, color: message.liked ? '#1890ff' : undefined }} />
+                                  </button>
+                                  <button 
+                                    className={`footer-icon-btn ${message.disliked ? 'active' : ''}`}
+                                    onClick={() => {
+                                      setMessages(prev => prev.map(m => {
+                                        if (m.id === message.id) {
+                                          // 如果已点踩，则取消点踩；否则点踩并取消点赞
+                                          const isCurrentlyDisliked = m.disliked;
+                                          return {
+                                            ...m,
+                                            disliked: !isCurrentlyDisliked,
+                                            liked: false // 点踩时取消点赞
+                                          };
+                                        }
+                                        return m;
+                                      }));
+                                    }}
+                                    title="点踩"
+                                  >
+                                    <DislikeOutlined style={{ fontSize: 16, color: message.disliked ? '#ff4d4f' : undefined }} />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="footer-time">{message.time}</div>
+                            </div>
+                          )}
                         </>
                       ) : (
                         <p>{message.text}</p>
@@ -2434,8 +2723,8 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                     {message.type !== 'result' && message.type !== 'combined' && (
                       <div className="message-time">{message.time}</div>
                     )}
-                    {/* 在AI回答消息下方显示推荐问题 - 只有result类型显示，因为combined会变成result */}
-                    {message.type === 'result' && message.originalQuestion && (
+                    {/* 在AI回答消息下方显示推荐问题 - 只有result类型且结果完成后才显示 */}
+                    {message.type === 'result' && message.originalQuestion && message.resultStatus === 'completed' && (
                       <div className="suggested-questions-wrapper">
                         <div className="suggested-questions-label">你还可以继续问：</div>
                         <div className="suggested-questions">
@@ -2469,10 +2758,32 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                   rows={3}
                 />
                 <div className="input-actions">
-                  <button className="action-chip" onClick={() => setConfigVisible(true)}>
-                    <span className="action-icon">⚙️</span>
-                    <span>问数配置</span>
-                  </button>
+                  <div className="config-button-wrapper" ref={configButtonRef}>
+                    <button 
+                      className="action-chip"
+                      onClick={() => {
+                        setConfigVisible(true);
+                        setShowConfigHint(false);
+                      }}
+                    >
+                      <span className="action-icon">⚙️</span>
+                      <span>问数配置</span>
+                    </button>
+                    {showConfigHint && (
+                      <div className="config-hint-card" ref={configHintRef}>
+                        <button 
+                          className="config-hint-close"
+                          onClick={() => setShowConfigHint(false)}
+                        >
+                          ×
+                        </button>
+                        <div className="config-hint-content">
+                          <div className="config-hint-text">首次使用建议先进行问数配置，以便获得更精准的回答</div>
+                        </div>
+                        <div className="config-hint-arrow-beak"></div>
+                      </div>
+                    )}
+                  </div>
                   {isGenerating ? (
                     <button className="send-button-round stop-button" onClick={handleStopGeneration}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -2481,11 +2792,11 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                     </button>
                   ) : (
                     <button className="send-button-round" onClick={handleSendMessage} disabled={!inputValue.trim()}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                      </svg>
-                    </button>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  </button>
                   )}
                 </div>
               </div>
