@@ -223,7 +223,7 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
         <Content 
           className="main-content"
           style={{ 
-            flex: isPreviewVisible ? '0 0 calc(100% - 800px)' : '1 1 auto',
+            flex: isPreviewVisible ? '0 0 calc(100% - 720px)' : '1 1 auto',
             overflow: 'auto'
           }}
         >
