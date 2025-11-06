@@ -2,13 +2,16 @@
 import React, { useState } from 'react';
 import { Layout, Menu, Avatar, Button } from 'antd';
 import {
-  QuestionCircleOutlined,
+  CompassOutlined,
   DatabaseOutlined,
   SettingOutlined,
   UserOutlined,
   LeftOutlined,
   RightOutlined,
   DashboardOutlined,
+  TableOutlined,
+  CloudUploadOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { useNavigate, Routes, Route, useLocation } from 'react-router-dom';
 import QuestionAssistant from '../pages/QuestionAssistant';
@@ -103,7 +106,7 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
   const menuItems = [
     {
       key: 'question',
-      icon: <QuestionCircleOutlined />,
+  icon: <CompassOutlined />,
       label: '问数助手',
       path: '/question',
     },
@@ -116,16 +119,18 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
     // },
     {
       key: 'data',
-      icon: <DatabaseOutlined />,
+      icon: <DatabaseOutlined />, 
       label: '数据管理',
       children: [
         {
           key: 'data-view',
+          icon: <TableOutlined />,
           label: '数据总览',
           path: '/data/view',
         },
         {
           key: 'data-import',
+          icon: <CloudUploadOutlined />,
           label: '数据导入',
           path: '/data/import',
         },
@@ -133,16 +138,18 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
     },
     {
       key: 'permission',
-      icon: <SettingOutlined />,
+      icon: <SettingOutlined />, 
       label: '权限配置',
       children: [
         {
           key: 'user-management',
+          icon: <UserOutlined />,
           label: '用户信息',
           path: '/permission/user-management',
         },
         {
           key: 'role-permission',
+          icon: <TeamOutlined />,
           label: '角色权限',
           path: '/permission/role-permission',
         },
@@ -177,8 +184,8 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
   return (
     <Layout className="main-layout">
       <Sider 
-        width={260} 
-        collapsedWidth={80}
+        width={240} 
+        collapsedWidth={72}
         collapsed={collapsed}
         className="sidebar"
         trigger={null}
