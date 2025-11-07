@@ -1,13 +1,11 @@
 
-import React, { useState } from 'react';
-import { Layout, Menu, Avatar, Button } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Layout, Menu, Avatar } from 'antd';
 import {
   CompassOutlined,
   DatabaseOutlined,
   SettingOutlined,
   UserOutlined,
-  LeftOutlined,
-  RightOutlined,
   DashboardOutlined,
   TableOutlined,
   CloudUploadOutlined,
@@ -34,10 +32,42 @@ const { Sider, Content } = Layout;
  * 使用 FilePreviewContext 来访问文件预览器状态
  */
 const MainLayoutContent = ({ collapsed, setCollapsed }) => {
-  const [selectedKey, setSelectedKey] = useState('question');
   const navigate = useNavigate();
   const location = useLocation();
   const { previewFile, isPreviewVisible, closePreview } = useFilePreview();
+
+  // 根据当前路径和折叠状态确定选中的菜单项
+  const getSelectedKey = () => {
+    if (location.pathname.startsWith('/question')) {
+      return 'question';
+    }
+    if (location.pathname.startsWith('/data')) {
+      return collapsed ? 'data' : (location.pathname === '/data/view' ? 'data-view' : 'data-import');
+    }
+    if (location.pathname.startsWith('/permission')) {
+      return collapsed ? 'permission' : (location.pathname.includes('user-management') ? 'user-management' : 'role-permission');
+    }
+    return 'question';
+  };
+
+  const [selectedKey, setSelectedKey] = useState(() => {
+    if (location.pathname.startsWith('/question')) {
+      return 'question';
+    }
+    if (location.pathname.startsWith('/data')) {
+      return collapsed ? 'data' : (location.pathname === '/data/view' ? 'data-view' : 'data-import');
+    }
+    if (location.pathname.startsWith('/permission')) {
+      return collapsed ? 'permission' : (location.pathname.includes('user-management') ? 'user-management' : 'role-permission');
+    }
+    return 'question';
+  });
+
+  // 当路径或折叠状态变化时，更新选中的菜单项
+  useEffect(() => {
+    const newKey = getSelectedKey();
+    setSelectedKey(newKey);
+  }, [location.pathname, collapsed]);
 
   // 假设路由结构为 /question, /document, /data, /permission
   const [activeTab, setActiveTab] = useState('question');
@@ -103,20 +133,14 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
     );
   };
 
-  const menuItems = [
+  // 基础菜单项配置
+  const baseMenuItems = [
     {
       key: 'question',
-  icon: <CompassOutlined />,
+      icon: <CompassOutlined />,
       label: '问数助手',
       path: '/question',
     },
-    // 仪表盘菜单项已隐藏（代码保留，取消注释即可恢复）
-    // {
-    //   key: 'dashboard',
-    //   icon: <DashboardOutlined />,
-    //   label: '仪表盘',
-    //   path: '/dashboard',
-    // },
     {
       key: 'data',
       icon: <DatabaseOutlined />, 
@@ -157,6 +181,8 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
     },
   ];
 
+  const menuItems = baseMenuItems;
+
   const handleMenuClick = ({ key }) => {
     // 查找主菜单项
     let item = menuItems.find((menu) => menu.key === key);
@@ -184,7 +210,7 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
   return (
     <Layout className="main-layout">
       <Sider 
-        width={240} 
+        width={180} 
         collapsedWidth={72}
         collapsed={collapsed}
         className="sidebar"
@@ -209,6 +235,7 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
               items={menuItems}
               className="menu"
               inlineCollapsed={collapsed}
+              forceSubMenuRender={true}
             />
           </div>
           
@@ -216,15 +243,23 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
             <Avatar size={40} icon={<UserOutlined />} className="user-avatar" />
             {!collapsed && <span className="user-name">jst admin</span>}
           </div>
+
+          <div className="collapse-btn-container">
+            <button
+              onClick={toggleCollapsed}
+              className="collapse-btn"
+              aria-label={collapsed ? '展开菜单' : '折叠菜单'}
+            >
+              <div className="collapse-btn-icon">
+                <span className={`collapse-arrow ${collapsed ? 'collapse-arrow-right' : 'collapse-arrow-left'}`}></span>
+                <span className="collapse-line collapse-line-top"></span>
+                <span className="collapse-line collapse-line-middle"></span>
+                <span className="collapse-line collapse-line-bottom"></span>
+              </div>
+            </button>
+          </div>
         </div>
       </Sider>
-      
-      <Button
-        type="text"
-        icon={collapsed ? <RightOutlined /> : <LeftOutlined />}
-        onClick={toggleCollapsed}
-        className="collapse-btn-overlay"
-      />
       
       <Layout style={{ display: 'flex', flexDirection: 'row', height: '100vh', overflow: 'hidden' }}>
         <Content 

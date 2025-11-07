@@ -17,10 +17,11 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .sidebar-header {
-  padding: 20px 16px;
+  padding: 20px 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -29,7 +30,7 @@
 
 .sidebar-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #333;
   white-space: nowrap;
@@ -39,7 +40,7 @@
 
 .divider-with-button {
   position: relative;
-  padding: 0 16px;
+  padding: 0 12px;
   margin-bottom: 12px;
   display: flex;
   justify-content: center;
@@ -61,33 +62,91 @@
 
 
 
-.collapse-btn-overlay {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+.collapse-btn-container {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  z-index: 10;
+}
+
+.ant-layout-sider-collapsed .collapse-btn-container {
+  right: 8px;
+  bottom: 16px;
+}
+
+.collapse-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #4b5563;
-  background: #ffffff;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  position: fixed;
-  top: 76px;
-  left: 240px;
-  transform: translateX(-50%);
-  z-index: 200;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
-  transition: all 0.25s;
+  transition: all 0.3s;
+  color: #666;
 }
 
-.main-layout .ant-layout-sider-collapsed + .collapse-btn-overlay {
-  left: 72px;
+.collapse-btn:hover {
+  color: #1890ff;
 }
 
-.collapse-btn-overlay:hover {
-  background: #f4f8ff;
-  color: #1677ff;
-  border-color: rgba(99, 167, 255, 0.4);
+.collapse-btn-icon {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  width: 24px;
+  height: 18px;
+  padding-left: 6px;
+}
+
+.collapse-line {
+  display: block;
+  height: 2px;
+  background-color: currentColor;
+  border-radius: 1px;
+  transition: all 0.3s;
+}
+
+.collapse-line-top,
+.collapse-line-bottom {
+  width: 16px;
+}
+
+.collapse-line-middle {
+  width: 10px;
+}
+
+.collapse-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  transition: all 0.3s;
+  opacity: 0.8;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.collapse-arrow-left {
+  left: 0;
+  border-width: 3px 4px 3px 0;
+  border-color: transparent currentColor transparent transparent;
+}
+
+.collapse-arrow-right {
+  right: 0;
+  border-width: 3px 0 3px 4px;
+  border-color: transparent transparent transparent currentColor;
+}
+
+.collapse-btn:hover .collapse-arrow {
+  opacity: 1;
 }
 
 .menu-section {
@@ -102,12 +161,12 @@
 }
 
 .menu .ant-menu-item {
-  margin: 4px 10px;
+  margin: 4px 8px;
   height: 44px;
   line-height: 44px;
   border-radius: 8px;
-  padding-left: 18px !important;
-  font-size: 15px;
+  padding-left: 14px !important;
+  font-size: 14px;
   color: #666;
   transition: all 0.3s;
 }
@@ -132,6 +191,7 @@
 
 .ant-layout-sider-collapsed .menu .ant-menu-item-icon {
   margin-inline-end: 0 !important;
+  font-size: 18px !important;
 }
 
 .menu .ant-menu-item:hover {
@@ -159,7 +219,7 @@
 
 /* 子菜单样式 */
 .menu .ant-menu-submenu {
-  margin: 4px 12px;
+  margin: 4px 8px;
   border-radius: 8px;
 }
 
@@ -167,8 +227,8 @@
   height: 44px;
   line-height: 44px;
   border-radius: 8px;
-  padding-left: 18px !important;
-  font-size: 15px;
+  padding-left: 14px !important;
+  font-size: 14px;
   color: #666;
   transition: all 0.3s;
   margin: 0;
@@ -202,9 +262,9 @@
 .menu .ant-menu-sub .ant-menu-item {
   height: 38px;
   line-height: 38px;
-  padding-left: 44px !important;
-  font-size: 14px;
-  margin: 2px 10px;
+  padding-left: 36px !important;
+  font-size: 13px;
+  margin: 2px 8px;
 }
 
 .ant-layout-sider-collapsed .menu .ant-menu-submenu {
@@ -213,10 +273,11 @@
 
 .ant-layout-sider-collapsed .menu .ant-menu-submenu-title {
   padding: 0 !important;
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: center;
   gap: 0;
+  width: 100%;
 }
 
 .ant-layout-sider-collapsed .menu .ant-menu-submenu-title .ant-menu-item-icon {
@@ -225,29 +286,30 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  font-size: 20px;
+  font-size: 18px !important;
   color: #4b5563;
+  margin: 0 !important;
 }
 
 .ant-layout-sider-collapsed .menu .ant-menu-submenu-title .ant-menu-item-icon svg {
-  font-size: 20px;
+  font-size: 18px !important;
 }
 
 .ant-layout-sider-collapsed .menu .ant-menu-submenu-title .ant-menu-title-content {
-  display: none;
+  display: none !important;
 }
 
 .user-section {
-  padding: 24px 20px;
+  padding: 20px 12px 60px 12px;
   border-top: 1px solid #f0f0f0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   transition: all 0.3s;
 }
 
 .ant-layout-sider-collapsed .user-section {
-  padding: 24px 8px;
+  padding: 24px 8px 60px 8px;
   justify-content: center;
 }
 
@@ -257,7 +319,7 @@
 }
 
 .user-name {
-  font-size: 14px;
+  font-size: 13px;
   color: #333;
   font-weight: 500;
   white-space: nowrap;
@@ -323,8 +385,47 @@
   display: none !important;
 }
 
-.ant-layout-sider-collapsed .menu .ant-menu-submenu-title .ant-menu-item-icon {
-  margin: 0 !important;
-  font-size: 20px;
+/* 确保折叠状态下 SubMenu 可见，以便显示弹出菜单 */
+.ant-layout-sider-collapsed .menu .ant-menu-submenu {
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* 确保折叠状态下子菜单标题可见，只显示图标 */
+.ant-layout-sider-collapsed .menu .ant-menu-submenu-title {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+}
+
+/* 隐藏折叠状态下的子菜单项（它们应该在弹出菜单中显示） */
+.ant-layout-sider-collapsed .menu .ant-menu-submenu .ant-menu-sub {
+  display: none !important;
+}
+
+/* 确保折叠状态下子菜单项不会直接显示在侧边栏中 */
+.ant-layout-sider-collapsed .menu .ant-menu-submenu .ant-menu-sub .ant-menu-item {
+  display: none !important;
+}
+
+/* 弹出菜单样式优化 */
+.ant-menu-submenu-popup {
+  z-index: 1050;
+}
+
+.ant-menu-submenu-popup .ant-menu {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.ant-menu-submenu-popup .ant-menu-item {
+  margin: 4px 8px;
+  border-radius: 6px;
+  height: 36px;
+  line-height: 36px;
+}
+
+.ant-menu-submenu-popup .ant-menu-item:hover {
+  background: #f0f7ff;
 }
 
