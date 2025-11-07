@@ -254,6 +254,21 @@
   font-weight: bold;
 }
 
+/* 标签筛选使用复选框，不需要::before的✓ */
+.filter-menu-item-checkbox.active::before {
+  content: '';
+  margin-right: 0;
+}
+
+.filter-checkbox {
+  display: inline-block;
+  width: 16px;
+  margin-right: 8px;
+  text-align: center;
+  font-weight: bold;
+  color: #1890ff;
+}
+
 /* 任务列表 */
 .tasks-list {
   background: #fff;
@@ -265,8 +280,8 @@
 
 .tasks-list-header {
   display: grid;
-  grid-template-columns: 160px 1fr 100px 180px 180px 120px 200px 150px;
-  min-width: 1320px;
+  grid-template-columns: 160px 1fr 150px 100px 180px 180px 120px 200px 150px;
+  min-width: 1470px;
   padding: 16px 20px;
   background: #fafafa;
   border-bottom: 1px solid #e0e0e0;
@@ -277,8 +292,8 @@
 
 .tasks-list-row {
   display: grid;
-  grid-template-columns: 160px 1fr 100px 180px 180px 120px 200px 150px;
-  min-width: 1320px;
+  grid-template-columns: 160px 1fr 150px 100px 180px 180px 120px 200px 150px;
+  min-width: 1470px;
   padding: 16px 20px;
   border-bottom: 1px solid #f0f0f0;
   transition: background 0.2s;
@@ -329,9 +344,49 @@
   white-space: nowrap;
 }
 
+/* 标签列 */
+.task-col-tags {
+  font-weight: 500;
+}
+
+.task-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.task-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #e6f7ff;
+  color: #1890ff;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
 /* 任务搜索栏 */
 .task-search-section {
   margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.task-search-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-search-label {
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
 }
 
 .task-search-bar {
@@ -1473,6 +1528,40 @@
   padding: 20px;
 }
 
+/* 分类选择器 */
+.announcement-category-selector {
+  margin-bottom: 16px;
+}
+
+.category-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.category-tab {
+  padding: 8px 16px;
+  background: #fff;
+  color: #666;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.category-tab:hover {
+  color: #1890ff;
+  border-color: #1890ff;
+}
+
+.category-tab.active {
+  background: #1890ff;
+  color: #fff;
+  border-color: #1890ff;
+}
+
 .announcement-search-bar {
   position: relative;
   margin-bottom: 16px;
@@ -1936,8 +2025,8 @@
 @media (max-width: 1400px) {
   .tasks-list-header,
   .tasks-list-row {
-    grid-template-columns: 130px 1fr 80px 150px 150px 100px 180px 130px;
-    min-width: 1070px;
+    grid-template-columns: 130px 1fr 120px 80px 150px 150px 100px 180px 130px;
+    min-width: 1220px;
     font-size: 12px;
   }
 }

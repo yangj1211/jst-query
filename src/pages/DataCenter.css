@@ -687,10 +687,22 @@
   flex-wrap: wrap;
 }
 
+.search-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-label {
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
+}
+
 .search-input-wrapper {
   position: relative;
   width: 100%;
-  max-width: 400px;
+  max-width: 300px;
 }
 
 .search-input {
