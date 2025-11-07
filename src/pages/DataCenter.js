@@ -14,7 +14,8 @@ const DataCenter = () => {
       source: '上市公司公告', // 文件来源
       fileSize: '2.5MB',
       createTime: '2025-01-15 09:00:00',
-      updateTime: '2025-01-15 09:00:00'
+      updateTime: '2025-01-15 09:00:00',
+      creator: '张三'
     },
     {
       id: 2,
@@ -24,7 +25,8 @@ const DataCenter = () => {
       source: '上市公司公告', // 文件来源
       fileSize: '1.8MB',
       createTime: '2024-12-20 10:30:00',
-      updateTime: '2024-12-20 10:30:00'
+      updateTime: '2024-12-20 10:30:00',
+      creator: '李四'
     },
     { 
       id: 3, 
@@ -37,6 +39,7 @@ const DataCenter = () => {
       rowCount: 1523,
       createTime: '2025-10-20 10:30:00',
       updateTime: '2025-10-20 10:30:00',
+      creator: '王五',
       fields: [
         { id: 1, name: '凭证号', type: 'varchar', length: 50, unique: false, description: '会计凭证编号' },
         { id: 2, name: '会计科目', type: 'varchar', length: 100, unique: false, description: '会计科目代码及名称' },
@@ -61,6 +64,7 @@ const DataCenter = () => {
       rowCount: 8942,
       createTime: '2025-10-21 14:20:00',
       updateTime: '2025-10-21 14:20:00',
+      creator: '赵六',
       fields: [
         { id: 1, name: '订单编号', type: 'varchar', length: 50, unique: true, description: '订单唯一标识' },
         { id: 2, name: '客户名称', type: 'varchar', length: 100, unique: false, description: '客户公司名称' },
@@ -473,6 +477,10 @@ const DataCenter = () => {
     return Math.ceil(100 / pageSize);
   };
 
+  // 计算文件数量和表数量
+  const fileCount = savedTables.filter(item => item.objectType === 'file').length;
+  const tableCount = savedTables.filter(item => item.objectType === 'table').length;
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -523,6 +531,12 @@ const DataCenter = () => {
                 </svg>
                 <span>标签管理</span>
               </button>
+            </div>
+
+            {/* 统计信息 */}
+            <div className="data-stats-header">
+              <span className="stat-item-header">文件数量 {fileCount}个</span>
+              <span className="stat-item-header">表数量 {tableCount}个</span>
             </div>
 
             {/* 表列表 */}
@@ -692,6 +706,7 @@ const DataCenter = () => {
                   <div className="list-col-size">大小</div>
                   <div className="list-col-time">创建时间</div>
                   <div className="list-col-time">最近更新时间</div>
+                  <div className="list-col-creator">创建人</div>
                   <div className="list-col-actions">操作</div>
                 </div>
                 {getFilteredTables().map((item) => (
@@ -728,7 +743,8 @@ const DataCenter = () => {
                     <div className="list-col-desc">{item.objectType === 'file' ? '-' : (item.description || '-')}</div>
                     <div className="list-col-size">{getSizeDisplay(item)}</div>
                     <div className="list-col-time">{item.createTime}</div>
-                    <div className="list-col-time">{item.updateTime}</div>
+                    <div className="list-col-time">{item.objectType === 'file' ? '-' : (item.updateTime || '-')}</div>
+                    <div className="list-col-creator">{item.creator || '-'}</div>
                     <div className="list-col-actions">
                       {item.objectType === 'table' && (
                         <>
