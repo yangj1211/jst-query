@@ -80,7 +80,8 @@ const DataCenter = () => {
     }
   ]);
   const [viewingTableId, setViewingTableId] = useState(null); // 当前查看详情的表ID
-  const [searchKeyword, setSearchKeyword] = useState(''); // 搜索关键词
+  const [searchKeyword, setSearchKeyword] = useState(''); // 文件名/表名搜索关键词
+  const [creatorSearchKeyword, setCreatorSearchKeyword] = useState(''); // 创建人搜索关键词
   const [currentPage, setCurrentPage] = useState(1); // 当前页码
   const [pageSize] = useState(10); // 每页显示条数
   const [detailTab, setDetailTab] = useState('fields'); // 表详情tab: 'fields' 或 'data'
@@ -91,6 +92,7 @@ const DataCenter = () => {
   const [sourceFilter, setSourceFilter] = useState('all'); // 来源筛选: 'all' | source名称
   const [isSourceFilterDropdownOpen, setIsSourceFilterDropdownOpen] = useState(false); // 来源筛选下拉菜单是否打开
   const [createTimeRange, setCreateTimeRange] = useState({ startDate: null, endDate: null }); // 创建时间范围筛选
+  const [updateTimeRange, setUpdateTimeRange] = useState({ startDate: null, endDate: null }); // 最近更新时间范围筛选
   const [isTagManagementModalVisible, setIsTagManagementModalVisible] = useState(false); // 标签管理模态框显示状态
   const [allTags, setAllTags] = useState([]); // 所有可用标签列表
   const [allSources, setAllSources] = useState([]); // 所有可用来源列表
@@ -319,10 +321,19 @@ const DataCenter = () => {
   const getFilteredTables = () => {
     let filtered = savedTables;
 
-    // 按搜索关键词筛选
+    // 按文件名/表名搜索关键词筛选
     if (searchKeyword.trim()) {
+      const keyword = searchKeyword.toLowerCase();
       filtered = filtered.filter(table => 
-        table.name.toLowerCase().includes(searchKeyword.toLowerCase())
+        table.name.toLowerCase().includes(keyword)
+      );
+    }
+
+    // 按创建人搜索关键词筛选
+    if (creatorSearchKeyword.trim()) {
+      const keyword = creatorSearchKeyword.toLowerCase();
+      filtered = filtered.filter(table => 
+        table.creator && table.creator.toLowerCase().includes(keyword)
       );
     }
 
@@ -356,6 +367,26 @@ const DataCenter = () => {
           return createTime >= createTimeRange.startDate;
         } else if (createTimeRange.endDate) {
           return createTime <= createTimeRange.endDate;
+        }
+        return true;
+      });
+    }
+
+    // 按最近更新时间范围筛选
+    if (updateTimeRange.startDate || updateTimeRange.endDate) {
+      filtered = filtered.filter(table => {
+        // 文件类型没有更新时间，跳过
+        if (table.objectType === 'file' || !table.updateTime) return false;
+        
+        const updateTime = parseDateTimeString(table.updateTime);
+        if (!updateTime) return false;
+
+        if (updateTimeRange.startDate && updateTimeRange.endDate) {
+          return updateTime >= updateTimeRange.startDate && updateTime <= updateTimeRange.endDate;
+        } else if (updateTimeRange.startDate) {
+          return updateTime >= updateTimeRange.startDate;
+        } else if (updateTimeRange.endDate) {
+          return updateTime <= updateTimeRange.endDate;
         }
         return true;
       });
@@ -501,24 +532,49 @@ const DataCenter = () => {
           <>
             {/* 搜索栏 */}
             <div className="table-search-bar">
-              <div className="search-input-wrapper">
-                <input
-                  type="text"
-                  className="search-input"
-                  placeholder="搜索文件名/表名..."
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                />
-                {searchKeyword && (
-                  <button className="clear-search-btn" onClick={() => setSearchKeyword('')}>
-                    ✕
-                  </button>
-                )}
+              <div className="search-group">
+                <label className="search-label">文件名/表名：</label>
+                <div className="search-input-wrapper">
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="搜索文件名/表名..."
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                  />
+                  {searchKeyword && (
+                    <button className="clear-search-btn" onClick={() => setSearchKeyword('')}>
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="search-group">
+                <label className="search-label">创建人：</label>
+                <div className="search-input-wrapper">
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="搜索创建人..."
+                    value={creatorSearchKeyword}
+                    onChange={(e) => setCreatorSearchKeyword(e.target.value)}
+                  />
+                  {creatorSearchKeyword && (
+                    <button className="clear-search-btn" onClick={() => setCreatorSearchKeyword('')}>
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
               <DateTimeRangePicker
                 value={createTimeRange}
                 onChange={setCreateTimeRange}
                 placeholder="选择创建时间范围"
+              />
+              <DateTimeRangePicker
+                value={updateTimeRange}
+                onChange={setUpdateTimeRange}
+                placeholder="选择最近更新时间范围"
               />
               <button 
                 className="tag-management-btn"
@@ -542,7 +598,7 @@ const DataCenter = () => {
             {/* 表列表 */}
             {getFilteredTables().length === 0 ? (
               <div className="empty-state">
-                {searchKeyword ? '未找到匹配的表' : '暂无数据表'}
+                {(searchKeyword || creatorSearchKeyword) ? '未找到匹配的表' : '暂无数据表'}
               </div>
             ) : (
               <div className="table-list-container">

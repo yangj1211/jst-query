@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import './PageStyle.css';
 import './DataImport.css';
+import DateTimeRangePicker from '../components/DateTimeRangePicker';
 
 const DataImport = () => {
   const [showImportModal, setShowImportModal] = useState(false); // 控制导入弹窗
@@ -26,6 +27,7 @@ const DataImport = () => {
       type: 'excel',
       source: '本地上传',
       objectName: '财务报表2024',
+      tags: ['收入成本', '财务报告'],
       status: 'completed',
       recordCount: 1523,
       createTime: '2025-11-01 14:30:00',
@@ -45,6 +47,7 @@ const DataImport = () => {
       type: 'announcement',
       source: '上市公司公告',
       objectName: '金盘科技_2024年年度报告.pdf',
+      tags: ['财务报告'],
       status: 'completed',
       createTime: '2025-11-01 10:15:00',
       completeTime: '2025-11-01 10:15:23',
@@ -62,6 +65,7 @@ const DataImport = () => {
       type: 'excel',
       source: '本地上传',
       objectName: '客户信息表',
+      tags: ['费用明细'],
       status: 'processing',
       recordCount: 856,
       createTime: '2025-11-02 09:20:00',
@@ -81,6 +85,7 @@ const DataImport = () => {
       type: 'announcement',
       source: '上市公司公告',
       objectName: '贵州茅台_2025年第三季度报告.pdf',
+      tags: ['财务报告', '收入成本'],
       status: 'paused',
       createTime: '2025-11-01 16:45:00',
       completeTime: null,
@@ -98,6 +103,7 @@ const DataImport = () => {
       type: 'excel',
       source: '本地上传',
       objectName: '供应商数据',
+      tags: ['费用明细'],
       status: 'failed',
       createTime: '2025-11-02 10:30:00',
       completeTime: null,
@@ -117,7 +123,10 @@ const DataImport = () => {
   // 筛选条件
   const [filterSource, setFilterSource] = useState('all'); // all, local, online
   const [filterStatus, setFilterStatus] = useState('all'); // all, processing, pausing, paused, completed, failed
+  const [filterTags, setFilterTags] = useState([]); // 选中的标签数组，空数组表示全部
   const [taskSearchKeyword, setTaskSearchKeyword] = useState(''); // 载入对象名搜索关键词
+  const [creatorSearchKeyword, setCreatorSearchKeyword] = useState(''); // 导入人搜索关键词
+  const [createTimeRange, setCreateTimeRange] = useState({ startDate: null, endDate: null }); // 导入时间范围筛选
   
   // 任务列表分页
   const [taskPage, setTaskPage] = useState(1);
@@ -132,6 +141,7 @@ const DataImport = () => {
   const [announcementPageSize] = useState(20);
   const [announcementSearchKeyword, setAnnouncementSearchKeyword] = useState('');
   const [selectedAnnouncements, setSelectedAnnouncements] = useState([]); // 已选中的公告ID列表
+  const [announcementCategory, setAnnouncementCategory] = useState('all'); // 公告分类：all, annual, semi-annual, q1, q3, other
   
   // 文件名输入弹窗
   const [showFileNameModal, setShowFileNameModal] = useState(false);
@@ -161,7 +171,7 @@ const DataImport = () => {
       fields: [
         { id: 1, name: '用户ID', type: 'int', unique: true, description: '主键' },
         { id: 2, name: '用户名', type: 'varchar', length: 100, unique: false, description: '' },
-        { id: 3, name: '创建时间', type: 'datetime', datetimePrecision: 0, unique: false, description: '' }
+        { id: 3, name: '导入时间', type: 'datetime', datetimePrecision: 0, unique: false, description: '' }
       ]
     },
     { 
@@ -334,12 +344,27 @@ const DataImport = () => {
 
   // ========== 公司公告相关函数 ==========
   
+  // 根据公告内容判断分类
+  const getAnnouncementCategory = (content) => {
+    if (content.includes('年度报告')) {
+      return 'annual';
+    } else if (content.includes('中期报告') || content.includes('半年度报告')) {
+      return 'semi-annual';
+    } else if (content.includes('第一季度报告') || content.includes('一季度报告')) {
+      return 'q1';
+    } else if (content.includes('第三季度报告') || content.includes('三季度报告')) {
+      return 'q3';
+    } else {
+      return 'other';
+    }
+  };
+
   const generateAnnouncements = (companyId) => {
     const company = companies.find(c => c.id === companyId);
     if (!company) return [];
 
-    // 返回所有公告，不再分类
-    return [
+    // 返回所有公告，并添加分类信息
+    const announcements = [
       { id: 1, datetime: '2025-04-03', content: `${company.name}：2024年年度报告`, url: `http://www.cninfo.com.cn/new/disclosure/detail?stockCode=${company.code}&announcementId=1234567890` },
       { id: 2, datetime: '2024-03-21', content: `${company.name}：2023年年度报告`, url: `http://www.cninfo.com.cn/new/disclosure/detail?stockCode=${company.code}&announcementId=1234567891` },
       { id: 3, datetime: '2023-03-21', content: `${company.name}：2022年年度报告`, url: `http://www.cninfo.com.cn/new/disclosure/detail?stockCode=${company.code}&announcementId=1234567892` },
@@ -350,6 +375,12 @@ const DataImport = () => {
       { id: 8, datetime: '2024-04-25', content: `${company.name}：2024年第一季度报告`, url: `http://www.cninfo.com.cn/new/disclosure/detail?stockCode=${company.code}&announcementId=1234567897` },
       { id: 9, datetime: '2022-04-16', content: `${company.name}：2021年年度报告`, url: `http://www.cninfo.com.cn/new/disclosure/detail?stockCode=${company.code}&announcementId=1234567898` },
     ];
+
+    // 为每个公告添加分类
+    return announcements.map(announcement => ({
+      ...announcement,
+      category: getAnnouncementCategory(announcement.content)
+    }));
   };
 
   const getFilteredCompanies = () => {
@@ -381,15 +412,27 @@ const DataImport = () => {
     setAnnouncementPage(1);
     setAnnouncementSearchKeyword('');
     setSelectedAnnouncements([]); // 返回列表时清空选择
+    setAnnouncementCategory('all'); // 返回列表时重置分类
   };
 
   const getFilteredAnnouncements = () => {
     if (!selectedCompanyId) return [];
     const allAnnouncements = generateAnnouncements(selectedCompanyId);
-    if (!announcementSearchKeyword.trim()) return allAnnouncements;
-    return allAnnouncements.filter(announcement =>
-      announcement.content.toLowerCase().includes(announcementSearchKeyword.toLowerCase())
-    );
+    
+    // 先按分类过滤
+    let filtered = allAnnouncements;
+    if (announcementCategory !== 'all') {
+      filtered = filtered.filter(announcement => announcement.category === announcementCategory);
+    }
+    
+    // 再按搜索关键词过滤
+    if (announcementSearchKeyword.trim()) {
+      filtered = filtered.filter(announcement =>
+        announcement.content.toLowerCase().includes(announcementSearchKeyword.toLowerCase())
+      );
+    }
+    
+    return filtered;
   };
 
   const getCurrentPageAnnouncements = () => {
@@ -745,6 +788,15 @@ const DataImport = () => {
   };
 
 
+  // 解析日期时间字符串
+  const parseDateTimeString = (dateTimeStr) => {
+    if (!dateTimeStr) return null;
+    const match = dateTimeStr.match(/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+    if (!match) return null;
+    const [, year, month, day, hour, minute, second] = match.map(Number);
+    return new Date(year, month - 1, day, hour, minute, second);
+  };
+
   // 获取筛选后的任务列表
   const getFilteredTasks = () => {
     return importTasks.filter(task => {
@@ -759,11 +811,51 @@ const DataImport = () => {
         return false;
       }
       
+      // 标签筛选（多选，或关系）
+      if (filterTags.length > 0) {
+        if (!task.tags || !Array.isArray(task.tags)) {
+          return false;
+        }
+        // 检查任务的标签是否包含任意一个选中的标签（或关系）
+        const hasMatchingTag = filterTags.some(selectedTag => task.tags.includes(selectedTag));
+        if (!hasMatchingTag) {
+          return false;
+        }
+      }
+      
       // 载入对象名搜索筛选
       if (taskSearchKeyword.trim()) {
         const keyword = taskSearchKeyword.toLowerCase();
         if (!task.objectName.toLowerCase().includes(keyword)) {
           return false;
+        }
+      }
+      
+      // 导入人搜索筛选
+      if (creatorSearchKeyword.trim()) {
+        const keyword = creatorSearchKeyword.toLowerCase();
+        if (!task.creator.toLowerCase().includes(keyword)) {
+          return false;
+        }
+      }
+      
+      // 导入时间范围筛选
+      if (createTimeRange.startDate || createTimeRange.endDate) {
+        const createTime = parseDateTimeString(task.createTime);
+        if (!createTime) return false;
+        
+        if (createTimeRange.startDate && createTimeRange.endDate) {
+          if (createTime < createTimeRange.startDate || createTime > createTimeRange.endDate) {
+            return false;
+          }
+        } else if (createTimeRange.startDate) {
+          if (createTime < createTimeRange.startDate) {
+            return false;
+          }
+        } else if (createTimeRange.endDate) {
+          if (createTime > createTimeRange.endDate) {
+            return false;
+          }
         }
       }
       
@@ -800,39 +892,76 @@ const DataImport = () => {
       <div className="page-content">
         {/* 载入列表列表 */}
         <div className="import-tasks-section">
-          <div className="tasks-header">
-            <h3>载入列表</h3>
-          </div>
-          
           {/* 搜索栏 */}
           <div className="task-search-section">
-            <div className="task-search-bar">
-              <svg className="task-search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <input
-                type="text"
-                className="task-search-input"
-                placeholder="搜索载入对象名..."
-                value={taskSearchKeyword}
-                onChange={(e) => {
-                  setTaskSearchKeyword(e.target.value);
-                  setTaskPage(1);
-                }}
-              />
-              {taskSearchKeyword && (
-                <button 
-                  className="task-clear-search-btn" 
-                  onClick={() => {
-                    setTaskSearchKeyword('');
+            <div className="task-search-item">
+              <span className="task-search-label">载入对象名：</span>
+              <div className="task-search-bar">
+                <svg className="task-search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <input
+                  type="text"
+                  className="task-search-input"
+                  placeholder="搜索载入对象名..."
+                  value={taskSearchKeyword}
+                  onChange={(e) => {
+                    setTaskSearchKeyword(e.target.value);
                     setTaskPage(1);
                   }}
-                  title="清除搜索"
-                >
-                  ✕
-                </button>
-              )}
+                />
+                {taskSearchKeyword && (
+                  <button 
+                    className="task-clear-search-btn" 
+                    onClick={() => {
+                      setTaskSearchKeyword('');
+                      setTaskPage(1);
+                    }}
+                    title="清除搜索"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
             </div>
+            <div className="task-search-item">
+              <span className="task-search-label">导入人：</span>
+              <div className="task-search-bar">
+                <svg className="task-search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <input
+                  type="text"
+                  className="task-search-input"
+                  placeholder="搜索导入人..."
+                  value={creatorSearchKeyword}
+                  onChange={(e) => {
+                    setCreatorSearchKeyword(e.target.value);
+                    setTaskPage(1);
+                  }}
+                />
+                {creatorSearchKeyword && (
+                  <button 
+                    className="task-clear-search-btn" 
+                    onClick={() => {
+                      setCreatorSearchKeyword('');
+                      setTaskPage(1);
+                    }}
+                    title="清除搜索"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+            <DateTimeRangePicker
+              value={createTimeRange}
+              onChange={(range) => {
+                setCreateTimeRange(range);
+                setTaskPage(1);
+              }}
+              placeholder="选择导入时间范围"
+            />
           </div>
           
           {getFilteredTasks().length === 0 ? (
@@ -881,6 +1010,51 @@ const DataImport = () => {
                   </div>
                 </div>
                 <div className="task-col-object">载入对象名</div>
+                <div className="task-col-tags">
+                  <div className="header-filter-dropdown">
+                    标签
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" style={{ marginLeft: '4px' }}>
+                      <path d="M1.5 2.5h13l-5 6v5l-3 1v-6l-5-6z" fill="currentColor"/>
+                    </svg>
+                    {filterTags.length > 0 && <span className="header-filter-badge"></span>}
+                    <div className="header-filter-menu">
+                      <div 
+                        className={`filter-menu-item ${filterTags.length === 0 ? 'active' : ''}`}
+                        onClick={() => {
+                          setFilterTags([]);
+                          setTaskPage(1);
+                        }}
+                      >
+                        全部标签
+                      </div>
+                      {availableTags.map(tag => {
+                        const isSelected = filterTags.includes(tag);
+                        return (
+                          <div 
+                            key={tag}
+                            className={`filter-menu-item filter-menu-item-checkbox ${isSelected ? 'active' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isSelected) {
+                                // 取消选择
+                                setFilterTags(filterTags.filter(t => t !== tag));
+                              } else {
+                                // 添加选择
+                                setFilterTags([...filterTags, tag]);
+                              }
+                              setTaskPage(1);
+                            }}
+                          >
+                            <span className="filter-checkbox">
+                              {isSelected && '✓'}
+                            </span>
+                            {tag}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
                 <div className="task-col-status">
                   <div className="header-filter-dropdown">
                     状态
@@ -946,9 +1120,9 @@ const DataImport = () => {
                     </div>
                   </div>
                 </div>
-                <div className="task-col-createtime">创建时间</div>
+                <div className="task-col-createtime">导入时间</div>
                 <div className="task-col-completetime">完成时间</div>
-                <div className="task-col-creator">创建人</div>
+                <div className="task-col-creator">导入人</div>
                 <div className="task-col-detail">详情</div>
                 <div className="task-col-action">操作</div>
               </div>
@@ -967,6 +1141,19 @@ const DataImport = () => {
                     </span>
                   </div>
                   <div className="task-col-object">{task.objectName}</div>
+                  <div className="task-col-tags">
+                    {task.tags && Array.isArray(task.tags) && task.tags.length > 0 ? (
+                      <div className="task-tags-list">
+                        {task.tags.map((tag, index) => (
+                          <span key={index} className="task-tag-badge">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      '-'
+                    )}
+                  </div>
                   <div className="task-col-status">
                     <span className={`status-badge ${getStatusClass(task.status)}`}>
                       {getStatusText(task.status)}
@@ -1663,6 +1850,72 @@ const DataImport = () => {
 
                     {/* 公告列表 */}
                     <div className="announcement-content">
+                      {/* 分类选择器 */}
+                      <div className="announcement-category-selector">
+                        <div className="category-tabs">
+                          <button
+                            className={`category-tab ${announcementCategory === 'all' ? 'active' : ''}`}
+                            onClick={() => {
+                              setAnnouncementCategory('all');
+                              setAnnouncementPage(1);
+                              setSelectedAnnouncements([]);
+                            }}
+                          >
+                            全部
+                          </button>
+                          <button
+                            className={`category-tab ${announcementCategory === 'annual' ? 'active' : ''}`}
+                            onClick={() => {
+                              setAnnouncementCategory('annual');
+                              setAnnouncementPage(1);
+                              setSelectedAnnouncements([]);
+                            }}
+                          >
+                            年度报告
+                          </button>
+                          <button
+                            className={`category-tab ${announcementCategory === 'semi-annual' ? 'active' : ''}`}
+                            onClick={() => {
+                              setAnnouncementCategory('semi-annual');
+                              setAnnouncementPage(1);
+                              setSelectedAnnouncements([]);
+                            }}
+                          >
+                            半年度报告
+                          </button>
+                          <button
+                            className={`category-tab ${announcementCategory === 'q1' ? 'active' : ''}`}
+                            onClick={() => {
+                              setAnnouncementCategory('q1');
+                              setAnnouncementPage(1);
+                              setSelectedAnnouncements([]);
+                            }}
+                          >
+                            一季度报告
+                          </button>
+                          <button
+                            className={`category-tab ${announcementCategory === 'q3' ? 'active' : ''}`}
+                            onClick={() => {
+                              setAnnouncementCategory('q3');
+                              setAnnouncementPage(1);
+                              setSelectedAnnouncements([]);
+                            }}
+                          >
+                            三季度报告
+                          </button>
+                          <button
+                            className={`category-tab ${announcementCategory === 'other' ? 'active' : ''}`}
+                            onClick={() => {
+                              setAnnouncementCategory('other');
+                              setAnnouncementPage(1);
+                              setSelectedAnnouncements([]);
+                            }}
+                          >
+                            其它
+                          </button>
+                        </div>
+                      </div>
+
                       {/* 公告搜索框 */}
                       <div className="announcement-search-bar">
                         <input
