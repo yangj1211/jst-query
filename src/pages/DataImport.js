@@ -13,6 +13,7 @@ const DataImport = () => {
   const [fields, setFields] = useState([]);
   const [importMode, setImportMode] = useState('new');
   const [selectedTableId, setSelectedTableId] = useState(null);
+  const [importStrategy, setImportStrategy] = useState(null); // 数据处理方式：'append' 追加数据 或 'overwrite' 覆盖数据
   const [conflictStrategy, setConflictStrategy] = useState('fail');
   const [tableName, setTableName] = useState('');
   const [tableDescription, setTableDescription] = useState('');
@@ -705,6 +706,17 @@ const DataImport = () => {
     setIsFileNameValid(true);
   };
 
+  // 处理导入数据
+  const handleImportData = () => {
+    // 验证数据处理方式是否已选择
+    if (!importStrategy) {
+      alert('请选择数据处理方式！');
+      return;
+    }
+    // 执行导入逻辑
+    alert(`导入到表ID: ${selectedTableId}, 数据处理方式: ${importStrategy === 'append' ? '追加数据' : '覆盖数据'}, 冲突策略: ${conflictStrategy}`);
+  };
+
   // 关闭导入弹窗
   const handleCloseImportModal = () => {
     setShowImportModal(false);
@@ -714,6 +726,7 @@ const DataImport = () => {
     setFields([]);
     setImportMode('new');
     setSelectedTableId(null);
+    setImportStrategy(null);
     setTableName('');
     setTableDescription('');
     setSelectedTags([]);
@@ -1368,7 +1381,10 @@ const DataImport = () => {
                   type="radio"
                   value="new"
                   checked={importMode === 'new'}
-                  onChange={(e) => setImportMode(e.target.value)}
+                  onChange={(e) => {
+                    setImportMode(e.target.value);
+                    setImportStrategy(null);
+                  }}
                 />
                 <span>新建表</span>
               </label>
@@ -1377,7 +1393,10 @@ const DataImport = () => {
                   type="radio"
                   value="existing"
                   checked={importMode === 'existing'}
-                  onChange={(e) => setImportMode(e.target.value)}
+                  onChange={(e) => {
+                    setImportMode(e.target.value);
+                    setImportStrategy(null);
+                  }}
                 />
                 <span>导入到已有表</span>
               </label>
@@ -1596,23 +1615,6 @@ const DataImport = () => {
                 <div className="existing-table-selector">
                   <label>
                     选择目标表：
-                    <span 
-                      className="info-tip-icon"
-                      data-tooltip='默认导入模式为"追加"。若需覆盖现有表数据，请先在表列表中清空该表的数据，再重新导入。'
-                    >
-                      <svg 
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 16 16" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        strokeWidth="1.5"
-                      >
-                        <circle cx="8" cy="8" r="7"/>
-                        <line x1="8" y1="7" x2="8" y2="11" strokeLinecap="round"/>
-                        <circle cx="8" cy="4.5" r="0.5" fill="currentColor"/>
-                      </svg>
-                    </span>
                   </label>
                   <select
                     className="table-select"
@@ -1626,6 +1628,41 @@ const DataImport = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* 数据处理方式 */}
+                <div
+                  className="import-strategy-selector"
+                  style={{ marginTop: '20px', display: 'flex', alignItems: 'center' }}
+                >
+                  <label
+                    className="strategy-label"
+                    style={{ display: 'flex', alignItems: 'center', marginRight: '24px' }}
+                  >
+                    <span className="required">*</span>数据处理方式：
+                  </label>
+                  <div className="strategy-options" style={{ display: 'flex', gap: '20px' }}>
+                    <label className="strategy-option" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        value="append"
+                        checked={importStrategy === 'append'}
+                        onChange={(e) => setImportStrategy(e.target.value)}
+                        style={{ marginRight: '6px' }}
+                      />
+                      <span>追加数据</span>
+                    </label>
+                    <label className="strategy-option" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        value="overwrite"
+                        checked={importStrategy === 'overwrite'}
+                        onChange={(e) => setImportStrategy(e.target.value)}
+                        style={{ marginRight: '6px' }}
+                      />
+                      <span>覆盖数据</span>
+                    </label>
+                  </div>
                 </div>
 
                 {/* 显示已选表的标签 */}
@@ -1754,7 +1791,13 @@ const DataImport = () => {
                   <button className="save-btn" onClick={handleSaveTable}>保存表结构</button>
                 )}
                 {importMode === 'existing' && (
-                  <button className="save-btn" onClick={() => alert(`导入到表ID: ${selectedTableId}, 冲突策略: ${conflictStrategy}`)}>导入数据</button>
+                  <button 
+                    className="save-btn" 
+                    onClick={handleImportData}
+                    disabled={!importStrategy}
+                  >
+                    导入数据
+                  </button>
                 )}
               </div>
             )}
