@@ -511,7 +511,8 @@ const DataQA = () => {
         ) : (
           <div className="chat-placeholder">
             <div className="placeholder-icon">💬</div>
-            <div className="placeholder-text">请选择一个对话或创建新对话</div>
+            <div className="placeholder-text">
+              新对话</div>
           </div>
         )}
       </div>
