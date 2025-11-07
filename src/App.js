@@ -9,6 +9,7 @@ import DataPermissionConfig from './pages/DataPermissionConfig';
 import DocumentSearch from './pages/DocumentSearch';
 import SalesDocumentSearch from './pages/SalesDocumentSearch';
 import DataImport from './pages/DataImport';
+import BackupFiles from './pages/BackupFiles';
 import Dashboard from './pages/Dashboard';
 import './App.css';
 
@@ -23,6 +24,7 @@ function App() {
           <Route path="document" element={<DocumentSearch />} />
           <Route path="data/view" element={<DataCenter />} />
           <Route path="data/import" element={<DataImport />} />
+          <Route path="data/backup" element={<BackupFiles />} />
           <Route path="permission" element={<PermissionConfig />} />
           <Route path="permission/user-management" element={<UserManagement />} />
           <Route path="permission/role-permission" element={<RolePermission />} />

@@ -10,6 +10,7 @@ import {
   TableOutlined,
   CloudUploadOutlined,
   TeamOutlined,
+  FileProtectOutlined,
 } from '@ant-design/icons';
 import { useNavigate, Routes, Route, useLocation } from 'react-router-dom';
 import QuestionAssistant from '../pages/QuestionAssistant';
@@ -20,6 +21,7 @@ import RolePermission from '../pages/RolePermission';
 import DataPermissionConfig from '../pages/DataPermissionConfig';
 import DocumentSearch from '../pages/DocumentSearch';
 import DataImport from '../pages/DataImport';
+import BackupFiles from '../pages/BackupFiles';
 import Dashboard from '../pages/Dashboard';
 import { FilePreviewProvider, useFilePreview } from '../contexts/FilePreviewContext';
 import FilePreviewer from './FilePreviewer';
@@ -42,7 +44,11 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
       return 'question';
     }
     if (location.pathname.startsWith('/data')) {
-      return collapsed ? 'data' : (location.pathname === '/data/view' ? 'data-view' : 'data-import');
+      if (collapsed) return 'data';
+      if (location.pathname === '/data/view') return 'data-view';
+      if (location.pathname === '/data/import') return 'data-import';
+      if (location.pathname === '/data/backup') return 'data-backup';
+      return 'data-view';
     }
     if (location.pathname.startsWith('/permission')) {
       return collapsed ? 'permission' : (location.pathname.includes('user-management') ? 'user-management' : 'role-permission');
@@ -55,7 +61,11 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
       return 'question';
     }
     if (location.pathname.startsWith('/data')) {
-      return collapsed ? 'data' : (location.pathname === '/data/view' ? 'data-view' : 'data-import');
+      if (collapsed) return 'data';
+      if (location.pathname === '/data/view') return 'data-view';
+      if (location.pathname === '/data/import') return 'data-import';
+      if (location.pathname === '/data/backup') return 'data-backup';
+      return 'data-view';
     }
     if (location.pathname.startsWith('/permission')) {
       return collapsed ? 'permission' : (location.pathname.includes('user-management') ? 'user-management' : 'role-permission');
@@ -90,6 +100,9 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
     // 先判断更具体的路径
     if (location.pathname === '/data/import') {
       return <DataImport />;
+    }
+    if (location.pathname === '/data/backup') {
+      return <BackupFiles />;
     }
     if (location.pathname === '/data/view') {
       return <DataCenter />;
@@ -157,6 +170,12 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
           icon: <CloudUploadOutlined />,
           label: '数据导入',
           path: '/data/import',
+        },
+        {
+          key: 'data-backup',
+          icon: <FileProtectOutlined />,
+          label: '备份文件',
+          path: '/data/backup',
         },
       ],
     },
