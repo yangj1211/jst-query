@@ -2,9 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { DownloadOutlined, LikeOutlined, DislikeOutlined, LoadingOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import './PageStyle.css';
 import './QuestionAssistant.css';
-import dayjs from 'dayjs';
 import QueryResult from '../components/QueryResult'; // 引入查询结果组件
-import ThinkingProcess from '../components/ThinkingProcess';
 import QueryConfigModal from '../components/QueryConfigModal';
 import CombinedThinking from '../components/CombinedThinking';
 
@@ -502,7 +500,7 @@ const QuestionAssistant = () => {
     }
 
     // 意图识别
-    const { clarified, params, needTime, needMetric } = preParseQuestion(question);
+    const { clarified, params, needMetric } = preParseQuestion(question);
     
     // 检测是否为Top N查询（Top N查询不需要强制要求时间范围，默认为当前/最新数据）
     const isTopNQuery = /前(\d+|[一二三四五六七八九十]+)大?(客户|供应商|产品|地区)/.test(question);
@@ -1593,15 +1591,13 @@ ${growth > 0 ? '头部市场表现亮眼，新客户拓展效果显著，产品�
         const row = { key: String(idx + 1), name: itemName };
         
         metrics.forEach(metricName => {
-          let currentValue, unit;
+          let currentValue;
           if (metricName.includes('数量') || metricName.includes('订单')) {
             // 订单数量：件
             currentValue = Math.round(1000 + idx * 200 + Math.random() * 100);
-            unit = '';
           } else {
             // 销售金额/利润：万元
             currentValue = Math.round(5000 + idx * 800 + Math.random() * 500);
-            unit = '';
           }
           
           const previousValue = Math.round(currentValue / (1 + (0.10 + Math.random() * 0.15))); // 同比增长10-25%
@@ -1801,7 +1797,6 @@ ${growth > 0 ? '头部市场表现亮眼，新客户拓展效果显著，产品�
         // 处理年度数据（最近N年、过去N年）
         else if (timeUnitsMatch) {
             const numMap = {'一':1, '二':2, '三':3, '四':4, '五':5, '六':6, '七':7, '八':8, '九':9, '十':10};
-            const prefix = timeUnitsMatch[1]; // 最近、过去、近
             const numStr = timeUnitsMatch[2];
             const num = parseInt(numStr, 10) || numMap[numStr];
             timeUnit = timeUnitsMatch[3].replace('季', '季度');
@@ -1923,8 +1918,6 @@ ${growth > 0 ? '头部市场表现亮眼，新客户拓展效果显著，产品�
                     }
                 };
             });
-            
-            const dimensionTitles = dimensions.map(d => ({ 'product': '产品', 'region': '地区' }[d])).join('、');
             
             // 如果只有一个维度，生成总体summary；如果多个维度，每个block自己的description就是summary
             let summary = '';
@@ -2193,7 +2186,6 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
       let title = `按${dimensions.map(d => ({'product':'产品','region':'地区','industry':'行业'}[d])).join('、')}拆分`;
       let columns = [];
       let dataSource = [];
-      let summary = '';
 
       let blockDescription = '';
       let sources = [];
@@ -2347,11 +2339,6 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
     setOpenMenuId(openMenuId === conversationId ? null : conversationId);
   };
 
-  // 关闭菜单
-  const handleCloseMenu = () => {
-    setOpenMenuId(null);
-  };
-
   // 重命名对话
   const handleRename = (e, conversationId, currentTitle) => {
     e.stopPropagation();
@@ -2421,9 +2408,6 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
    * 按日期对对话进行分组 - 每天一个分组
    */
   const groupConversationsByDate = (conversations) => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
     const groups = {
       pinned: [],
       dates: {} // 用对象存储每一天的对话，key为日期字符串

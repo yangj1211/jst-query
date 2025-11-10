@@ -147,7 +147,6 @@ const DataImport = () => {
   
   // 文件名输入弹窗
   const [showFileNameModal, setShowFileNameModal] = useState(false);
-  const [selectedDoc, setSelectedDoc] = useState(null);
   const [inputFileName, setInputFileName] = useState('');
   const [inputDescription, setInputDescription] = useState('');
   const [isFileNameValid, setIsFileNameValid] = useState(true);
@@ -449,16 +448,6 @@ const DataImport = () => {
     return Math.ceil(filtered.length / announcementPageSize);
   };
 
-  // 直接导入公告，使用公告内容作为文件名
-  const handleImportOnlineDoc = (item) => {
-    setPendingImportType('single');
-    setPendingImportItem(item);
-    setAnnouncementTags([]);
-    setTagSearchInput('');
-    setShowTagDropdown(false);
-    setShowTagModal(true);
-  };
-
   // 确认标签选择后执行单个导入
   const handleConfirmSingleImport = () => {
     if (announcementTags.length === 0) {
@@ -693,7 +682,6 @@ const DataImport = () => {
     const descriptionText = inputDescription.trim() ? `\n描述：${inputDescription.trim()}` : '';
     alert(`已成功导入文档！\n文件名：${inputFileName.trim()}.pdf${descriptionText}`);
     setShowFileNameModal(false);
-    setSelectedDoc(null);
     setInputFileName('');
     setInputDescription('');
     setIsFileNameValid(true);
@@ -701,7 +689,6 @@ const DataImport = () => {
 
   const handleCancelImport = () => {
     setShowFileNameModal(false);
-    setSelectedDoc(null);
     setInputFileName('');
     setInputDescription('');
     setIsFileNameValid(true);

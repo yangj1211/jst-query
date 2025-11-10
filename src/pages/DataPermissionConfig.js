@@ -32,7 +32,6 @@ const DataPermissionConfig = () => {
   const [isRowColumnModalVisible, setIsRowColumnModalVisible] = useState(false);
   const [currentEditingObject, setCurrentEditingObject] = useState(null); // 当前编辑的对象
   const [columnConfigs, setColumnConfigs] = useState([]); // 列配置，包含是否选中和行权限表达式
-  const [tempColumnConfigs, setTempColumnConfigs] = useState([]); // 临时保存正在添加对象的行列权限配置
   const [isEditingMode, setIsEditingMode] = useState(false); // 标记是否在编辑模式
 
   // 表权限选项（普通用户只能查询，不能写入）
@@ -184,15 +183,6 @@ const DataPermissionConfig = () => {
     setObjectPermissions(objectPermissions.filter(obj => obj.id !== id));
   };
 
-  // 编辑对象权限 - 打开编辑弹窗
-  const handleEditObjectPermission = (objectPermission) => {
-    setEditingObject(objectPermission);
-    setEditObjectName(objectPermission.objectName);
-    setEditSelectedPermissions(objectPermission.permissions);
-    setEditTempColumnConfigs(objectPermission.columnConfigs || []);
-    setIsEditModalVisible(true);
-  };
-
   // 关闭编辑弹窗
   const handleEditModalClose = () => {
     setIsEditModalVisible(false);
@@ -232,22 +222,6 @@ const DataPermissionConfig = () => {
     handleEditModalClose();
   };
 
-  // 编辑模式下的权限选择
-  const handleEditPermissionChange = (value) => {
-    if (!editObjectName) {
-      return;
-    }
-    const newSelected = editSelectedPermissions.includes(value)
-      ? editSelectedPermissions.filter(v => v !== value)
-      : [...editSelectedPermissions, value];
-    setEditSelectedPermissions(newSelected);
-    
-    // 如果取消了表查询权限，清空行列权限配置
-    if (value === 'DT8' && !newSelected.includes('DT8')) {
-      setEditTempColumnConfigs([]);
-    }
-  };
-
   // 保存所有权限配置
   const handleSaveAllPermissions = () => {
     console.log('保存所有权限配置:', {
@@ -256,22 +230,6 @@ const DataPermissionConfig = () => {
     });
     // TODO: 调用API保存所有权限配置
     navigate('/permission/role-permission'); // 保存后返回列表
-  };
-
-  // 单个权限选择
-  const handlePermissionChange = (value) => {
-    if (!objectName || objectName.length === 0) {
-      return;
-    }
-    const newSelected = selectedPermissions.includes(value)
-      ? selectedPermissions.filter(v => v !== value)
-      : [...selectedPermissions, value];
-    setSelectedPermissions(newSelected);
-    
-    // 如果取消了表查询权限，清空临时行列权限配置
-    if (value === 'DT8' && !newSelected.includes('DT8')) {
-      setTempColumnConfigs([]);
-    }
   };
 
   // 获取表的列信息（模拟数据，包含类型、描述、样例数据）
@@ -902,43 +860,6 @@ const DataPermissionConfig = () => {
     return tableColumnsMap[tableName] || [];
   };
 
-  // 配置行列权限（添加前配置）
-  const handleConfigColumnPermissionBeforeAdd = () => {
-    // 只有单选时才能配置行列权限
-    if (!objectName || objectName.length !== 1) {
-      alert('请先选择单个表对象');
-      return;
-    }
-    
-    const selectedTableName = objectName[0];
-    console.log('配置行列权限（添加前）:', selectedTableName);
-    setCurrentEditingObject(null); // 标记为添加前配置
-    setIsEditingMode(false);
-    
-    // 获取当前表的列并初始化配置
-    const columns = getTableColumns(selectedTableName);
-    
-    // 如果已有临时配置则使用，否则初始化
-    if (tempColumnConfigs.length > 0) {
-      // 确保每个字段都有 relation 字段（兼容旧数据）
-      const configsWithRelation = tempColumnConfigs.map(config => ({
-        ...config,
-        relation: config.relation || '或'
-      }));
-      setColumnConfigs(configsWithRelation);
-    } else {
-      const initialConfigs = columns.map(col => ({
-        ...col,
-        selected: true, // 默认全选
-        expressions: [], // 行权限表达式
-        relation: '或', // 字段内表达式关系：'且' 或 '或'，对应 SQL 的 AND 和 OR
-      }));
-      setColumnConfigs(initialConfigs);
-    }
-    
-    setIsRowColumnModalVisible(true);
-  };
-
   // 配置行列权限（编辑模式下的配置）
   const handleConfigColumnPermissionInEditMode = () => {
     if (!editObjectName) {
@@ -1020,9 +941,6 @@ const DataPermissionConfig = () => {
     } else if (isEditingMode) {
       // 编辑模式下的配置，保存到编辑临时状态
       setEditTempColumnConfigs(columnConfigs);
-    } else {
-      // 添加前配置，保存到添加临时状态
-      setTempColumnConfigs(columnConfigs);
     }
     setIsRowColumnModalVisible(false);
     setCurrentEditingObject(null);
@@ -1089,13 +1007,6 @@ const DataPermissionConfig = () => {
     };
 
     return allowedOperatorsMap[firstOperator] || [];
-  };
-
-  // 获取禁止的运算符列表（用于灰显）
-  const getDisabledOperators = (columnName, excludeExpressionId = null) => {
-    const allOperators = ['等于', '不等于', '大于', '大于等于', '小于', '小于等于', '包含', '模糊匹配'];
-    const allowedOperators = getAllowedOperators(columnName, excludeExpressionId);
-    return allOperators.filter(op => !allowedOperators.includes(op));
   };
 
   // 检查是否可以添加新表达式

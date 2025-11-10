@@ -116,9 +116,6 @@ const SalesDocumentSearch = () => {
     return mockResults.slice(start, end);
   }, [currentPage, pageSize]);
   
-  // 总数据量
-  const total = mockResults.length;
-  
   // 当前页是否全选
   const isAllSelected = useMemo(() => {
     if (paginatedResults.length === 0) return false;
