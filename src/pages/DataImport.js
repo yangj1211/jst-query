@@ -128,6 +128,7 @@ const DataImport = () => {
   const [taskSearchKeyword, setTaskSearchKeyword] = useState(''); // 载入对象名搜索关键词
   const [creatorSearchKeyword, setCreatorSearchKeyword] = useState(''); // 导入人搜索关键词
   const [createTimeRange, setCreateTimeRange] = useState({ startDate: null, endDate: null }); // 导入时间范围筛选
+  const [completeTimeRange, setCompleteTimeRange] = useState({ startDate: null, endDate: null }); // 完成时间范围筛选
   
   // 任务列表分页
   const [taskPage, setTaskPage] = useState(1);
@@ -872,6 +873,27 @@ const DataImport = () => {
         }
       }
       
+      // 完成时间范围筛选
+      if (completeTimeRange.startDate || completeTimeRange.endDate) {
+        const completeTime = parseDateTimeString(task.completeTime);
+        // 如果没有完成时间，则过滤掉（只有已完成的任务才有完成时间）
+        if (!completeTime) return false;
+        
+        if (completeTimeRange.startDate && completeTimeRange.endDate) {
+          if (completeTime < completeTimeRange.startDate || completeTime > completeTimeRange.endDate) {
+            return false;
+          }
+        } else if (completeTimeRange.startDate) {
+          if (completeTime < completeTimeRange.startDate) {
+            return false;
+          }
+        } else if (completeTimeRange.endDate) {
+          if (completeTime > completeTimeRange.endDate) {
+            return false;
+          }
+        }
+      }
+      
       return true;
     });
   };
@@ -974,6 +996,14 @@ const DataImport = () => {
                 setTaskPage(1);
               }}
               placeholder="选择导入时间范围"
+            />
+            <DateTimeRangePicker
+              value={completeTimeRange}
+              onChange={(range) => {
+                setCompleteTimeRange(range);
+                setTaskPage(1);
+              }}
+              placeholder="选择完成时间范围"
             />
           </div>
           
