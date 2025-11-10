@@ -164,7 +164,43 @@ const QueryResult = ({ data }) => {
     blocks.map(() => 'bar')
   );
   
-  // 分析部分的维度表格视图状态
+  // 行、列选中状态（按表格 key 存储）
+  const [selectedRows, setSelectedRows] = useState({});
+  const [selectedColumns, setSelectedColumns] = useState({});
+
+  useEffect(() => {
+    setActiveViews(prev => {
+      const next = prev.slice(0, blocks.length);
+      while (next.length < blocks.length) next.push('table');
+      return next;
+    });
+    setChartTypes(prev => {
+      const next = prev.slice(0, blocks.length);
+      while (next.length < blocks.length) next.push('bar');
+      return next;
+    });
+  }, [blocks.length]);
+
+  const handleRowSelect = (tableKey, rowKey) => {
+    setSelectedRows(prev => ({
+      ...prev,
+      [tableKey]: prev[tableKey] === rowKey ? null : rowKey,
+    }));
+  };
+
+  const handleColumnSelect = (tableKey, columnKey) => {
+    setSelectedColumns(prev => ({
+      ...prev,
+      [tableKey]: prev[tableKey] === columnKey ? null : columnKey,
+    }));
+  };
+
+  const getRowKey = (record, index) => {
+    if (record == null) return index;
+    return record.key ?? record.id ?? index;
+  };
+
+  // 为每个 block 维护独立的图表类型状态
   const [dimensionView, setDimensionView] = useState('table');
   const [dimensionChartType, setDimensionChartType] = useState('bar');
   
@@ -566,6 +602,53 @@ const QueryResult = ({ data }) => {
     console.log('Added to dashboard:', dashboardItem);
   };
 
+  const enhanceColumns = (columns = [], tableKey) => {
+    return columns.map((col, colIdx) => {
+      const columnKey = col.dataIndex ?? col.key ?? `column-${colIdx}`;
+      const baseHeaderCell = col.onHeaderCell;
+      const baseOnCell = col.onCell;
+      return {
+        ...col,
+        onHeaderCell: (columnData) => {
+          const base = baseHeaderCell ? baseHeaderCell(columnData) : {};
+          const mergedClassName = [
+            base.className,
+            selectedColumns[tableKey] === columnKey ? 'selected-column-header' : ''
+          ].filter(Boolean).join(' ');
+          const handleClick = (event) => {
+            handleColumnSelect(tableKey, columnKey);
+            if (base.onClick) {
+              base.onClick(event);
+            }
+          };
+          return {
+            ...base,
+            style: { ...(base.style || {}), cursor: 'pointer' },
+            className: mergedClassName,
+            onClick: handleClick,
+          };
+        },
+        onCell: (record, rowIndex) => {
+          const base = baseOnCell ? baseOnCell(record, rowIndex) : {};
+          const mergedClassName = [
+            base.className,
+            selectedColumns[tableKey] === columnKey ? 'selected-column-cell' : ''
+          ].filter(Boolean).join(' ');
+          return {
+            ...base,
+            className: mergedClassName,
+          };
+        },
+      };
+    });
+  };
+
+  const prepareDataSource = (dataSource = []) =>
+    dataSource.map((item, idx) => ({
+      ...item,
+      _rowKey: getRowKey(item, idx),
+    }));
+
   return (
     <div className="query-result-wrapper">
       <div className="result-content">
@@ -706,15 +789,27 @@ const QueryResult = ({ data }) => {
               </div>
               <div className="table-wrapper">
               {activeViews[idx] === 'table' && (
-                <Table
-                  columns={block.tableData?.columns || []}
-                  dataSource={block.tableData?.dataSource || []}
+                (() => {
+                  const tableKey = `block-${idx}`;
+                  const tableColumns = enhanceColumns(block.tableData?.columns || [], tableKey);
+                  const tableDataSource = prepareDataSource(block.tableData?.dataSource || []);
+                  return (
+                 <Table
+                  columns={tableColumns}
+                  dataSource={tableDataSource}
                   pagination={false}
                   size="middle"
                   bordered
                   className="custom-result-table"
                   scroll={block.tableData?.scroll}
+                  rowKey="_rowKey"
+                  rowClassName={(record) => selectedRows[tableKey] === record._rowKey ? 'table-row-selected' : ''}
+                  onRow={(record) => ({
+                    onClick: () => handleRowSelect(tableKey, record._rowKey),
+                  })}
                 />
+                  );
+                })()
               )}
               {activeViews[idx] === 'chart' && renderChart(block.tableData, chartTypes[idx])}
             </div>
@@ -844,14 +939,26 @@ const QueryResult = ({ data }) => {
                     </div>
                     <div className="table-wrapper">
                       {dimensionView === 'table' && (
-                        <Table
-                          columns={data.analysis.dimensionTableData.columns || []}
-                          dataSource={data.analysis.dimensionTableData.dataSource || []}
-                          pagination={false}
-                          size="middle"
-                          bordered
-                          className="custom-result-table"
-                        />
+                        (() => {
+                          const tableKey = 'analysis-dimension';
+                          const tableColumns = enhanceColumns(data.analysis.dimensionTableData.columns || [], tableKey);
+                          const tableDataSource = prepareDataSource(data.analysis.dimensionTableData.dataSource || []);
+                          return (
+                            <Table
+                              columns={tableColumns}
+                              dataSource={tableDataSource}
+                              pagination={false}
+                              size="middle"
+                              bordered
+                              className="custom-result-table"
+                              rowKey="_rowKey"
+                              rowClassName={(record) => selectedRows[tableKey] === record._rowKey ? 'table-row-selected' : ''}
+                              onRow={(record) => ({
+                                onClick: () => handleRowSelect(tableKey, record._rowKey),
+                              })}
+                            />
+                          );
+                        })()
                       )}
                       {dimensionView === 'chart' && renderChart(data.analysis.dimensionTableData, dimensionChartType)}
                     </div>
@@ -957,35 +1064,39 @@ const QueryResult = ({ data }) => {
                       </div>
                     </div>
                     <div className="table-wrapper">
-                      <Table
-                        columns={data.analysis.factorTableData.columns || []}
-                        dataSource={data.analysis.factorTableData.dataSource || []}
-                        pagination={false}
-                        size="middle"
-                        bordered
-                        className="custom-result-table"
+                      {(() => {
+                        const tableKey = 'analysis-factor';
+                        const tableColumns = enhanceColumns(data.analysis.factorTableData.columns || [], tableKey);
+                        const tableDataSource = prepareDataSource(data.analysis.factorTableData.dataSource || []);
+                        return (
+                          <Table
+                            columns={tableColumns}
+                            dataSource={tableDataSource}
+                            pagination={false}
+                            size="middle"
+                            bordered
+                            className="custom-result-table"
+                            rowKey="_rowKey"
+                            rowClassName={(record) => selectedRows[tableKey] === record._rowKey ? 'table-row-selected' : ''}
+                            onRow={(record) => ({
+                              onClick: () => handleRowSelect(tableKey, record._rowKey),
+                            })}
+                          />
+                        );
+                      })()}
+                      <div className="analysis-subtitle" style={{ marginTop: 16 }}>3-2. 解读</div>
+                      <StreamingParagraphs
+                        text={data.analysis.factorAnalysis}
+                        paragraphClass="analysis-text"
+                        paragraphSpacing={16}
+                        chunkSize={8}
+                        stepDelay={120}
+                        initialDelay={160}
+                        paragraphDelay={260}
+                        textStyle={{ whiteSpace: 'pre-wrap' }}
                       />
                     </div>
-                    
-                    {/* 数据来源区域 */}
-                    <div className="data-sources">
-                      <div className="sources-label">数据来源:</div>
-                      <div className="sources-list">
-                        {renderDataSources(data.analysis.factorSources, 'factorTable')}
-                      </div>
-                    </div>
                   </div>
-                  <div className="analysis-subtitle" style={{ marginTop: 16 }}>3-2. 解读</div>
-                  <StreamingParagraphs
-                    text={data.analysis.factorAnalysis}
-                    paragraphClass="analysis-text"
-                    paragraphSpacing={16}
-                    chunkSize={8}
-                    stepDelay={120}
-                    initialDelay={160}
-                    paragraphDelay={260}
-                    textStyle={{ whiteSpace: 'pre-wrap' }}
-                  />
                 </div>
               ) : data.analysis.factors ? (
                 <>

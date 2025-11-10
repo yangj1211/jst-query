@@ -87,7 +87,7 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
             className={`main-tab-button ${activeTab === 'question' ? 'active' : ''}`}
             onClick={() => handleTabChange('question')}
           >
-            问数
+            智能问数
           </button>
           <button
             className={`main-tab-button ${activeTab === 'document' ? 'active' : ''}`}

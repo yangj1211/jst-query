@@ -712,3 +712,15 @@
   justify-content: flex-end;
   gap: 8px;
 }
+
+.table-row-selected .ant-table-cell {
+  background: #f0f7ff !important;
+}
+
+.selected-column-header {
+  background: #e9f3ff !important;
+}
+
+.selected-column-cell {
+  background: #f8fbff !important;
+}
