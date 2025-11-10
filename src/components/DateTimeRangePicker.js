@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './DateTimeRangePicker.css';
 
 const DateTimeRangePicker = ({ value, onChange, placeholder = '选择时间范围' }) => {
@@ -33,30 +33,21 @@ const DateTimeRangePicker = ({ value, onChange, placeholder = '选择时间范�
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
 
-  // 解析日期时间字符串
-  const parseDateTime = (str) => {
-    if (!str) return null;
-    const match = str.match(/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
-    if (!match) return null;
-    const [, year, month, day, hour, minute, second] = match.map(Number);
-    return new Date(year, month - 1, day, hour, minute, second);
-  };
-
   // 获取当前选择的日期
-  const getCurrentDate = () => {
+  const getCurrentDate = useCallback(() => {
     const date = currentView === 'start' ? startDate : endDate;
     return date || new Date();
-  };
+  }, [currentView, startDate, endDate]);
 
   // 获取当前显示的时间
-  const getCurrentTime = () => {
+  const getCurrentTime = useCallback(() => {
     const date = getCurrentDate();
     return {
       hour: date.getHours(),
       minute: date.getMinutes(),
       second: date.getSeconds()
     };
-  };
+  }, [getCurrentDate]);
 
   // 滚动到指定时间
   const scrollToTime = (type, value) => {
@@ -90,7 +81,7 @@ const DateTimeRangePicker = ({ value, onChange, placeholder = '选择时间范�
         scrollToTime('second', time.second);
       }, 100);
     }
-  }, [isOpen, currentView, startDate, endDate]);
+  }, [isOpen, currentView, startDate, endDate, getCurrentDate, getCurrentTime]);
 
   // 更新日期
   const updateDate = (day) => {
@@ -229,7 +220,7 @@ const DateTimeRangePicker = ({ value, onChange, placeholder = '选择时间范�
         scrollToTime('second', time.second);
       }, 100);
     }
-  }, [isOpen, currentView, startDate, endDate]);
+  }, [isOpen, currentView, startDate, endDate, getCurrentDate, getCurrentTime]);
 
   // 生成时间选项
   const generateTimeOptions = (type) => {

@@ -16,7 +16,7 @@ const CombinedThinking = ({ intentData = {}, config = {}, dataInfo = {}, steps =
   const [isExpanded, setIsExpanded] = useState(true);
   const [visibleSteps, setVisibleSteps] = useState([]); // 当前可见的步骤数量
 
-  const { description = '', status = 'loading' } = intentData;
+  const { status = 'loading' } = intentData;
   const { time = '', metrics = [], dimensions = [] } = dataInfo;
   const { source = '全部数据', scope = '集团总数据', caliber = '内部管理用（管口）' } = config;
 
@@ -57,7 +57,7 @@ const CombinedThinking = ({ intentData = {}, config = {}, dataInfo = {}, steps =
       // 如果状态不是done，清空可见步骤
       setVisibleSteps([]);
     }
-  }, [status, steps.length, isStopped]);
+  }, [status, steps, isStopped]);
 
   return (
     <div className="combined-thinking-wrapper">

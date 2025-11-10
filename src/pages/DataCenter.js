@@ -395,18 +395,6 @@ const DataCenter = () => {
     return filtered;
   };
 
-  // 获取筛选选项的显示文本
-  const getFilterLabel = () => {
-    switch (objectTypeFilter) {
-      case 'file':
-        return '文件';
-      case 'table':
-        return '表';
-      default:
-        return '全部对象类型';
-    }
-  };
-
   // 处理筛选选项点击
   const handleFilterSelect = (value) => {
     setObjectTypeFilter(value);

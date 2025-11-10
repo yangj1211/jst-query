@@ -7,7 +7,6 @@ import UserManagement from './pages/UserManagement';
 import RolePermission from './pages/RolePermission';
 import DataPermissionConfig from './pages/DataPermissionConfig';
 import DocumentSearch from './pages/DocumentSearch';
-import SalesDocumentSearch from './pages/SalesDocumentSearch';
 import DataImport from './pages/DataImport';
 import BackupFiles from './pages/BackupFiles';
 import Dashboard from './pages/Dashboard';

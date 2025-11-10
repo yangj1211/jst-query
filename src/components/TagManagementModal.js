@@ -6,7 +6,6 @@ const TagManagementModal = ({ visible, onClose, allTags, onTagsChange, checkTagI
   const [editingTag, setEditingTag] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [newTagName, setNewTagName] = useState('');
-  const [oldTagsBeforeEdit, setOldTagsBeforeEdit] = useState([]);
 
   useEffect(() => {
     if (visible) {
@@ -14,7 +13,6 @@ const TagManagementModal = ({ visible, onClose, allTags, onTagsChange, checkTagI
       setEditingTag(null);
       setEditingName('');
       setNewTagName('');
-      setOldTagsBeforeEdit([...allTags]);
     }
   }, [visible, allTags]);
 
