@@ -1,18 +1,17 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Layout, Menu, Avatar } from 'antd';
 import {
   CompassOutlined,
   DatabaseOutlined,
   SettingOutlined,
   UserOutlined,
-  DashboardOutlined,
   TableOutlined,
   CloudUploadOutlined,
   TeamOutlined,
   FileProtectOutlined,
 } from '@ant-design/icons';
-import { useNavigate, Routes, Route, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import QuestionAssistant from '../pages/QuestionAssistant';
 import DataCenter from '../pages/DataCenter';
 import PermissionConfig from '../pages/PermissionConfig';
@@ -39,7 +38,7 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
   const { previewFile, isPreviewVisible, closePreview } = useFilePreview();
 
   // 根据当前路径和折叠状态确定选中的菜单项
-  const getSelectedKey = () => {
+  const getSelectedKey = useCallback(() => {
     if (location.pathname.startsWith('/question')) {
       return 'question';
     }
@@ -54,7 +53,7 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
       return collapsed ? 'permission' : (location.pathname.includes('user-management') ? 'user-management' : 'role-permission');
     }
     return 'question';
-  };
+  }, [location.pathname, collapsed]);
 
   const [selectedKey, setSelectedKey] = useState(() => {
     if (location.pathname.startsWith('/question')) {
@@ -77,7 +76,7 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
   useEffect(() => {
     const newKey = getSelectedKey();
     setSelectedKey(newKey);
-  }, [location.pathname, collapsed]);
+  }, [location.pathname, collapsed, getSelectedKey]);
 
   // 假设路由结构为 /question, /document, /data, /permission
   const [activeTab, setActiveTab] = useState('question');

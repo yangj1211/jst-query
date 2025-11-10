@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Button, Tooltip, Tag, Dropdown, Input, message } from 'antd';
-import { DownOutlined, RightOutlined, DownloadOutlined, ExportOutlined, DatabaseOutlined, TableOutlined, BarChartOutlined, EyeOutlined, FileOutlined, DatabaseOutlined as DbIcon, LineChartOutlined, PieChartOutlined, BulbOutlined, ClockCircleOutlined, PlusSquareOutlined } from '@ant-design/icons';
+import { Table, Button, Tooltip, Tag, Dropdown, message } from 'antd';
+import { DownloadOutlined, DatabaseOutlined, TableOutlined, BarChartOutlined, FileOutlined, DatabaseOutlined as DbIcon, LineChartOutlined, PieChartOutlined } from '@ant-design/icons';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useFilePreview } from '../contexts/FilePreviewContext';
 import './QueryResult.css';
@@ -424,7 +424,7 @@ const QueryResult = ({ data }) => {
    * 渲染图表
    */
   const renderChart = (tableData, chartType) => {
-    const { chartData, xField, yFields } = convertTableDataToChartData(tableData);
+    const { chartData, yFields } = convertTableDataToChartData(tableData); // xField is returned but not used in render
 
     if (!chartData.length || !yFields.length) {
       return (
@@ -535,7 +535,9 @@ const QueryResult = ({ data }) => {
 
   /**
    * 添加表格到仪表盘
+   * 注意：此函数目前未使用（相关按钮已注释），保留以备将来使用
    */
+  // eslint-disable-next-line no-unused-vars
   const handleAddToDashboard = (block, blockIdx, viewType, chartType) => {
     // 获取当前显示的内容配置
     const dashboardItem = {

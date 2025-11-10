@@ -154,7 +154,7 @@ const Dashboard = () => {
    * 渲染图表
    */
   const renderChart = (tableData, chartType) => {
-    const { chartData, xField, yFields } = convertTableDataToChartData(tableData);
+    const { chartData, yFields } = convertTableDataToChartData(tableData); // xField is returned but not used in render
 
     if (!chartData.length || !yFields.length) {
       return (
