@@ -2,11 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Radio,
-  Divider,
-  Typography,
   Space,
   Button,
-  Select,
   Table,
   Tag,
   Tabs,
@@ -19,9 +16,6 @@ import {
   CheckOutlined,
   FilterFilled,
 } from '@ant-design/icons';
-
-const { Text } = Typography;
-const { Option } = Select;
 
 const tableOptions = [
   { name: '测试表1', tags: ['财务', '数据'], source: 'SAP' },
@@ -220,8 +214,6 @@ const treeWrapperStyle = {
   background: '#f9fafc',
 };
 
-const branchList = ['分公司 A', '分公司 B', '分公司 C', '分公司 D'];
-
 const companyTreeData = [
   {
     title: 'EO_1000 - 金盘科技大合并 (84)',
@@ -416,18 +408,6 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
     }
 
     setFileSelectMode(mode);
-  };
-
-  const handleToggleAllTables = (checked) => {
-    const next = checked ? [...allTableNames] : [];
-    setTables(next);
-    customTablesRef.current = next;
-  };
-
-  const handleToggleAllFiles = (checked) => {
-    const next = checked ? [...allFileNames] : [];
-    setFiles(next);
-    customFilesRef.current = next;
   };
 
   const tableRowSelection = useMemo(() => ({
