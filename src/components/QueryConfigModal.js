@@ -18,14 +18,14 @@ import {
 } from '@ant-design/icons';
 
 const tableOptions = [
-  { name: '测试表1', tags: ['财务', '数据'], source: 'SAP' },
+  { name: '测试表1', tags: ['财务', '数据'], sources: ['SAP', 'BPC'] },
   { name: '测试表2', tags: ['销售'], source: 'SAP' },
   { name: '库存快照', tags: ['库存'], source: 'BPC' },
   { name: '订单明细', tags: ['订单', '明细'], source: '本地上传' },
   { name: '库存对账表', tags: ['库存', '对账'], source: 'SAP' },
   { name: '客户主数据', tags: ['客户', '基础'], source: 'SAP' },
-  { name: '供应商清单', tags: ['供应商', '基础'], source: 'SAP' },
-  { name: '合同审批记录', tags: ['合同', '审批'], source: 'BPC' },
+  { name: '供应商清单', tags: ['供应商', '基础'], sources: ['SAP', '本地上传'] },
+  { name: '合同审批记录', tags: ['合同', '审批'], sources: ['BPC', 'SAP'] },
   { name: '发票台账', tags: ['财务', '票据'], source: 'SAP' },
   { name: '项目进度表', tags: ['项目', '进度'], source: '本地上传' },
   { name: '成本分摊表', tags: ['成本', '核算'], source: 'SAP' },
@@ -65,7 +65,7 @@ const tableOptions = [
   { name: '项目结算表', tags: ['项目', '结算'], source: 'SAP' },
   { name: 'AR Aging Report', tags: ['应收', '账龄'], source: 'SAP' },
   { name: 'AP Aging Report', tags: ['应付', '账龄'], source: 'SAP' },
-  { name: '现金流预测表', tags: ['资金', '预测'], source: 'BPC' },
+  { name: '现金流预测表', tags: ['资金', '预测'], sources: ['BPC', 'SAP'] },
   { name: '资金集中余额表', tags: ['资金', '集中'], source: 'SAP' },
   { name: '融资合同台账', tags: ['资金', '融资'], source: 'SAP' },
   { name: '政府补贴项目表', tags: ['政府', '补贴'], source: '本地上传' },
@@ -133,9 +133,9 @@ const tableOptions = [
 ];
 
 const fileOptions = [
-  { name: '2024年财务报告.pdf', tags: ['财务', '报告', '2024'], source: '上市公司公告' },
+  { name: '2024年财务报告.pdf', tags: ['财务', '报告', '2024'], sources: ['上市公司公告', '官网披露'] },
   { name: '2023年对外披露数据.pdf', tags: ['披露'], source: '上市公司公告' },
-  { name: '市场跟踪.xlsx', tags: ['市场', '月度'], source: '上市公司公告' },
+  { name: '市场跟踪.xlsx', tags: ['市场', '月度'], sources: ['上市公司公告', '券商研报'] },
 ];
 
 const governmentDefaultTables = ['测试表1', '订单明细'];
@@ -499,12 +499,14 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
         title: '名称',
         dataIndex: 'name',
         key: 'name',
+        width: 240,
         render: (text) => <span>{text}</span>,
       },
       {
         title: '标签',
         dataIndex: 'tags',
         key: 'tags',
+        width: 220,
         filters: tagFilters,
         filterMultiple: true,
         filterDropdown: createFilterDropdown('标签', tagFilters),
@@ -522,25 +524,45 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
       },
       {
         title: '来源',
-        dataIndex: 'source',
-        key: 'source',
-        width: 150,
+        dataIndex: 'sources',
+        key: 'sources',
+        width: 240,
         filters: sourceFilters,
         filterMultiple: true,
         filterDropdown: createFilterDropdown('来源', sourceFilters),
         filterIcon: ({ filtered }) => (
           <FilterFilled style={{ color: filtered ? '#1677ff' : '#cbd5f5' }} />
         ),
-        onFilter: (value, record) => record.source === value,
-        render: (text) => (
-          <Tag color="blue" style={{ padding: '2px 10px', fontSize: 12, background: '#eef5ff', borderColor: '#d6e4ff' }}>{text}</Tag>
+        onFilter: (value, record) => Array.isArray(record.sources) && record.sources.includes(value),
+        render: (_, record) => (
+          <Space size={6} wrap>
+            {(record.sources || []).map((src) => (
+              <Tag key={src} color="blue" style={{ padding: '2px 10px', fontSize: 12, background: '#eef5ff', borderColor: '#d6e4ff' }}>{src}</Tag>
+            ))}
+          </Space>
         ),
       },
     ];
   };
 
-  const tableData = useMemo(() => tableOptions.map((item) => ({ key: item.name, ...item })), []);
-  const fileData = useMemo(() => fileOptions.map((item) => ({ key: item.name, ...item })), []);
+  const tableData = useMemo(() => tableOptions.map((item) => ({
+    key: item.name,
+    ...item,
+    sources: Array.isArray(item.sources)
+      ? item.sources
+      : item.source
+        ? [item.source]
+        : [],
+  })), []);
+  const fileData = useMemo(() => fileOptions.map((item) => ({
+    key: item.name,
+    ...item,
+    sources: Array.isArray(item.sources)
+      ? item.sources
+      : item.source
+        ? [item.source]
+        : [],
+  })), []);
 
   const tableTagFilters = useMemo(() => {
     const set = new Set();
@@ -554,13 +576,31 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
     return Array.from(set).map((tag) => ({ text: tag, value: tag }));
   }, []);
 
-  const tableSourceFilters = useMemo(() => (
-    ['SAP', 'BPC', '本地上传'].map((source) => ({ text: source, value: source }))
-  ), []);
+  const tableSourceFilters = useMemo(() => {
+    const set = new Set();
+    tableOptions.forEach((item) => {
+      const sources = Array.isArray(item.sources)
+        ? item.sources
+        : item.source
+          ? [item.source]
+          : [];
+      sources.forEach((source) => set.add(source));
+    });
+    return Array.from(set).map((source) => ({ text: source, value: source }));
+  }, []);
 
-  const fileSourceFilters = useMemo(() => (
-    ['上市公司公告'].map((source) => ({ text: source, value: source }))
-  ), []);
+  const fileSourceFilters = useMemo(() => {
+    const set = new Set();
+    fileOptions.forEach((item) => {
+      const sources = Array.isArray(item.sources)
+        ? item.sources
+        : item.source
+          ? [item.source]
+          : [];
+      sources.forEach((source) => set.add(source));
+    });
+    return Array.from(set).map((source) => ({ text: source, value: source }));
+  }, []);
 
   const filteredTableData = useMemo(() => {
     const keyword = tableSearch.trim().toLowerCase();
