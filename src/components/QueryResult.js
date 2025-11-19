@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Button, Tooltip, Tag, Dropdown, message } from 'antd';
+import { Table, Button, Tooltip, Tag, Dropdown, message, Modal } from 'antd';
 import { DownloadOutlined, DatabaseOutlined, TableOutlined, BarChartOutlined, FileOutlined, DatabaseOutlined as DbIcon, LineChartOutlined, PieChartOutlined } from '@ant-design/icons';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useFilePreview } from '../contexts/FilePreviewContext';
@@ -170,6 +170,10 @@ const QueryResult = ({ data }) => {
   
   // 引用数字的选中状态：记录哪些引用被点击了 {refKey: boolean}
   const [activeReferences, setActiveReferences] = useState({});
+  
+  // SQL弹窗状态
+  const [sqlModalVisible, setSqlModalVisible] = useState(false);
+  const [currentSql, setCurrentSql] = useState('');
 
   // 当预览器关闭时，清除所有点亮的状态
   useEffect(() => {
@@ -533,6 +537,13 @@ const QueryResult = ({ data }) => {
     alert('正在导出表格...');
   };
 
+  const handleViewSql = (block) => {
+    // 从block中获取SQL，如果没有则生成一个示例SQL或显示提示
+    const sql = block.sql || block.tableData?.sql || '暂无SQL语句';
+    setCurrentSql(sql);
+    setSqlModalVisible(true);
+  };
+
   /**
    * 添加表格到仪表盘
    * 注意：此函数目前未使用（相关按钮已注释），保留以备将来使用
@@ -684,7 +695,8 @@ const QueryResult = ({ data }) => {
                     <Button 
                       icon={<DatabaseOutlined />} 
                       size="small" 
-                      className="table-action-btn" 
+                      className="table-action-btn"
+                      onClick={() => handleViewSql(block)}
                     />
                   </Tooltip>
                   <Tooltip title="导出">
@@ -813,7 +825,8 @@ const QueryResult = ({ data }) => {
                           <Button 
                             icon={<DatabaseOutlined />} 
                             size="small" 
-                            className="table-action-btn" 
+                            className="table-action-btn"
+                            onClick={() => handleViewSql({ sql: data.analysis?.dimensionTableData?.sql, tableData: data.analysis.dimensionTableData })}
                           />
                         </Tooltip>
                         <Tooltip title="导出">
@@ -927,7 +940,8 @@ const QueryResult = ({ data }) => {
                           <Button 
                             icon={<DatabaseOutlined />} 
                             size="small" 
-                            className="table-action-btn" 
+                            className="table-action-btn"
+                            onClick={() => handleViewSql({ sql: data.analysis?.factorTableData?.sql, tableData: data.analysis.factorTableData })}
                           />
                         </Tooltip>
                         <Tooltip title="导出">
@@ -1026,6 +1040,34 @@ const QueryResult = ({ data }) => {
           </div>
         )}
       </div>
+      
+      {/* SQL查看弹窗 */}
+      <Modal
+        title="SQL语句"
+        open={sqlModalVisible}
+        onCancel={() => setSqlModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setSqlModalVisible(false)}>
+            关闭
+          </Button>
+        ]}
+        width={800}
+      >
+        <pre style={{
+          background: '#f5f5f5',
+          padding: '16px',
+          borderRadius: '4px',
+          overflow: 'auto',
+          maxHeight: '500px',
+          fontSize: '13px',
+          lineHeight: '1.6',
+          fontFamily: 'Monaco, Menlo, "Ubuntu Mono", Consolas, "source-code-pro", monospace',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word'
+        }}>
+          {currentSql || '暂无SQL语句'}
+        </pre>
+      </Modal>
     </div>
   );
 };
