@@ -9,6 +9,7 @@ import {
   Tabs,
   Input,
   Tree,
+  Checkbox,
 } from 'antd';
 import {
   DatabaseOutlined,
@@ -217,39 +218,29 @@ const treeWrapperStyle = {
 const companyTreeData = [
   {
     title: 'EO_1000 - 金盘科技大合并 (84)',
-    key: 'eo_1000_root',
-    selectable: false,
+    key: 'eo_1000',
     children: [
       { title: '1100 - 海南金盘电气研究院有限公司', key: 'eo_1100' },
       { title: '1200 - 海南金盘电气有限公司', key: 'eo_1200' },
       { title: '1600 - 海南金盘科技储能技术有限公司', key: 'eo_1600' },
       { title: '2300 - 武汉金盘智能科技有限公司', key: 'eo_2300' },
-      { title: '3000 - 金盘电气集团（上海）有限公司', key: 'eo_3000' },
-      { title: '1900 - 武汉金拓电气有限公司', key: 'eo_1900' },
-      { title: '3500 - 海南金盘智能科技研究总院有限公司', key: 'eo_3500' },
-      { title: '2800 - 浙江金盘实业有限公司', key: 'eo_2800' },
-      { title: '2900 - 海南金盘数字建设工程有限公司', key: 'eo_2900' },
-      { title: '3900 - 金盘科技新能源智能装备（湖南）有限公司', key: 'eo_3900' },
-      { title: '4100 - 海南迈字数字智能技术有限公司', key: 'eo_4100' },
-      { title: '7013 - 武汉金能源科技有限公司', key: 'eo_7013' },
-    ],
-  },
-  {
-    title: 'E_1000 - 海南金盘科技小合并（合并组） (4)',
-    key: 'e_1000',
-    selectable: false,
-    children: [
-      { title: 'E_1300 - 桐乡同亨数字科技有限公司 (6)', key: 'e_1300' },
-      { title: 'E_1400 - 海南金盘科技新能源小合并 (4)', key: 'e_1400' },
-      { title: 'E_1800 - 金盘（扬州）新能源装备 (1)', key: 'e_1800' },
-      { title: 'E_2000 - 金盘中国小合并 (2)', key: 'e_2000' },
-      { title: 'E_2400 - 武汉智能科技研究院小合并 (6)', key: 'e_2400' },
-      { title: 'E_4000 - 桂林君泰福电气有限公司小合并 (4)', key: 'e_4000' },
-      { title: 'E_4300 - 金盘智能机器人(海南)小合并 (2)', key: 'e_4300' },
-      { title: 'E_5000 - JST Powr HK小合并 (12)', key: 'e_5000' },
-      { title: 'E_6601 - JST Global Energy Group小合并 (9)', key: 'e_6601' },
-      { title: 'E_7000 - 海南金盘科技新能源投资小合并 (1)', key: 'e_7000' },
-      { title: 'E_7019 - 海口琼山金盘新能源小合并 (2)', key: 'e_7019' },
+      {
+        title: 'E_1000 - 海南金盘科技小合并（合并组） (4)',
+        key: 'e_1000',
+        children: [
+          { title: 'E_1300 - 桐乡同亨数字科技有限公司 (6)', key: 'e_1300' },
+          { title: 'E_1400 - 海南金盘科技新能源小合并 (4)', key: 'e_1400' },
+          { title: 'E_1800 - 金盘（扬州）新能源装备 (1)', key: 'e_1800' },
+          { title: 'E_2000 - 金盘中国小合并 (2)', key: 'e_2000' },
+          { title: 'E_2400 - 武汉智能科技研究院小合并 (6)', key: 'e_2400' },
+          { title: 'E_4000 - 桂林君泰福电气有限公司小合并 (4)', key: 'e_4000' },
+          { title: 'E_4300 - 金盘智能机器人(海南)小合并 (2)', key: 'e_4300' },
+          { title: 'E_5000 - JST Powr HK小合并 (12)', key: 'e_5000' },
+          { title: 'E_6601 - JST Global Energy Group小合并 (9)', key: 'e_6601' },
+          { title: 'E_7000 - 海南金盘科技新能源投资小合并 (1)', key: 'e_7000' },
+          { title: 'E_7019 - 海口琼山金盘新能源小合并 (2)', key: 'e_7019' },
+        ],
+      },
     ],
   },
 ];
@@ -296,21 +287,37 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
   const [scopeTreeType, setScopeTreeType] = useState('company');
   const [selectedCompanyKeys, setSelectedCompanyKeys] = useState([]);
   const [selectedDepartmentKeys, setSelectedDepartmentKeys] = useState([]);
+  // 单选框选择状态（仅当前节点，不影响子节点）
+  const [selectedCompanyRadioKeys, setSelectedCompanyRadioKeys] = useState([]);
+  const [selectedDepartmentRadioKeys, setSelectedDepartmentRadioKeys] = useState([]);
   const [filterOption, setFilterOption] = useState('all');
   const [dataObject, setDataObject] = useState(initialConfig.dataObject || 'custom');
   const [showSelectedTablesOnly, setShowSelectedTablesOnly] = useState(false);
   const [showSelectedFilesOnly, setShowSelectedFilesOnly] = useState(false);
+  const [lockStates, setLockStates] = useState({
+    source: false,
+    scope: false,
+    filter: false,
+    caliber: false,
+    tables: false,
+    files: false,
+  });
 
   const allTableNames = useMemo(() => tableOptions.map((item) => item.name), []);
   const allFileNames = useMemo(() => fileOptions.map((item) => item.name), []);
 
-  const controlsDisabled = dataObject !== 'custom';
+  const tableLocked = lockStates.tables;
+  const fileLocked = lockStates.files;
+  const scopeLocked = lockStates.scope;
+  const sectionLockStyle = (locked) => (locked ? { opacity: 0.55 } : {});
 
   const customTablesRef = useRef([]);
   const customFilesRef = useRef([]);
 
   useEffect(() => {
     if (!visible) return;
+
+    const initialDataObject = initialConfig.dataObject || 'custom';
 
       setSourceMode(initialConfig.sourceMode || 'all');
       
@@ -355,24 +362,59 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
       setScopeTreeType(initialConfig.scopeTreeType || 'company');
       setSelectedCompanyKeys(initialConfig.companyKeys || []);
       setSelectedDepartmentKeys(initialConfig.departmentKeys || []);
+      setSelectedCompanyRadioKeys(initialConfig.companyRadioKeys || []);
+      setSelectedDepartmentRadioKeys(initialConfig.departmentRadioKeys || []);
     } else {
       setScopeMode('all');
       setScopeTreeType('company');
       setSelectedCompanyKeys([]);
       setSelectedDepartmentKeys([]);
+      setSelectedCompanyRadioKeys([]);
+      setSelectedDepartmentRadioKeys([]);
     }
-      setScopeType(initialConfig.scopeType || 'group');
-    setBranches(Array.isArray(initialConfig.branches) ? initialConfig.branches : []);
     setFilterOption(initialConfig.filterOption || 'all');
       setCaliber(initialConfig.caliber || 'internal');
-    setDataObject(initialConfig.dataObject || 'custom');
+    setDataObject(initialDataObject);
     setTableSearch('');
     setFileSearch('');
-    setShowSelectedTablesOnly(false);
-    setShowSelectedFilesOnly(false);
+    if (initialDataObject === 'audit') {
+      setShowSelectedTablesOnly(true);
+      setShowSelectedFilesOnly(true);
+      setLockStates({
+        source: false,
+        scope: false,
+        filter: false,
+        caliber: true,
+        tables: false,
+        files: false,
+      });
+    } else if (initialDataObject === 'government') {
+      setShowSelectedTablesOnly(true);
+      setShowSelectedFilesOnly(true);
+      setLockStates({
+        source: true,
+        scope: false,
+        filter: false,
+        caliber: true,
+        tables: true,
+        files: false,
+      });
+    } else {
+      setShowSelectedTablesOnly(false);
+      setShowSelectedFilesOnly(false);
+      setLockStates({
+        source: false,
+        scope: false,
+        filter: false,
+        caliber: false,
+        tables: false,
+        files: false,
+      });
+    }
   }, [visible, initialConfig, allTableNames, allFileNames]);
 
   const handleTableSelectModeChange = (mode) => {
+    if (lockStates.tables) return;
     if (tableSelectMode === 'custom' && mode !== 'custom') {
       customTablesRef.current = tables.filter((name) => allTableNames.includes(name));
     }
@@ -392,6 +434,7 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
   };
 
   const handleFileSelectModeChange = (mode) => {
+    if (lockStates.files) return;
     if (fileSelectMode === 'custom' && mode !== 'custom') {
       customFilesRef.current = files.filter((name) => allFileNames.includes(name));
     }
@@ -413,24 +456,24 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
   const tableRowSelection = useMemo(() => ({
     selectedRowKeys: tables,
     onChange: (selectedRowKeys) => {
-      if (controlsDisabled) return;
+      if (tableLocked) return;
       setTables(selectedRowKeys);
       customTablesRef.current = selectedRowKeys;
     },
     preserveSelectedRowKeys: true,
-    getCheckboxProps: () => ({ disabled: controlsDisabled }),
-  }), [tables, controlsDisabled]);
+    getCheckboxProps: () => ({ disabled: tableLocked }),
+  }), [tables, tableLocked]);
 
   const fileRowSelection = useMemo(() => ({
     selectedRowKeys: files,
     onChange: (selectedRowKeys) => {
-      if (controlsDisabled) return;
+      if (fileLocked) return;
       setFiles(selectedRowKeys);
       customFilesRef.current = selectedRowKeys;
     },
     preserveSelectedRowKeys: true,
-    getCheckboxProps: () => ({ disabled: controlsDisabled }),
-  }), [files, controlsDisabled]);
+    getCheckboxProps: () => ({ disabled: fileLocked }),
+  }), [files, fileLocked]);
 
   const createFilterDropdown = (label, options) => ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => {
     const activeKeys = selectedKeys || [];
@@ -639,23 +682,29 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
       return results;
     };
 
-    const companyTitles = collectTitles(selectedCompanyKeys, companyTreeData);
-    const departmentTitles = collectTitles(selectedDepartmentKeys, departmentTreeData);
+    // 根据单选框的 keys 收集标题（实际选中的项目）
+    const companyTitles = collectTitles(selectedCompanyRadioKeys, companyTreeData);
+    const departmentTitles = collectTitles(selectedDepartmentRadioKeys, departmentTreeData);
     
     onOk && onOk({ 
       sourceMode, 
       tables,
+      tableSelectMode,
       files,
+      fileSelectMode,
       scopeMode,
       scopeTreeType,
       companyKeys: selectedCompanyKeys,
+      companyRadioKeys: selectedCompanyRadioKeys,
       departmentKeys: selectedDepartmentKeys,
+      departmentRadioKeys: selectedDepartmentRadioKeys,
       companyTitles,
       departmentTitles,
       scopeType, 
       branches, 
       filterOption,
       dataObject,
+      lockStates,
       caliber, 
       applyScope,
     });
@@ -663,23 +712,36 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
 
   const handleApplyDataObject = (value) => {
     setDataObject(value);
+    let newLockStates = { source: false, scope: false, filter: false, caliber: false, tables: false, files: false };
 
     if (value === 'audit') {
+      customTablesRef.current = tables.filter((name) => allTableNames.includes(name));
+      customFilesRef.current = files.filter((name) => allFileNames.includes(name));
       setCaliber('external');
       setFilterOption('all');
       setSourceMode('all');
       setTableSelectMode('all');
       setTables([...allTableNames]);
-      customTablesRef.current = [];
       setFileSelectMode('all');
       setFiles([...allFileNames]);
-      customFilesRef.current = [];
       setScopeMode('all');
       setSelectedCompanyKeys([]);
       setSelectedDepartmentKeys([]);
+      setSelectedCompanyRadioKeys([]);
+      setSelectedDepartmentRadioKeys([]);
       setShowSelectedTablesOnly(true);
       setShowSelectedFilesOnly(true);
+      newLockStates = {
+        source: false,
+        scope: false,
+        filter: false,
+        caliber: true,
+        tables: false,
+        files: false,
+      };
     } else if (value === 'government') {
+      customTablesRef.current = tables.filter((name) => allTableNames.includes(name));
+      customFilesRef.current = files.filter((name) => allFileNames.includes(name));
       setCaliber('external');
       setFilterOption('excludeInternal');
       setSourceMode('custom');
@@ -688,29 +750,82 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
         .filter((name) => governmentDefaultTables.includes(name));
       setTableSelectMode(presetTables.length === allTableNames.length ? 'all' : 'custom');
       setTables(presetTables);
-      customTablesRef.current = presetTables;
       setFileSelectMode('none');
       setFiles([]);
-      customFilesRef.current = [];
       setScopeMode('all');
       setSelectedCompanyKeys([]);
       setSelectedDepartmentKeys([]);
+      setSelectedCompanyRadioKeys([]);
+      setSelectedDepartmentRadioKeys([]);
       setShowSelectedTablesOnly(true);
       setShowSelectedFilesOnly(true);
+      newLockStates = {
+        source: true,
+        scope: false,
+        filter: false,
+        caliber: true,
+        tables: true,
+        files: false,
+      };
+    } else if (value === 'custom') {
+      const previousTables = customTablesRef.current && customTablesRef.current.length
+        ? customTablesRef.current
+        : tables.filter((name) => allTableNames.includes(name));
+      const previousFiles = customFilesRef.current && customFilesRef.current.length
+        ? customFilesRef.current
+        : files.filter((name) => allFileNames.includes(name));
+
+      if (previousTables.length === allTableNames.length && allTableNames.every((name) => previousTables.includes(name))) {
+        setTableSelectMode('all');
+        setTables([...allTableNames]);
+      } else if (previousTables.length === 0) {
+        setTableSelectMode('none');
+        setTables([]);
+      } else {
+        setTableSelectMode('custom');
+        setTables(previousTables);
+      }
+      customTablesRef.current = previousTables;
+ 
+      if (previousFiles.length === allFileNames.length && allFileNames.every((name) => previousFiles.includes(name))) {
+        setFileSelectMode('all');
+        setFiles([...allFileNames]);
+      } else if (previousFiles.length === 0) {
+        setFileSelectMode('none');
+        setFiles([]);
+      } else {
+        setFileSelectMode('custom');
+        setFiles(previousFiles);
+      }
+      customFilesRef.current = previousFiles;
+
+      newLockStates = {
+        source: false,
+        scope: false,
+        filter: false,
+        caliber: false,
+        tables: false,
+        files: false,
+      };
     }
+    setLockStates(newLockStates);
     if (value === 'custom') {
       setShowSelectedTablesOnly(false);
       setShowSelectedFilesOnly(false);
     }
   };
 
-  const TableTabContent = ({ disabled }) => (
-    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+  const TableTabContent = ({ locked }) => (
+    <Space
+      direction="vertical"
+      size={12}
+      style={{ width: '100%', ...sectionLockStyle(locked) }}
+    >
       <Radio.Group
         value={tableSelectMode}
         onChange={(e) => handleTableSelectModeChange(e.target.value)}
         style={radioGroupInlineStyle}
-        disabled={disabled}
+        disabled={locked}
       >
         <Radio value="none"><span style={radioOptionTextStyle}>不使用表</span></Radio>
         <Radio value="all"><span style={radioOptionTextStyle}>全部表</span></Radio>
@@ -719,11 +834,11 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
 
       {tableSelectMode === 'all' ? (
         <div style={{ padding: '12px 14px', borderRadius: 10, background: '#f5f8ff', color: '#1f2937', fontSize: 13 }}>
-          已选择全部数据库表，无需逐项勾选。
+          已选择全部表，无需逐项勾选。
         </div>
       ) : tableSelectMode === 'none' ? (
         <div style={{ padding: '12px 14px', borderRadius: 10, background: '#f8fafc', color: '#64748b', fontSize: 13 }}>
-          当前未选择任何数据库表。
+          当前未选择任何表。
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -734,14 +849,14 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
               onChange={(e) => setTableSearch(e.target.value)}
               placeholder="搜索名称"
               style={{ flex: 1, minWidth: 220, maxWidth: 320 }}
-              disabled={disabled}
+              disabled={locked}
             />
             <Button
               size="small"
               type={showSelectedTablesOnly ? 'primary' : 'default'}
               style={{ marginLeft: 'auto' }}
               onClick={() => setShowSelectedTablesOnly((prev) => !prev)}
-              disabled={disabled}
+              disabled={locked}
             >
               {showSelectedTablesOnly ? '显示全部' : '只看已选'}
             </Button>
@@ -760,13 +875,17 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
     </Space>
   );
 
-  const FileTabContent = ({ disabled }) => (
-    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+  const FileTabContent = ({ locked }) => (
+    <Space
+      direction="vertical"
+      size={12}
+      style={{ width: '100%', ...sectionLockStyle(locked) }}
+    >
       <Radio.Group
         value={fileSelectMode}
         onChange={(e) => handleFileSelectModeChange(e.target.value)}
         style={radioGroupInlineStyle}
-        disabled={disabled}
+        disabled={locked}
       >
         <Radio value="none"><span style={radioOptionTextStyle}>不使用文件</span></Radio>
         <Radio value="all"><span style={radioOptionTextStyle}>全部文件</span></Radio>
@@ -790,14 +909,14 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
               onChange={(e) => setFileSearch(e.target.value)}
               placeholder="搜索名称"
               style={{ flex: 1, minWidth: 220, maxWidth: 320 }}
-              disabled={disabled}
+              disabled={locked}
             />
             <Button
               size="small"
               type={showSelectedFilesOnly ? 'primary' : 'default'}
               style={{ marginLeft: 'auto' }}
               onClick={() => setShowSelectedFilesOnly((prev) => !prev)}
-              disabled={disabled}
+              disabled={locked}
             >
               {showSelectedFilesOnly ? '显示全部' : '只看已选'}
             </Button>
@@ -822,10 +941,10 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
       label: (
         <Space size={6}>
           <DatabaseOutlined />
-          <span>数据库表</span>
+          <span>表</span>
         </Space>
       ),
-      children: <TableTabContent disabled={controlsDisabled} />,
+      children: <TableTabContent locked={tableLocked} />,
     },
     {
       key: 'files',
@@ -835,7 +954,7 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
           <span>文件</span>
         </Space>
       ),
-      children: <FileTabContent disabled={controlsDisabled} />,
+      children: <FileTabContent locked={fileLocked} />,
     },
   ];
 
@@ -877,21 +996,24 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
             value={dataObject}
             onChange={(e) => handleApplyDataObject(e.target.value)}
             style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'center' }}
-          >
+              >
             <Radio value="custom"><span style={radioOptionTextStyle}>默认对象</span></Radio>
             <Radio value="audit"><span style={radioOptionTextStyle}>审计 / 券商 / 招投标 / 银行</span></Radio>
             <Radio value="government"><span style={radioOptionTextStyle}>政府相关</span></Radio>
           </Radio.Group>
-          {controlsDisabled && (
+          {(tableLocked || lockStates.caliber || lockStates.source) && (
             <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: '#e0ecff', color: '#1d4ed8', fontSize: 12 }}>
-              当前使用数据对象预设，其他配置已锁定。如需调整，请切换回“默认对象”。
+              当前使用数据对象预设，{[
+                lockStates.caliber ? '数据口径' : null,
+                lockStates.source ? '数据来源' : null,
+                tableLocked ? '表配置' : null,
+              ].filter(Boolean).join('、')}已锁定。如需调整，请切换回“默认对象”。
           </div>
         )}
         </div>
-      </Space>
+        </Space>
 
-      <div style={{ opacity: controlsDisabled ? 0.6 : 1, marginTop: 8 }}>
-        <Space direction="vertical" size={24} style={{ width: '100%' }}>
+      <Space direction="vertical" size={24} style={{ width: '100%', marginTop: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 24 }}>
             <div style={{ ...sectionStyle, display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={sectionHeaderStyle}>
@@ -901,7 +1023,7 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
               <Radio.Group
                 value={caliber}
                 onChange={(e) => setCaliber(e.target.value)}
-                disabled={controlsDisabled}
+                disabled={lockStates.caliber}
                 style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
               >
                 <Radio value="internal">
@@ -927,7 +1049,7 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
               <Radio.Group
                 value={filterOption}
                 onChange={(e) => setFilterOption(e.target.value)}
-                disabled={controlsDisabled}
+                disabled={lockStates.filter}
                 style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
               >
                 <Radio value="all"><span style={radioOptionTextStyle}>全部数据</span></Radio>
@@ -941,20 +1063,28 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
               <span style={sectionTitleStyle}>数据来源</span>
               <span style={sectionDescStyle}>选择数据来自哪里</span>
             </div>
-            <Radio.Group
-              value={sourceMode}
-              onChange={(e) => setSourceMode(e.target.value)}
-              disabled={controlsDisabled}
-              style={radioGroupInlineStyle}
-            >
-              <Radio value="all"><span style={radioOptionTextStyle}>全部数据</span></Radio>
-              <Radio value="custom"><span style={radioOptionTextStyle}>指定来源</span></Radio>
-            </Radio.Group>
-            {sourceMode === 'custom' && (
-              <div style={{ marginTop: 16 }}>
-                <Tabs defaultActiveKey="tables" items={tabItems} />
-              </div>
-            )}
+            <div style={sectionLockStyle(lockStates.source)}>
+              <Radio.Group
+                value={sourceMode}
+                onChange={(e) => setSourceMode(e.target.value)}
+                disabled={lockStates.source}
+                style={radioGroupInlineStyle}
+              >
+                <Radio value="all"><span style={radioOptionTextStyle}>全部数据</span></Radio>
+                <Radio value="custom"><span style={radioOptionTextStyle}>指定来源</span></Radio>
+        </Radio.Group>
+        {sourceMode === 'custom' && (
+                <div style={{ marginTop: 16 }}>
+                  <Tabs
+                    defaultActiveKey="tables"
+                    items={tabItems}
+                    tabBarExtraContent={
+                      tableLocked ? <span style={{ color: '#999', fontSize: 12 }}>预设对象已锁定表清单</span> : null
+                    }
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           <div style={sectionStyle}>
@@ -965,7 +1095,7 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
             <Radio.Group
               value={scopeMode}
               onChange={(e) => setScopeMode(e.target.value)}
-              disabled={controlsDisabled}
+              disabled={scopeLocked}
               style={radioGroupInlineStyle}
             >
               <Radio value="all"><span style={radioOptionTextStyle}>所有数据</span></Radio>
@@ -977,35 +1107,714 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
                   value={scopeTreeType}
                   onChange={(e) => setScopeTreeType(e.target.value)}
                   style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}
-                  disabled={controlsDisabled}
+                  disabled={scopeLocked}
                 >
                   <Radio.Button value="company" style={toggleButtonStyle}>按公司选择</Radio.Button>
                   <Radio.Button value="department" style={toggleButtonStyle}>按事业部选择</Radio.Button>
                 </Radio.Group>
                 <div style={{ marginTop: 16 }}>
                   <div style={treeWrapperStyle}>
-                    <Tree
-                      checkable
-                      selectable={false}
-                      showIcon={false}
-                      treeData={scopeTreeType === 'company' ? (controlsDisabled ? mapTreeDisabled(companyTreeData, true) : companyTreeData) : (controlsDisabled ? mapTreeDisabled(departmentTreeData, true) : departmentTreeData)}
-                      checkedKeys={scopeTreeType === 'company' ? selectedCompanyKeys : selectedDepartmentKeys}
-                      onCheck={(checkedKeys) => {
-                        if (scopeTreeType === 'company') {
-                          setSelectedCompanyKeys(checkedKeys);
-                        } else {
-                          setSelectedDepartmentKeys(checkedKeys);
-                        }
-                      }}
-                      defaultExpandAll
-                    />
+                    {scopeTreeType === 'company' ? (
+                      (() => {
+                        // 收集所有子节点 key 的辅助函数
+                        const collectAllChildKeys = (node) => {
+                          const keys = [node.key];
+                          if (node.children) {
+                            node.children.forEach((child) => {
+                              keys.push(...collectAllChildKeys(child));
+                            });
+                          }
+                          return keys;
+                        };
+
+                        // 查找节点的所有父节点
+                        const findParentNodes = (targetKey, nodes, parentPath = []) => {
+                          for (const node of nodes) {
+                            if (node.key === targetKey) {
+                              return parentPath;
+                            }
+                            if (node.children) {
+                              const found = findParentNodes(targetKey, node.children, [...parentPath, node]);
+                              if (found !== null) {
+                                return found;
+                              }
+                            }
+                          }
+                          return null;
+                        };
+
+                        // 递归检查节点的所有子节点（包括深层子节点）的单选框是否都被选中
+                        const areAllDescendantsRadioSelected = (node) => {
+                          if (!node.children || node.children.length === 0) {
+                            return true;
+                          }
+                          return node.children.every((child) => {
+                            const childSelected = selectedCompanyRadioKeys.includes(child.key);
+                            const childDescendantsSelected = areAllDescendantsRadioSelected(child);
+                            return childSelected && childDescendantsSelected;
+                          });
+                        };
+
+                        // 递归检查节点的子节点（包括深层子节点）的单选框是否有部分被选中
+                        const areSomeDescendantsRadioSelected = (node) => {
+                          if (!node.children || node.children.length === 0) {
+                            return selectedCompanyRadioKeys.includes(node.key);
+                          }
+                          let selectedCount = 0;
+                          let totalCount = 0;
+                          
+                          const countDescendants = (n) => {
+                            totalCount++;
+                            if (selectedCompanyRadioKeys.includes(n.key)) {
+                              selectedCount++;
+                            }
+                            if (n.children && n.children.length > 0) {
+                              n.children.forEach((child) => {
+                                countDescendants(child);
+                              });
+                            }
+                          };
+                          
+                          if (selectedCompanyRadioKeys.includes(node.key)) {
+                            selectedCount++;
+                          }
+                          countDescendants(node);
+                          
+                          return selectedCount > 0 && selectedCount < totalCount;
+                        };
+
+                        // 更新父节点的复选框状态
+                        const updateParentCheckboxes = (nodeKey) => {
+                          const parentPath = findParentNodes(nodeKey, companyTreeData);
+                          if (!parentPath) return;
+
+                          parentPath.forEach((parentNode) => {
+                            const allChildrenSelected = areAllDescendantsRadioSelected(parentNode);
+                            setSelectedCompanyKeys((prev) => {
+                              if (allChildrenSelected) {
+                                if (!prev.includes(parentNode.key)) {
+                                  return [...prev, parentNode.key];
+                                }
+                              } else {
+                                return prev.filter((key) => key !== parentNode.key);
+                              }
+                              return prev;
+                            });
+                          });
+                        };
+
+                        // 检查节点是否被复选框选中
+                        const isCheckboxChecked = (nodeKey) => {
+                          const findNode = (key, nodes) => {
+                            for (const node of nodes) {
+                              if (node.key === key) return node;
+                              if (node.children) {
+                                const found = findNode(key, node.children);
+                                if (found) return found;
+                              }
+                            }
+                            return null;
+                          };
+                          
+                          const node = findNode(nodeKey, companyTreeData);
+                          if (!node || !node.children || node.children.length === 0) {
+                            return false;
+                          }
+                          const selfSelected = selectedCompanyRadioKeys.includes(nodeKey);
+                          const allDescendantsSelected = areAllDescendantsRadioSelected(node);
+                          return selfSelected && allDescendantsSelected;
+                        };
+
+                        // 检查复选框是否为部分选中状态
+                        const isCheckboxIndeterminate = (nodeKey) => {
+                          const findNode = (key, nodes) => {
+                            for (const node of nodes) {
+                              if (node.key === key) return node;
+                              if (node.children) {
+                                const found = findNode(key, node.children);
+                                if (found) return found;
+                              }
+                            }
+                            return null;
+                          };
+                          
+                          const node = findNode(nodeKey, companyTreeData);
+                          if (!node || !node.children || node.children.length === 0) {
+                            return false;
+                          }
+                          const selfSelected = selectedCompanyRadioKeys.includes(nodeKey);
+                          const allDescendantsSelected = areAllDescendantsRadioSelected(node);
+                          
+                          if (selfSelected && allDescendantsSelected) {
+                            return false;
+                          }
+                          
+                          let selectedCount = 0;
+                          let totalCount = 1;
+                          
+                          const countDescendants = (n) => {
+                            if (n.children && n.children.length > 0) {
+                              n.children.forEach((child) => {
+                                totalCount++;
+                                if (selectedCompanyRadioKeys.includes(child.key)) {
+                                  selectedCount++;
+                                }
+                                countDescendants(child);
+                              });
+                            }
+                          };
+                          
+                          if (selfSelected) {
+                            selectedCount++;
+                          }
+                          countDescendants(node);
+                          
+                          return selectedCount > 0 && selectedCount < totalCount;
+                        };
+
+                        // 检查节点是否被单选框选中
+                        const isRadioChecked = (nodeKey) => {
+                          return selectedCompanyRadioKeys.includes(nodeKey);
+                        };
+
+                        // 处理复选框点击
+                        const handleCheckboxChange = (node, checked) => {
+                          if (scopeLocked) return;
+                          const allKeys = collectAllChildKeys(node);
+                          if (checked) {
+                            setSelectedCompanyRadioKeys((prev) => {
+                              const newKeys = [...prev];
+                              allKeys.forEach((key) => {
+                                if (!newKeys.includes(key)) {
+                                  newKeys.push(key);
+                                }
+                              });
+                              setTimeout(() => {
+                                allKeys.forEach((key) => {
+                                  updateParentCheckboxes(key);
+                                });
+                              }, 0);
+                              return newKeys;
+                            });
+                          } else {
+                            setSelectedCompanyRadioKeys((prev) => {
+                              const newKeys = prev.filter((key) => !allKeys.includes(key));
+                              setTimeout(() => {
+                                allKeys.forEach((key) => {
+                                  updateParentCheckboxes(key);
+                                });
+                              }, 0);
+                              return newKeys;
+                            });
+                          }
+                        };
+
+                        // 处理单选框点击
+                        const handleRadioChange = (e, nodeKey) => {
+                          if (scopeLocked) return;
+                          if (e && typeof e.stopPropagation === 'function') {
+                            e.stopPropagation();
+                          }
+                          const checked = e && e.target ? e.target.checked : !isRadioChecked(nodeKey);
+                          if (checked) {
+                            setSelectedCompanyRadioKeys((prev) => {
+                              if (!prev.includes(nodeKey)) {
+                                const newKeys = [...prev, nodeKey];
+                                setTimeout(() => {
+                                  updateParentCheckboxes(nodeKey);
+                                }, 0);
+                                return newKeys;
+                              }
+                              return prev;
+                            });
+                          } else {
+                            setSelectedCompanyRadioKeys((prev) => {
+                              const newKeys = prev.filter((key) => key !== nodeKey);
+                              setTimeout(() => {
+                                updateParentCheckboxes(nodeKey);
+                              }, 0);
+                              return newKeys;
+                            });
+                          }
+                        };
+
+                        // 自定义圆形单选框组件（选中时显示打钩）
+                        const CustomRadio = ({ checked, onChange, disabled }) => (
+                          <div
+                            onClick={(e) => {
+                              if (!disabled) {
+                                e.stopPropagation();
+                                onChange({ target: { checked: !checked } });
+                              }
+                            }}
+                            style={{
+                              width: 16,
+                              height: 16,
+                              borderRadius: '50%',
+                              border: checked ? '2px solid #1890ff' : '2px solid #d9d9d9',
+                              backgroundColor: checked ? '#1890ff' : '#fff',
+                              cursor: disabled ? 'not-allowed' : 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.3s',
+                              opacity: disabled ? 0.5 : 1,
+                            }}
+                          >
+                            {checked && (
+                              <CheckOutlined
+                                style={{
+                                  fontSize: 10,
+                                  color: '#fff',
+                                  lineHeight: 1,
+                                }}
+                              />
+                            )}
+          </div>
+                        );
+
+                        // 自定义树节点渲染
+                        const renderCompanyTreeNode = (nodeData) => {
+                          const { title, key, children } = nodeData;
+                          const checkboxChecked = isCheckboxChecked(key);
+                          const checkboxIndeterminate = isCheckboxIndeterminate(key);
+                          const radioChecked = isRadioChecked(key);
+                          const hasChildren = children && children.length > 0;
+
+                          return (
+                            <div 
+                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0' }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {/* 方形复选框 - 只有有子节点的节点才显示，控制该节点及其所有子节点的单选框 */}
+                              {hasChildren && (
+                                <Checkbox
+                                  checked={checkboxChecked}
+                                  indeterminate={checkboxIndeterminate}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    handleCheckboxChange(nodeData, e.target.checked);
+                                  }}
+                                  disabled={scopeLocked}
+                                  style={{ marginRight: 4 }}
+                                />
+                              )}
+                              {/* 圆形单选框（选中时显示打钩）- 所有节点都有 */}
+                              <CustomRadio
+                                checked={radioChecked}
+                                onChange={(e) => handleRadioChange(e, key)}
+                                disabled={scopeLocked}
+                              />
+                              {/* 节点标题 */}
+                              <span style={{ flex: 1, marginLeft: 4 }}>{title}</span>
+                            </div>
+                          );
+                        };
+
+                        // 递归处理树数据，添加自定义 title
+                        const processTreeData = (nodes) => {
+                          return nodes.map((node) => ({
+                            ...node,
+                            title: renderCompanyTreeNode(node),
+                            children: node.children ? processTreeData(node.children) : undefined,
+                          }));
+                        };
+
+                        const processedTreeData = scopeLocked
+                          ? mapTreeDisabled(companyTreeData, true)
+                          : companyTreeData;
+
+                        return (
+                          <Tree
+                            checkable={false}
+                            selectable={false}
+                            showIcon={false}
+                            treeData={processTreeData(processedTreeData)}
+                            defaultExpandAll
+                          />
+                        );
+                      })()
+                    ) : (
+                      (() => {
+                        // 收集所有子节点 key 的辅助函数
+                        const collectAllChildKeys = (node) => {
+                          const keys = [node.key];
+                          if (node.children) {
+                            node.children.forEach((child) => {
+                              keys.push(...collectAllChildKeys(child));
+                            });
+                          }
+                          return keys;
+                        };
+
+                        // 查找节点的所有父节点
+                        const findParentNodes = (targetKey, nodes, parentPath = []) => {
+                          for (const node of nodes) {
+                            if (node.key === targetKey) {
+                              return parentPath;
+                            }
+                            if (node.children) {
+                              const found = findParentNodes(targetKey, node.children, [...parentPath, node]);
+                              if (found !== null) {
+                                return found;
+                              }
+                            }
+                          }
+                          return null;
+                        };
+
+                        // 递归检查节点的所有子节点（包括深层子节点）的单选框是否都被选中
+                        // 注意：这个函数只检查子节点，不包括当前节点本身
+                        const areAllDescendantsRadioSelected = (node) => {
+                          if (!node.children || node.children.length === 0) {
+                            // 叶子节点没有子节点，所以返回 true（没有子节点需要检查）
+                            return true;
+                          }
+                          // 有子节点：检查所有子节点（递归）是否都被选中
+                          return node.children.every((child) => {
+                            // 检查子节点本身的单选框是否选中
+                            const childSelected = selectedDepartmentRadioKeys.includes(child.key);
+                            // 检查子节点的所有后代是否都被选中
+                            const childDescendantsSelected = areAllDescendantsRadioSelected(child);
+                            // 子节点本身和所有后代都必须被选中
+                            return childSelected && childDescendantsSelected;
+                          });
+                        };
+
+                        // 递归检查节点的子节点（包括深层子节点）的单选框是否有部分被选中
+                        const areSomeDescendantsRadioSelected = (node) => {
+                          if (!node.children || node.children.length === 0) {
+                            // 叶子节点：检查自己的单选框是否被选中
+                            return selectedDepartmentRadioKeys.includes(node.key);
+                          }
+                          // 有子节点：统计所有后代节点（包括中间节点和叶子节点）中被选中的数量
+                          let selectedCount = 0;
+                          let totalCount = 0;
+                          
+                          const countDescendants = (n) => {
+                            // 统计当前节点
+                            totalCount++;
+                            if (selectedDepartmentRadioKeys.includes(n.key)) {
+                              selectedCount++;
+                            }
+                            // 递归统计子节点
+                            if (n.children && n.children.length > 0) {
+                              n.children.forEach((child) => {
+                                countDescendants(child);
+                              });
+                            }
+                          };
+                          
+                          node.children.forEach((child) => {
+                            countDescendants(child);
+                          });
+                          
+                          // 如果有部分后代节点被选中，但不是全部，则返回 true
+                          return selectedCount > 0 && selectedCount < totalCount;
+                        };
+
+                        // 检查节点的所有直接子节点的单选框是否都被选中（用于快速检查）
+                        const areAllChildrenRadioSelected = (node) => {
+                          if (!node.children || node.children.length === 0) {
+                            return true; // 叶子节点没有子节点
+                          }
+                          // 检查所有直接子节点的单选框是否都被选中
+                          return node.children.every((child) => {
+                            return selectedDepartmentRadioKeys.includes(child.key);
+                          });
+                        };
+
+                        // 检查节点的子节点的单选框是否有部分被选中（用于 indeterminate 状态）
+                        const areSomeChildrenRadioSelected = (node) => {
+                          if (!node.children || node.children.length === 0) {
+                            return false; // 叶子节点没有子节点
+                          }
+                          // 检查是否有部分子节点的单选框被选中
+                          const selectedCount = node.children.filter((child) => {
+                            return selectedDepartmentRadioKeys.includes(child.key);
+                          }).length;
+                          return selectedCount > 0 && selectedCount < node.children.length;
+                        };
+
+                        // 更新父节点的复选框状态（基于子节点的单选框状态）
+                        const updateParentCheckboxes = (nodeKey) => {
+                          const parentPath = findParentNodes(nodeKey, departmentTreeData);
+                          if (!parentPath) return;
+
+                          // 从最直接的父节点开始，向上更新所有父节点
+                          parentPath.forEach((parentNode) => {
+                            const allChildrenSelected = areAllChildrenRadioSelected(parentNode);
+                            setSelectedDepartmentKeys((prev) => {
+                              if (allChildrenSelected) {
+                                // 所有子节点的单选框都被选中，选中父节点复选框
+                                if (!prev.includes(parentNode.key)) {
+                                  return [...prev, parentNode.key];
+                                }
+                              } else {
+                                // 有子节点的单选框未选中，取消选中父节点复选框
+                                return prev.filter((key) => key !== parentNode.key);
+                              }
+                              return prev;
+                            });
+                          });
+                        };
+
+                        // 检查节点是否被复选框选中（包含当前节点本身和所有子节点的单选框状态）
+                        const isCheckboxChecked = (nodeKey) => {
+                          // 查找节点
+                          const findNode = (key, nodes) => {
+                            for (const node of nodes) {
+                              if (node.key === key) return node;
+                              if (node.children) {
+                                const found = findNode(key, node.children);
+                                if (found) return found;
+                              }
+                            }
+                            return null;
+                          };
+                          
+                          const node = findNode(nodeKey, departmentTreeData);
+                          if (!node || !node.children || node.children.length === 0) {
+                            return false; // 叶子节点没有复选框
+                          }
+                          // 检查当前节点本身的单选框是否选中
+                          const selfSelected = selectedDepartmentRadioKeys.includes(nodeKey);
+                          // 递归检查所有子节点（包括深层子节点）的单选框是否都被选中
+                          const allDescendantsSelected = areAllDescendantsRadioSelected(node);
+                          // 只有当前节点和所有子节点都被选中时，复选框才全选
+                          return selfSelected && allDescendantsSelected;
+                        };
+
+                        // 检查复选框是否为部分选中状态（indeterminate，包含当前节点本身和所有子节点）
+                        const isCheckboxIndeterminate = (nodeKey) => {
+                          const findNode = (key, nodes) => {
+                            for (const node of nodes) {
+                              if (node.key === key) return node;
+                              if (node.children) {
+                                const found = findNode(key, node.children);
+                                if (found) return found;
+                              }
+                            }
+                            return null;
+                          };
+                          
+                          const node = findNode(nodeKey, departmentTreeData);
+                          if (!node || !node.children || node.children.length === 0) {
+                            return false; // 叶子节点没有复选框
+                          }
+                          // 检查当前节点本身的单选框是否选中
+                          const selfSelected = selectedDepartmentRadioKeys.includes(nodeKey);
+                          // 递归检查所有子节点（包括深层子节点）的单选框状态
+                          const allDescendantsSelected = areAllDescendantsRadioSelected(node);
+                          
+                          // 如果当前节点和所有子节点都被选中，则不是部分选中（是全选）
+                          if (selfSelected && allDescendantsSelected) {
+                            return false;
+                          }
+                          
+                          // 统计所有后代节点中被选中的数量（包括当前节点）
+                          let selectedCount = 0;
+                          let totalCount = 1; // 包括当前节点
+                          
+                          const countDescendants = (n) => {
+                            if (n.children && n.children.length > 0) {
+                              n.children.forEach((child) => {
+                                totalCount++;
+                                if (selectedDepartmentRadioKeys.includes(child.key)) {
+                                  selectedCount++;
+                                }
+                                countDescendants(child);
+                              });
+                            }
+                          };
+                          
+                          if (selfSelected) {
+                            selectedCount++;
+                          }
+                          countDescendants(node);
+                          
+                          // 如果有部分被选中（但不是全部），则是部分选中
+                          return selectedCount > 0 && selectedCount < totalCount;
+                        };
+
+                        // 检查节点是否被单选框选中
+                        const isRadioChecked = (nodeKey) => {
+                          return selectedDepartmentRadioKeys.includes(nodeKey);
+                        };
+
+                        // 处理复选框点击（控制该节点及其所有子节点的单选框）
+                        const handleCheckboxChange = (node, checked) => {
+                          if (scopeLocked) return;
+                          const allKeys = collectAllChildKeys(node);
+                          if (checked) {
+                            // 选中复选框时，选中该节点及其所有子节点的单选框
+                            setSelectedDepartmentRadioKeys((prev) => {
+                              const newKeys = [...prev];
+                              allKeys.forEach((key) => {
+                                if (!newKeys.includes(key)) {
+                                  newKeys.push(key);
+                                }
+                              });
+                              // 更新复选框状态（基于单选框状态）
+                              setTimeout(() => {
+                                allKeys.forEach((key) => {
+                                  updateParentCheckboxes(key);
+                                });
+                              }, 0);
+                              return newKeys;
+                            });
+                          } else {
+                            // 取消选中复选框时，取消选中该节点及其所有子节点的单选框
+                            setSelectedDepartmentRadioKeys((prev) => {
+                              const newKeys = prev.filter((key) => !allKeys.includes(key));
+                              // 更新复选框状态（基于单选框状态）
+                              setTimeout(() => {
+                                allKeys.forEach((key) => {
+                                  updateParentCheckboxes(key);
+                                });
+                              }, 0);
+                              return newKeys;
+                            });
+                          }
+                        };
+
+                        // 处理单选框点击（所有节点都有，影响父节点复选框状态）
+                        const handleRadioChange = (e, nodeKey) => {
+                          if (scopeLocked) return;
+                          // 处理事件对象（可能是真实事件或模拟对象）
+                          if (e && typeof e.stopPropagation === 'function') {
+                            e.stopPropagation(); // 阻止事件冒泡
+                          }
+                          const checked = e && e.target ? e.target.checked : !isRadioChecked(nodeKey);
+                          if (checked) {
+                            // 选中单选框
+                            setSelectedDepartmentRadioKeys((prev) => {
+                              if (!prev.includes(nodeKey)) {
+                                const newKeys = [...prev, nodeKey];
+                                // 更新父节点复选框状态
+                                setTimeout(() => {
+                                  updateParentCheckboxes(nodeKey);
+                                }, 0);
+                                return newKeys;
+                              }
+                              return prev;
+                            });
+                          } else {
+                            // 取消选中单选框
+                            setSelectedDepartmentRadioKeys((prev) => {
+                              const newKeys = prev.filter((key) => key !== nodeKey);
+                              // 更新父节点复选框状态
+                              setTimeout(() => {
+                                updateParentCheckboxes(nodeKey);
+                              }, 0);
+                              return newKeys;
+                            });
+                          }
+                        };
+
+                        // 自定义圆形单选框组件（选中时显示打钩）
+                        const CustomRadio = ({ checked, onChange, disabled }) => (
+                          <div
+                            onClick={(e) => {
+                              if (!disabled) {
+                                e.stopPropagation();
+                                onChange({ target: { checked: !checked } });
+                              }
+                            }}
+                            style={{
+                              width: 16,
+                              height: 16,
+                              borderRadius: '50%',
+                              border: checked ? '2px solid #1890ff' : '2px solid #d9d9d9',
+                              backgroundColor: checked ? '#1890ff' : '#fff',
+                              cursor: disabled ? 'not-allowed' : 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.3s',
+                              opacity: disabled ? 0.5 : 1,
+                            }}
+                          >
+                            {checked && (
+                              <CheckOutlined
+                                style={{
+                                  fontSize: 10,
+                                  color: '#fff',
+                                  lineHeight: 1,
+                                }}
+                              />
+                            )}
+                          </div>
+                        );
+
+                        // 自定义树节点渲染
+                        const renderDepartmentTreeNode = (nodeData) => {
+                          const { title, key, children } = nodeData;
+                          const checkboxChecked = isCheckboxChecked(key);
+                          const checkboxIndeterminate = isCheckboxIndeterminate(key);
+                          const radioChecked = isRadioChecked(key);
+                          const hasChildren = children && children.length > 0;
+
+                          return (
+                            <div 
+                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0' }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {/* 方形复选框 - 只有有子节点的节点才显示，控制该节点及其所有子节点的单选框 */}
+                              {hasChildren && (
+                                <Checkbox
+                                  checked={checkboxChecked}
+                                  indeterminate={checkboxIndeterminate}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    handleCheckboxChange(nodeData, e.target.checked);
+                                  }}
+                                  disabled={scopeLocked}
+                                  style={{ marginRight: 4 }}
+                                />
+                              )}
+                              {/* 圆形单选框（选中时显示打钩）- 所有节点都有 */}
+                              <CustomRadio
+                                checked={radioChecked}
+                                onChange={(e) => handleRadioChange(e, key)}
+                                disabled={scopeLocked}
+                              />
+                              {/* 节点标题 */}
+                              <span style={{ flex: 1, marginLeft: 4 }}>{title}</span>
+                            </div>
+                          );
+                        };
+
+                        // 递归处理树数据，添加自定义 title
+                        const processTreeData = (nodes) => {
+                          return nodes.map((node) => ({
+                            ...node,
+                            title: renderDepartmentTreeNode(node),
+                            children: node.children ? processTreeData(node.children) : undefined,
+                          }));
+                        };
+
+                        const processedTreeData = scopeLocked
+                          ? mapTreeDisabled(departmentTreeData, true)
+                          : departmentTreeData;
+
+                        return (
+                          <Tree
+                            checkable={false}
+                            selectable={false}
+                            showIcon={false}
+                            treeData={processTreeData(processedTreeData)}
+                            defaultExpandAll
+                          />
+                        );
+                      })()
+                    )}
                   </div>
                 </div>
               </div>
             )}
           </div>
-        </Space>
-      </div>
+      </Space>
     </Modal>
   );
 };

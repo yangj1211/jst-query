@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircleOutlined, LoadingOutlined, DownOutlined, RightOutlined } from '@ant-design/icons';
+import { Tree } from 'antd';
 import './CombinedThinking.css';
 
 /**
@@ -15,13 +16,87 @@ import './CombinedThinking.css';
 const CombinedThinking = ({ intentData = {}, config = {}, dataInfo = {}, steps = [], isComplete = false, isStopped = false }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [visibleSteps, setVisibleSteps] = useState([]); // 当前可见的步骤数量
+  const [expandedKeys, setExpandedKeys] = useState([]); // 树形结构展开的节点
+  const prevFilteredTreeDataRef = useRef(null); // 用于跟踪数据变化
 
   const { status = 'loading' } = intentData;
   const { time = '', metrics = [], dimensions = [] } = dataInfo;
-  const { source = '全部数据', scope = '集团总数据', caliber = '内部管理用（管口）' } = config;
+  const {
+    dataObject = '默认对象',
+    source = '全部数据',
+    scope = '集团总数据',
+    scopeTreeData = null,
+    scopeSelectedKeys = [],
+    scopeLabel = '',
+    filter = '全部数据',
+    caliber = '内部管理用（管口）',
+  } = config;
 
   // 判断当前阶段
   const currentPhase = isStopped ? 'stopped' : (status === 'done' ? (isComplete ? 'completed' : 'thinking') : 'recognizing');
+
+  // 过滤树形数据，只保留选中的节点及其必要的父节点
+  const filterTreeData = (treeData, selectedKeys) => {
+    if (!treeData || selectedKeys.length === 0) return [];
+
+    const filterNode = (node) => {
+      const isSelected = selectedKeys.includes(node.key);
+      
+      // 递归过滤子节点
+      let filteredChildren = null;
+      if (node.children && node.children.length > 0) {
+        filteredChildren = node.children
+          .map(child => filterNode(child))
+          .filter(Boolean);
+      }
+
+      // 如果当前节点被选中，或者有被选中的子节点，则保留该节点
+      if (isSelected || (filteredChildren && filteredChildren.length > 0)) {
+        return {
+          ...node,
+          children: filteredChildren && filteredChildren.length > 0 ? filteredChildren : undefined
+        };
+      }
+
+      return null;
+    };
+
+    return treeData.map(filterNode).filter(Boolean);
+  };
+
+  // 计算过滤后的树形数据
+  const filteredTreeData = scopeTreeData && scopeSelectedKeys.length > 0
+    ? filterTreeData(scopeTreeData, scopeSelectedKeys)
+    : null;
+
+  // 初始化展开的节点：默认展开所有有子节点的节点（因为只显示选中的节点，所以全部展开）
+  useEffect(() => {
+    // 检查数据是否真正变化（通过比较 JSON 字符串）
+    const currentDataStr = JSON.stringify(filteredTreeData);
+    const prevDataStr = JSON.stringify(prevFilteredTreeDataRef.current);
+    
+    if (filteredTreeData && filteredTreeData.length > 0) {
+      // 只在数据真正变化时才重新初始化展开状态
+      if (currentDataStr !== prevDataStr) {
+        const getAllParentKeys = (nodes) => {
+          const keys = [];
+          nodes.forEach((node) => {
+            if (node.children && node.children.length > 0) {
+              keys.push(node.key);
+              keys.push(...getAllParentKeys(node.children));
+            }
+          });
+          return keys;
+        };
+        setExpandedKeys(getAllParentKeys(filteredTreeData));
+        prevFilteredTreeDataRef.current = filteredTreeData;
+      }
+    } else {
+      // 当数据清空时，重置展开状态
+      setExpandedKeys([]);
+      prevFilteredTreeDataRef.current = null;
+    }
+  }, [filteredTreeData]);
 
   // 流式输出步骤
   useEffect(() => {
@@ -84,16 +159,54 @@ const CombinedThinking = ({ intentData = {}, config = {}, dataInfo = {}, steps =
             {/* 数据配置信息 */}
             <div className="config-info">
               <div className="config-item">
-                <span className="config-key">• 数据来源：</span>
-                <span className="config-value">{source}</span>
-              </div>
-              <div className="config-item">
-                <span className="config-key">• 数据范围：</span>
-                <span className="config-value">{scope}</span>
+                <span className="config-key">• 数据对象：</span>
+                <span className="config-value">{dataObject}</span>
               </div>
               <div className="config-item">
                 <span className="config-key">• 数据口径：</span>
                 <span className="config-value">{caliber}</span>
+              </div>
+              {config?.filter && (
+                <div className="config-item">
+                  <span className="config-key">• 过滤条件：</span>
+                  <span className="config-value">{config.filter}</span>
+                </div>
+              )}
+              <div className="config-item">
+                <span className="config-key">• 数据来源：</span>
+                <span className="config-value">
+                  {source.split('\n').map((line, idx) => (
+                    <React.Fragment key={idx}>
+                      {line}
+                      {idx < source.split('\n').length - 1 && <br />}
+                    </React.Fragment>
+                  ))}
+                </span>
+              </div>
+              <div className="config-item">
+                <span className="config-key">• 数据范围：</span>
+                <span className="config-value">
+                  {filteredTreeData && filteredTreeData.length > 0 ? (
+                    <div className="scope-tree-container">
+                      <Tree
+                        treeData={filteredTreeData}
+                        expandedKeys={expandedKeys}
+                        onExpand={(keys) => {
+                          setExpandedKeys(keys);
+                        }}
+                        showLine={false}
+                        switcherIcon={({ expanded }) => expanded ? <DownOutlined /> : <RightOutlined />}
+                        style={{ 
+                          background: 'transparent',
+                          fontSize: '14px',
+                          lineHeight: '1.6'
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <span>{scope}</span>
+                  )}
+                </span>
               </div>
             </div>
           </div>

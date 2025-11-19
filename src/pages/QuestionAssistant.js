@@ -6,6 +6,65 @@ import QueryResult from '../components/QueryResult'; // 引入查询结果组件
 import QueryConfigModal from '../components/QueryConfigModal';
 import CombinedThinking from '../components/CombinedThinking';
 
+// 公司树形数据（用于构建层级显示）
+const companyTreeData = [
+  {
+    title: 'EO_1000 - 金盘科技大合并 (84)',
+    key: 'eo_1000',
+    children: [
+      { title: '1100 - 海南金盘电气研究院有限公司', key: 'eo_1100' },
+      { title: '1200 - 海南金盘电气有限公司', key: 'eo_1200' },
+      { title: '1600 - 海南金盘科技储能技术有限公司', key: 'eo_1600' },
+      { title: '2300 - 武汉金盘智能科技有限公司', key: 'eo_2300' },
+      {
+        title: 'E_1000 - 海南金盘科技小合并（合并组） (4)',
+        key: 'e_1000',
+        children: [
+          { title: 'E_1300 - 桐乡同亨数字科技有限公司 (6)', key: 'e_1300' },
+          { title: 'E_1400 - 海南金盘科技新能源小合并 (4)', key: 'e_1400' },
+          { title: 'E_1800 - 金盘（扬州）新能源装备 (1)', key: 'e_1800' },
+          { title: 'E_2000 - 金盘中国小合并 (2)', key: 'e_2000' },
+          { title: 'E_2400 - 武汉智能科技研究院小合并 (6)', key: 'e_2400' },
+          { title: 'E_4000 - 桂林君泰福电气有限公司小合并 (4)', key: 'e_4000' },
+          { title: 'E_4300 - 金盘智能机器人(海南)小合并 (2)', key: 'e_4300' },
+          { title: 'E_5000 - JST Powr HK小合并 (12)', key: 'e_5000' },
+          { title: 'E_6601 - JST Global Energy Group小合并 (9)', key: 'e_6601' },
+          { title: 'E_7000 - 海南金盘科技新能源投资小合并 (1)', key: 'e_7000' },
+          { title: 'E_7019 - 海口琼山金盘新能源小合并 (2)', key: 'e_7019' },
+        ],
+      },
+    ],
+  },
+];
+
+// 事业部树形数据（用于构建层级显示）
+const departmentTreeData = [
+  {
+    title: 'PC_11 - 考核合并组 (194)',
+    key: 'pc_11',
+    children: [
+      {
+        title: 'PC_1101 - 中国业务 (161)',
+        key: 'pc_1101',
+        children: [
+          {
+            title: 'PC_110101 - 事业部-中国 (126)',
+            key: 'pc_110101',
+            children: [
+              { title: 'PC_11010101 - 干变事业部 (14)', key: 'pc_11010101' },
+              { title: 'PC_11010102 - 成套电气事业部 (15)', key: 'pc_11010102' },
+              { title: 'PC_11010103 - 电抗变频事业部 (18)', key: 'pc_11010103' },
+              { title: 'PC_11010104 - 出口开关事业部 (13)', key: 'pc_11010104' },
+              { title: 'PC_11010105 - 国内储能事业部 (2)', key: 'pc_11010105' },
+              { title: 'PC_11010106 - 海南电力系统工程事业部 (3)', key: 'pc_11010106' },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
+
 /**
  * 问数助手页面组件
  * 包含"问数"和"单据检索"两个标签页
@@ -656,30 +715,129 @@ const QuestionAssistant = () => {
     // 获取当前有效配置
     const currentConfig = getEffectiveConfig();
     
+    const summarizeList = (items = [], limit = 3) => {
+      if (!items || items.length === 0) return '未选择';
+      if (items.length <= limit) return items.join('、');
+      return `${items.slice(0, limit).join('、')} 等${items.length}项`;
+    };
+
+    const bulletList = (label, items) => {
+      if (!items || items.length === 0) return `${label}：未选择`;
+      return `${label}：
+        ${items.map((item) => `- ${item}`).join('\n        ')}`;
+    };
+    
     // 处理数据来源
     let sourceDisplay = '全部数据';
-    if (currentConfig.sourceMode === 'tables') {
-      const tables = currentConfig.selectedTables || [];
-      sourceDisplay = tables.length > 0 ? `指定表（${tables.join('、')}）` : '指定表（0个）';
-    } else if (currentConfig.sourceMode === 'files') {
-      const files = currentConfig.selectedFiles || [];
-      sourceDisplay = files.length > 0 ? `指定文件（${files.join('、')}）` : '指定文件（0个）';
+    if (currentConfig.sourceMode === 'custom') {
+      const tableMode = currentConfig.tableSelectMode || (currentConfig.tables?.length ? 'custom' : 'none');
+      const fileMode = currentConfig.fileSelectMode || (currentConfig.files?.length ? 'custom' : 'none');
+      
+      // 处理表的显示
+      let tableDisplay = '';
+      if (tableMode === 'none') {
+        tableDisplay = '表：不使用';
+      } else if (tableMode === 'all') {
+        tableDisplay = '表：全部';
+      } else {
+        // 指定表：多个表在同一行显示，用顿号分隔
+        const tableNames = (currentConfig.tables || []).map((name) => name);
+        tableDisplay = `表：${tableNames.join('、')}`;
+      }
+      
+      // 处理文件的显示
+      let fileDisplay = '';
+      if (fileMode === 'none') {
+        fileDisplay = '文件：不使用';
+      } else if (fileMode === 'all') {
+        fileDisplay = '文件：全部';
+      } else {
+        // 指定文件：多个文件在同一行显示，用顿号分隔
+        const fileNames = (currentConfig.files || []).map((name) => name);
+        fileDisplay = `文件：${fileNames.join('、')}`;
+      }
+
+      sourceDisplay = `${tableDisplay}\n      ${fileDisplay}`;
     }
     
-    // 处理数据范围
+    // 构建层级结构的显示
+    const buildHierarchicalDisplay = (selectedKeys, treeData) => {
+      const lines = [];
+      
+      const traverse = (nodes, level = 0) => {
+        nodes.forEach((node) => {
+          if (selectedKeys.includes(node.key)) {
+            const indentStr = '  '.repeat(level);
+            lines.push(`${indentStr}${node.title}`);
+            // 如果节点有子节点，继续遍历子节点
+            if (node.children && node.children.length > 0) {
+              traverse(node.children, level + 1);
+            }
+          } else {
+            // 如果当前节点未选中，但可能有子节点被选中，继续遍历子节点（保持层级）
+            if (node.children && node.children.length > 0) {
+              traverse(node.children, level);
+            }
+          }
+        });
+      };
+      
+      traverse(treeData);
+      return lines;
+    };
+    
+    // 处理数据范围（传递树形数据和选中的 keys，而不是构建好的文本）
     let scopeDisplay = '集团总数据';
-    if (currentConfig.scopeType === 'branches') {
-      const branches = currentConfig.selectedBranches || [];
-      scopeDisplay = branches.length > 0 ? `指定分公司（${branches.join('、')}）` : '指定分公司（）';
+    let scopeTreeData = null;
+    let scopeSelectedKeys = [];
+    let scopeLabel = '';
+    
+    if (currentConfig.scopeMode === 'custom') {
+      const treeType = currentConfig.scopeTreeType || 'company';
+      scopeLabel = treeType === 'department' ? '事业部' : '公司';
+      scopeTreeData = treeType === 'department' ? departmentTreeData : companyTreeData;
+      scopeSelectedKeys = treeType === 'department'
+        ? (currentConfig.departmentRadioKeys || [])
+        : (currentConfig.companyRadioKeys || []);
+      
+      if (scopeSelectedKeys && scopeSelectedKeys.length > 0) {
+        scopeDisplay = `${scopeLabel}：已选择 ${scopeSelectedKeys.length} 项`;
+      } else {
+        scopeDisplay = `${scopeLabel}：未选择`;
+      }
+    } else if (currentConfig.scopeType === 'branches') {
+      const branches = currentConfig.branches || currentConfig.selectedBranches || [];
+      if (branches && branches.length > 0) {
+        scopeDisplay = `指定分公司：${branches.join('、')}`;
+      } else {
+        scopeDisplay = '指定分公司：未选择';
+      }
     }
     
-    // 处理数据口径
-    const caliberDisplay = currentConfig.caliber === 'external' ? '对外披露用（法口）' : '内部管理用（管口）';
+    // 处理数据口径（选项名称要与配置模态框一致）
+    const caliberDisplay = currentConfig.caliber === 'external' ? '法口数据' : '管口数据';
+
+    // 处理过滤条件（选项名称要与配置模态框一致）
+    const filterDisplay = currentConfig.filterOption === 'excludeInternal'
+      ? '不含内部关联交易数据'
+      : '全部数据';
+
+    const dataObjectDisplayMap = {
+      custom: '默认对象',
+      audit: '审计 / 券商 / 招投标 / 银行',
+      government: '政府相关',
+    };
+    const dataObjectDisplay = dataObjectDisplayMap[currentConfig.dataObject] || '默认对象';
     
     const configDisplay = {
+      dataObject: dataObjectDisplay,
       source: sourceDisplay,
       scope: scopeDisplay,
-      caliber: caliberDisplay
+      scopeTreeData: scopeTreeData,
+      scopeSelectedKeys: scopeSelectedKeys,
+      scopeLabel: scopeLabel,
+      caliber: caliberDisplay,
+      filter: filterDisplay
     };
     
     const combinedMessage = {
@@ -786,19 +944,19 @@ const QuestionAssistant = () => {
               }
             };
 
-            let resultData;
-
-            if (isCompositeQuestion) {
-              // 复合问题：生成查询结果并同时进行分析
-              resultData = generateMockResult(question, params, true); // 传入true表示需要分析
-            } else if (isAnalysis && previousResult) {
-              // 单纯分析问题：基于上一次结果
-              resultData = generateAnalysisFromPreviousResult(question, params, previousResult);
-            } else {
-              // 单纯查询问题：生成查询结果
-              resultData = generateMockResult(question, params, false);
-            }
-
+              let resultData;
+              
+              if (isCompositeQuestion) {
+                // 复合问题：生成查询结果并同时进行分析
+                resultData = generateMockResult(question, params, true); // 传入true表示需要分析
+              } else if (isAnalysis && previousResult) {
+                // 单纯分析问题：基于上一次结果
+                resultData = generateAnalysisFromPreviousResult(question, params, previousResult);
+              } else {
+                // 单纯查询问题：生成查询结果
+                resultData = generateMockResult(question, params, false);
+              }
+              
             const streamableBlocks = Array.isArray(resultData?.resultBlocks) ? resultData.resultBlocks : [];
             const shouldStream = streamableBlocks.length > 0;
 
@@ -807,12 +965,12 @@ const QuestionAssistant = () => {
               const finalAnalysis = resultData.analysis;
 
               updateResultMessage(m => ({
-                ...m,
-                data: {
+                    ...m,
+                    data: {
                   params,
                   summary: finalSummary ? '' : resultData.summary || '',
                   resultBlocks: [],
-                },
+                    },
                 resultStatus: 'generating'
               }));
 
@@ -2742,10 +2900,10 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                             }
 
                             return (
-                              <div className="result-loading-placeholder">
-                                <div className="result-loading-spinner"></div>
-                                <span className="result-loading-text">正在生成结果...</span>
-                              </div>
+                            <div className="result-loading-placeholder">
+                              <div className="result-loading-spinner"></div>
+                              <span className="result-loading-text">正在生成结果...</span>
+                            </div>
                             );
                           })()}
                           {/* 只有在结果完成后才显示导出报告、点赞、点踩等功能 */}
@@ -2753,7 +2911,7 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                             <div className="message-footer">
                               <div className="footer-actions">
                                 <button 
-                                  className="footer-icon-btn"
+                                  className="footer-export-btn"
                                   onClick={() => console.log('导出报告')}
                                   title="导出报告"
                                 >
@@ -2763,7 +2921,7 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                                 <span className="footer-divider">|</span>
                                 <div className="footer-rating-btns">
                                   <button 
-                                    className={`footer-icon-btn ${message.liked ? 'active' : ''}`}
+                                    className={`footer-icon-btn rating-btn ${message.liked ? 'active' : ''}`}
                                     onClick={() => {
                                       setMessages(prev => prev.map(m => {
                                         if (m.id === message.id) {
@@ -2783,7 +2941,7 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                                     <LikeOutlined style={{ fontSize: 16, color: message.liked ? '#1890ff' : undefined }} />
                                   </button>
                                   <button 
-                                    className={`footer-icon-btn ${message.disliked ? 'active' : ''}`}
+                                    className={`footer-icon-btn rating-btn ${message.disliked ? 'active' : ''}`}
                                     onClick={() => {
                                       setMessages(prev => prev.map(m => {
                                         if (m.id === message.id) {

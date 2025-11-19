@@ -61,8 +61,9 @@
 .config-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 14px;
+  color: #1f2937;
 }
 
 .config-item {
@@ -73,13 +74,53 @@
 
 .config-key {
   color: #6b7280;
-  min-width: 90px;
+  min-width: 86px;
   flex-shrink: 0;
+  font-weight: 600;
 }
 
 .config-value {
   color: #1f2937;
-  flex: 1;
+  white-space: pre-wrap;
+}
+
+.scope-tree-container {
+  margin-top: 4px;
+}
+
+.scope-tree-container .ant-tree-node-content-wrapper {
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.scope-tree-container .ant-tree-title {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.scope-tree-container .ant-tree-switcher {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.scope-tree-container .ant-tree-switcher:hover {
+  background-color: #f5f5f5;
+  border-radius: 2px;
+}
+
+.scope-tree-container .ant-tree-switcher-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: none !important;
+}
+
+.scope-tree-container .ant-tree-switcher-icon svg {
+  transform: none !important;
 }
 
 /* 思考过程部分（绿色背景区域） */

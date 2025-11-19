@@ -460,7 +460,29 @@
 .footer-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+}
+
+.footer-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #666;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.footer-export-btn:hover {
+  color: #1677ff;
+}
+
+.footer-export-btn span {
+  line-height: 1;
 }
 
 .footer-action-btn {
@@ -497,14 +519,16 @@
 }
 
 .footer-icon-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: auto;
+  height: auto;
   padding: 0;
-  background: none;
   border: none;
+  background: none;
   color: #666;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
   transition: color 0.2s;
 }
@@ -522,7 +546,11 @@
 .footer-rating-btns {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+
+.footer-rating-btns .footer-icon-btn.active {
+  color: #1677ff;
 }
 
 .message-time {
