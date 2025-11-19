@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Layout, Menu, Avatar } from 'antd';
+import { Layout, Menu } from 'antd';
 import {
   CompassOutlined,
   DatabaseOutlined,
@@ -255,11 +255,6 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
               inlineCollapsed={collapsed}
               forceSubMenuRender={true}
             />
-          </div>
-          
-          <div className="user-section">
-            <Avatar size={40} icon={<UserOutlined />} className="user-avatar" />
-            {!collapsed && <span className="user-name">jst admin</span>}
           </div>
 
           <div className="collapse-btn-container">
