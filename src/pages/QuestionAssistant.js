@@ -757,7 +757,7 @@ const QuestionAssistant = () => {
         fileDisplay = `文件：${fileNames.join('、')}`;
       }
 
-      sourceDisplay = `${tableDisplay}\n      ${fileDisplay}`;
+      sourceDisplay = `${tableDisplay}\n${fileDisplay}`;
     }
     
     // 构建层级结构的显示
