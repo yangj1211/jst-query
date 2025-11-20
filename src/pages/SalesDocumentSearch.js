@@ -178,16 +178,24 @@ const SalesDocumentSearch = () => {
   const handleDocumentTypeChange = (values) => {
     const ALL_VALUE = '__ALL__';
     
-    // 如果选择了"全部"和其他类型，移除"全部"，只保留具体类型
-    if (values.includes(ALL_VALUE) && values.length > 1) {
-      // 用户选择了"全部"和其他类型，移除"全部"
-      const filteredValues = values.filter(val => val !== ALL_VALUE);
-      setSelectedDocumentTypes(filteredValues);
+    // 如果用户点击了"全部"
+    if (values.includes(ALL_VALUE)) {
+      // 如果之前没有选择"全部"，说明用户刚刚点击了"全部"，清空所有筛选
+      if (!selectedDocumentTypes.includes(ALL_VALUE)) {
+        setSelectedDocumentTypes([ALL_VALUE]);
+      } else if (values.length > 1) {
+        // 如果之前已经选择了"全部"，现在又选择了其他类型，移除"全部"，只保留具体类型
+        const filteredValues = values.filter(val => val !== ALL_VALUE);
+        setSelectedDocumentTypes(filteredValues);
+      } else {
+        // 只选择了"全部"
+        setSelectedDocumentTypes([ALL_VALUE]);
+      }
     } else if (values.length === 0) {
       // 如果清空所有选择，默认回到"全部"
       setSelectedDocumentTypes([ALL_VALUE]);
     } else {
-      // 其他情况：只选择了"全部"，或只选择了具体类型
+      // 只选择了具体类型（没有"全部"）
       setSelectedDocumentTypes(values);
     }
   };
