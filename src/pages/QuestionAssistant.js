@@ -5,6 +5,7 @@ import './QuestionAssistant.css';
 import QueryResult from '../components/QueryResult'; // 引入查询结果组件
 import QueryConfigModal from '../components/QueryConfigModal';
 import CombinedThinking from '../components/CombinedThinking';
+import { useConversationState } from '../contexts/ConversationStateContext';
 
 // 公司树形数据（用于构建层级显示）
 const companyTreeData = [
@@ -70,70 +71,19 @@ const departmentTreeData = [
  * 包含"问数"和"单据检索"两个标签页
  */
 const QuestionAssistant = () => {
-  // 格式化时间
-  const formatDateTime = (date) => {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
-  };
-
-  // 对话相关状态
-  const [conversations, setConversations] = useState([
-    // 今天的对话 (4个)
-    { id: 1, title: '今年销售额最高的三个行业是什么？为什么？', time: formatDateTime(new Date()), messages: [], pinned: true },
-    { id: 2, title: '我们1-6月不同产品收入是多少', time: formatDateTime(new Date(Date.now() - 2 * 3600000)), messages: [] },
-    { id: 3, title: '分析一下本月销售情况', time: formatDateTime(new Date(Date.now() - 4 * 3600000)), messages: [] },
-    { id: 4, title: '华南区域客户分布情况', time: formatDateTime(new Date(Date.now() - 6 * 3600000)), messages: [] },
-    
-    // 昨天的对话 (3个)
-    { id: 5, title: '我们前十大客户是什么？金额是什么？占比多少', time: formatDateTime(new Date(Date.now() - 24 * 3600000)), messages: [] },
-    { id: 6, title: '今年A产品收入增长多少？', time: formatDateTime(new Date(Date.now() - 26 * 3600000)), messages: [], pinned: true },
-    { id: 7, title: '各产品线毛利率对比', time: formatDateTime(new Date(Date.now() - 30 * 3600000)), messages: [] },
-    
-    // 2天前的对话 (3个)
-    { id: 8, title: '最近三年不同产品和地区的销售额', time: formatDateTime(new Date(Date.now() - 2 * 24 * 3600000)), messages: [] },
-    { id: 9, title: '新能源汽车行业销售趋势', time: formatDateTime(new Date(Date.now() - 2 * 24 * 3600000 + 2 * 3600000)), messages: [] },
-    { id: 10, title: 'Top 5客户贡献度分析', time: formatDateTime(new Date(Date.now() - 2 * 24 * 3600000 + 4 * 3600000)), messages: [] },
-    
-    // 3天前的对话 (2个)
-    { id: 11, title: '对比今年和去年的销售数据', time: formatDateTime(new Date(Date.now() - 3 * 24 * 3600000)), messages: [] },
-    { id: 12, title: '库存周转率计算', time: formatDateTime(new Date(Date.now() - 3 * 24 * 3600000 + 3 * 3600000)), messages: [] },
-    
-    // 5天前的对话 (2个)
-    { id: 13, title: '华东区域销售情况分析', time: formatDateTime(new Date(Date.now() - 5 * 24 * 3600000)), messages: [] },
-    { id: 14, title: '市场占有率变化趋势', time: formatDateTime(new Date(Date.now() - 5 * 24 * 3600000 + 5 * 3600000)), messages: [] },
-    
-    // 1周前的对话 (2个)
-    { id: 15, title: '第一季度产品线收入对比', time: formatDateTime(new Date(Date.now() - 7 * 24 * 3600000)), messages: [] },
-    { id: 16, title: '人工智能产品销售预测', time: formatDateTime(new Date(Date.now() - 7 * 24 * 3600000 + 2 * 3600000)), messages: [] },
-    
-    // 2周前的对话 (1个)
-    { id: 17, title: '客户流失率分析', time: formatDateTime(new Date(Date.now() - 14 * 24 * 3600000)), messages: [] },
-    
-    // 3周前的对话 (2个)
-    { id: 18, title: '各分公司业绩排名', time: formatDateTime(new Date(Date.now() - 20 * 24 * 3600000)), messages: [] },
-    { id: 19, title: '销售渠道效能分析', time: formatDateTime(new Date(Date.now() - 21 * 24 * 3600000)), messages: [] },
-    
-    // 1个月前的对话 (2个)
-    { id: 20, title: '2024年全年销售总结', time: formatDateTime(new Date(Date.now() - 32 * 24 * 3600000)), messages: [] },
-    { id: 21, title: '上半年利润率分析', time: formatDateTime(new Date(Date.now() - 35 * 24 * 3600000)), messages: [] },
-    
-    // 2个月前的对话 (1个)
-    { id: 22, title: '新产品市场反馈调研', time: formatDateTime(new Date(Date.now() - 60 * 24 * 3600000)), messages: [] }
-  ]);
-  const [activeConversationId, setActiveConversationId] = useState(null);
+  // 使用 Context 中的对话状态
+  const {
+    conversations,
+    setConversations,
+    activeConversationId,
+    setActiveConversationId,
+    updateConversation,
+    createNewConversation: createNewConversationInContext,
+    formatDateTime
+  } = useConversationState();
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
-  const [openMenuId, setOpenMenuId] = useState(null);
-  const [editingConversationId, setEditingConversationId] = useState(null);
-  const [editingTitle, setEditingTitle] = useState('');
   const [pendingQuestion, setPendingQuestion] = useState('');
-  const [searchKeyword, setSearchKeyword] = useState(''); // 搜索关键词
-  const [collapsedGroups, setCollapsedGroups] = useState({}); // 折叠的分组 {groupKey: boolean}
   const [isGenerating, setIsGenerating] = useState(false); // 是否正在生成答案
   const messagesEndRef = useRef(null);
   const generationTimeoutsRef = useRef([]); // 存储生成过程中的所有 timeout ID
@@ -154,6 +104,7 @@ const QuestionAssistant = () => {
   const [showConfigHint, setShowConfigHint] = useState(false); // 是否显示配置提示
   const configHintRef = useRef(null); // 配置提示的引用
   const configButtonRef = useRef(null); // 配置按钮的引用
+  const newlyCreatedConversationIdRef = useRef(null); // 跟踪新建的对话 ID
 
   const getEffectiveConfig = () => {
     const convCfg = configPerConv[activeConversationId] || {};
@@ -194,26 +145,105 @@ const QuestionAssistant = () => {
     scrollToBottom();
   }, [messages]);
 
-  // 当消息变化时，如果有消息则隐藏配置提示
+  // 当消息变化时，如果有消息则隐藏配置提示并清除新建对话标记
   useEffect(() => {
     if (messages.length > 0) {
       setShowConfigHint(false);
-    }
-  }, [messages.length]);
-
-  // 点击外部关闭菜单
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (openMenuId && !event.target.closest('.conversation-menu-wrapper')) {
-        setOpenMenuId(null);
+      // 如果有消息了，清除新建对话标记
+      if (activeConversationId === newlyCreatedConversationIdRef.current) {
+        newlyCreatedConversationIdRef.current = null;
       }
-    };
+    }
+  }, [messages.length, activeConversationId]);
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [openMenuId]);
+  // 当选择对话时，加载对应的消息
+  // 使用 useRef 存储 conversations，避免依赖整个数组导致无限循环
+  const conversationsRef = useRef(conversations);
+  const prevConversationIdsRef = useRef(new Set(conversations.map(c => c.id)));
+  
+  // 监听 conversations 变化，检测新建的对话
+  useEffect(() => {
+    const currentIds = new Set(conversations.map(c => c.id));
+    const prevIds = prevConversationIdsRef.current;
+    
+    // 找出新添加的对话（在 currentIds 中但不在 prevIds 中的）
+    for (const id of currentIds) {
+      if (!prevIds.has(id)) {
+        // 找到新对话，如果这个新对话没有消息且是当前激活的对话，标记为新建对话
+        const newConversation = conversations.find(c => c.id === id);
+        if (newConversation && (!newConversation.messages || newConversation.messages.length === 0)) {
+          newlyCreatedConversationIdRef.current = id;
+          if (activeConversationId === id) {
+            setShowConfigHint(true);
+          }
+        }
+      }
+    }
+    
+    prevConversationIdsRef.current = currentIds;
+    conversationsRef.current = conversations;
+  }, [conversations, activeConversationId]);
+  
+  // 使用 useRef 存储 isGenerating，避免在 useEffect 中访问导致依赖问题
+  const isGeneratingRef = useRef(isGenerating);
+  isGeneratingRef.current = isGenerating;
+  
+  useEffect(() => {
+    // 如果正在生成，先停止
+    if (isGeneratingRef.current) {
+      // 清除所有待执行的 timeout
+      generationTimeoutsRef.current.forEach(timeoutId => {
+        clearTimeout(timeoutId);
+      });
+      generationTimeoutsRef.current = [];
+      setIsGenerating(false);
+    }
+    
+    if (activeConversationId) {
+      const conversation = conversationsRef.current.find(c => c.id === activeConversationId);
+      if (conversation) {
+        const conversationMessages = conversation.messages || [];
+        setMessages(conversationMessages);
+        // 只有当前对话是刚刚新建的对话时，才显示配置提示
+        if (activeConversationId === newlyCreatedConversationIdRef.current && conversationMessages.length === 0) {
+          setShowConfigHint(true);
+        } else {
+          setShowConfigHint(false);
+          // 如果不是新建的对话，清除标记
+          if (activeConversationId !== newlyCreatedConversationIdRef.current) {
+            newlyCreatedConversationIdRef.current = null;
+          }
+        }
+      } else {
+        setMessages([]);
+        setShowConfigHint(false);
+      }
+    } else {
+      setMessages([]);
+      setShowConfigHint(false);
+      newlyCreatedConversationIdRef.current = null;
+    }
+  }, [activeConversationId]); // 只依赖 activeConversationId，避免 conversations 变化导致循环
+
+  // 当 messages 更新时，同步到 conversations（使用 useRef 避免循环更新）
+  const messagesRef = useRef(messages);
+  const prevMessagesRef = useRef(JSON.stringify(messages));
+  messagesRef.current = messages;
+  
+  useEffect(() => {
+    if (activeConversationId) {
+      const currentMessagesStr = JSON.stringify(messagesRef.current);
+      // 只在 messages 真正变化时才更新（避免循环）
+      if (currentMessagesStr !== prevMessagesRef.current) {
+        const conversation = conversationsRef.current.find(c => c.id === activeConversationId);
+        if (conversation && JSON.stringify(conversation.messages || []) !== currentMessagesStr) {
+          updateConversation(activeConversationId, { messages: [...messagesRef.current] });
+        }
+        prevMessagesRef.current = currentMessagesStr;
+      }
+    }
+  }, [messages, activeConversationId, updateConversation]); // 移除 conversations 依赖，使用 ref 访问
+
 
   // 停止生成
   const handleStopGeneration = () => {
@@ -274,11 +304,9 @@ const QuestionAssistant = () => {
       handleStopGeneration();
     }
     setActiveConversationId(id);
-    const conversation = conversations.find(c => c.id === id);
-    const conversationMessages = conversation.messages || [];
-    setMessages(conversationMessages);
     // 切换对话时不显示配置提示
     setShowConfigHint(false);
+    // messages 的加载由 useEffect 处理
   };
 
   // 创建新对话
@@ -287,15 +315,9 @@ const QuestionAssistant = () => {
     if (isGenerating) {
       handleStopGeneration();
     }
-    const newId = Math.max(...conversations.map(c => c.id), 0) + 1;
-    const newConversation = {
-      id: newId,
-      title: '新对话',
-      time: formatDateTime(new Date()),
-      messages: []
-    };
-    setConversations([newConversation, ...conversations]);
-    setActiveConversationId(newId);
+    const newId = createNewConversationInContext();
+    // 记录新建的对话 ID
+    newlyCreatedConversationIdRef.current = newId;
     setMessages([]);
     // 新建对话时显示配置提示
     setShowConfigHint(true);
@@ -2491,332 +2513,10 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
     }
   };
 
-  // 打开菜单
-  const handleOpenMenu = (e, conversationId) => {
-    e.stopPropagation();
-    setOpenMenuId(openMenuId === conversationId ? null : conversationId);
-  };
-
-  // 重命名对话
-  const handleRename = (e, conversationId, currentTitle) => {
-    e.stopPropagation();
-    setEditingConversationId(conversationId);
-    setEditingTitle(currentTitle);
-    setOpenMenuId(null);
-  };
-
-  // 保存重命名
-  const handleSaveRename = (conversationId) => {
-    if (editingTitle.trim()) {
-      setConversations(conversations.map(c => 
-        c.id === conversationId ? { ...c, title: editingTitle.trim() } : c
-      ));
-    }
-    setEditingConversationId(null);
-    setEditingTitle('');
-  };
-
-  // 取消重命名
-  const handleCancelRename = () => {
-    setEditingConversationId(null);
-    setEditingTitle('');
-  };
-
-  // 置顶对话
-  const handlePinConversation = (e, conversationId) => {
-    e.stopPropagation();
-    setConversations(conversations.map(c => 
-      c.id === conversationId ? { ...c, pinned: !c.pinned } : c
-    ));
-    setOpenMenuId(null);
-  };
-
-  // 删除对话
-  const handleDeleteConversation = (e, conversationId) => {
-    e.stopPropagation();
-    const updatedConversations = conversations.filter(c => c.id !== conversationId);
-    setConversations(updatedConversations);
-    
-    // 如果删除的是当前活动对话，切换到第一个对话
-    if (conversationId === activeConversationId) {
-      if (updatedConversations.length > 0) {
-        setActiveConversationId(updatedConversations[0].id);
-        setMessages(updatedConversations[0].messages);
-      } else {
-        setActiveConversationId(null);
-        setMessages([]);
-      }
-    }
-    setOpenMenuId(null);
-  };
-
-  /**
-   * 过滤对话（根据搜索关键词）
-   */
-  const filterConversations = (conversations, keyword) => {
-    if (!keyword.trim()) {
-      return conversations;
-    }
-    return conversations.filter(conv => 
-      conv.title.toLowerCase().includes(keyword.toLowerCase())
-    );
-  };
-
-  /**
-   * 按日期对对话进行分组 - 每天一个分组
-   */
-  const groupConversationsByDate = (conversations) => {
-    const groups = {
-      pinned: [],
-      dates: {} // 用对象存储每一天的对话，key为日期字符串
-    };
-
-    conversations.forEach(conv => {
-      // 置顶的对话单独分组
-      if (conv.pinned) {
-        groups.pinned.push(conv);
-        return;
-      }
-
-      // 解析对话时间
-      const convDate = new Date(conv.time);
-      const convDateOnly = new Date(convDate.getFullYear(), convDate.getMonth(), convDate.getDate());
-      
-      // 格式化日期作为分组key
-      const dateKey = `${convDateOnly.getFullYear()}-${String(convDateOnly.getMonth() + 1).padStart(2, '0')}-${String(convDateOnly.getDate()).padStart(2, '0')}`;
-      
-      if (!groups.dates[dateKey]) {
-        groups.dates[dateKey] = {
-          date: convDateOnly,
-          conversations: []
-        };
-      }
-      
-      groups.dates[dateKey].conversations.push(conv);
-    });
-
-    // 将dates对象转换为数组并按日期倒序排序
-    const sortedDates = Object.keys(groups.dates)
-      .sort((a, b) => new Date(b) - new Date(a))
-      .map(dateKey => ({
-        dateKey,
-        ...groups.dates[dateKey]
-      }));
-
-    return {
-      pinned: groups.pinned,
-      sortedDates
-    };
-  };
-
-  // 先过滤，再分组
-  const filteredConversations = filterConversations(conversations, searchKeyword);
-  const groupedConversations = groupConversationsByDate(filteredConversations);
 
   return (
     <div className="chat-container">
-      {/* 左侧历史对话列表 */}
-      <div className="conversation-list">
-        <div className="conversation-header">
-          <button className="new-conversation-btn" onClick={handleNewConversation}>
-            <span className="icon">+</span>
-            新建对话
-          </button>
-        </div>
-        
-        {/* 搜索框 */}
-        <div className="conversation-search">
-          <input
-            type="text"
-            className="conversation-search-input"
-            placeholder="搜索对话..."
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-          />
-          {searchKeyword && (
-            <button 
-              className="search-clear-btn"
-              onClick={() => setSearchKeyword('')}
-            >
-              ×
-            </button>
-          )}
-        </div>
-        
-        <div className="conversation-items">
-          {/* 渲染对话分组的函数 */}
-          {(() => {
-            const renderConversationGroup = (conversations, groupLabel, isPinned = false) => {
-              if (conversations.length === 0) return null;
-              
-              const groupKey = groupLabel || 'pinned';
-              const isCollapsed = collapsedGroups[groupKey];
-              
-              const toggleCollapse = (e) => {
-                e.stopPropagation();
-                setCollapsedGroups(prev => ({
-                  ...prev,
-                  [groupKey]: !prev[groupKey]
-                }));
-              };
-              
-              return (
-                <div key={groupLabel} className="conversation-group">
-                  {/* 置顶分组不显示标签 */}
-                  {!isPinned && groupLabel && (
-                    <div className="conversation-group-label" onClick={toggleCollapse}>
-                      <span>{groupLabel}</span>
-                      <svg 
-                        className={`collapse-icon ${isCollapsed ? 'collapsed' : ''}`}
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        strokeWidth="2"
-                      >
-                        <polyline points="6 9 12 15 18 9"/>
-                      </svg>
-                    </div>
-                  )}
-          {!isCollapsed && conversations.map(conversation => (
-            <div
-              key={conversation.id}
-                      className={`conversation-item ${activeConversationId === conversation.id ? 'active' : ''} ${conversation.pinned ? 'pinned' : ''}`}
-              onClick={() => handleSelectConversation(conversation.id)}
-            >
-              {editingConversationId === conversation.id ? (
-                <div className="conversation-edit">
-                  <input
-                    type="text"
-                    className="conversation-edit-input"
-                    value={editingTitle}
-                    onChange={(e) => setEditingTitle(e.target.value)}
-                    onBlur={() => handleSaveRename(conversation.id)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handleSaveRename(conversation.id);
-                      } else if (e.key === 'Escape') {
-                        handleCancelRename();
-                      }
-                    }}
-                    autoFocus
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-              ) : (
-                <>
-                  <div className="conversation-content">
-                            <div className="conversation-title">
-                              {conversation.pinned && (
-                                <svg className="pin-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: 6 }}>
-                                  <path d="M12 17v5"/>
-                                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a6 6 0 0 0-6 0v3.76Z"/>
-                                </svg>
-                              )}
-                              {conversation.title}
-                            </div>
-                    <div className="conversation-time">{conversation.time}</div>
-                  </div>
-                  <div className="conversation-menu-wrapper">
-                    <button
-                      className="conversation-menu-btn"
-                      onClick={(e) => handleOpenMenu(e, conversation.id)}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="5" r="1"/>
-                        <circle cx="12" cy="12" r="1"/>
-                        <circle cx="12" cy="19" r="1"/>
-                      </svg>
-                    </button>
-                    {openMenuId === conversation.id && (
-                      <div className="conversation-menu">
-                        <button 
-                          className="menu-item"
-                          onClick={(e) => handleRename(e, conversation.id, conversation.title)}
-                        >
-                          <svg className="menu-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                          </svg>
-                          重命名
-                        </button>
-                        <button 
-                          className="menu-item"
-                          onClick={(e) => handlePinConversation(e, conversation.id)}
-                        >
-                          <svg className="menu-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 17v5"/>
-                            <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a6 6 0 0 0-6 0v3.76Z"/>
-                          </svg>
-                                  {conversation.pinned ? '取消置顶' : '置顶'}
-                                </button>
-                                <button 
-                                  className="menu-item delete"
-                                  onClick={(e) => handleDeleteConversation(e, conversation.id)}
-                                >
-                                  <svg className="menu-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="3 6 5 6 21 6"/>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                    <line x1="10" y1="11" x2="10" y2="17"/>
-                                    <line x1="14" y1="11" x2="14" y2="17"/>
-                                  </svg>
-                                  删除
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-                </div>
-              );
-            };
-
-            // 格式化日期显示标签
-            const formatDateLabel = (date) => {
-              const now = new Date();
-              const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-              const yesterday = new Date(today);
-              yesterday.setDate(yesterday.getDate() - 1);
-              
-              const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-              
-              if (dateOnly.getTime() === today.getTime()) {
-                return '今天';
-              } else if (dateOnly.getTime() === yesterday.getTime()) {
-                return '昨天';
-              } else {
-                // 格式化为 YYYY-MM-DD
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-              }
-            };
-
-            // 按顺序渲染各个分组
-            return (
-              <>
-                {/* 渲染置顶对话 - 不显示标题 */}
-                {renderConversationGroup(groupedConversations.pinned, null, true)}
-                
-                {/* 渲染按日期分组的对话 */}
-                {groupedConversations.sortedDates.map(dateGroup => 
-                  renderConversationGroup(
-                    dateGroup.conversations, 
-                    formatDateLabel(dateGroup.date),
-                    false
-                  )
-                )}
-              </>
-            );
-          })()}
-        </div>
-      </div>
-
-      {/* 右侧对话区域 */}
+      {/* 对话区域 */}
       <div className="chat-area">
         {activeConversationId ? (
           <>
