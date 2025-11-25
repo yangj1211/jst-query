@@ -6,6 +6,7 @@ import PermissionConfig from './pages/PermissionConfig';
 import UserManagement from './pages/UserManagement';
 import RolePermission from './pages/RolePermission';
 import DataPermissionConfig from './pages/DataPermissionConfig';
+import CreateRole from './pages/CreateRole';
 import DocumentSearch from './pages/DocumentSearch';
 import DataImport from './pages/DataImport';
 import BackupFiles from './pages/BackupFiles';
@@ -27,6 +28,7 @@ function App() {
           <Route path="permission" element={<PermissionConfig />} />
           <Route path="permission/user-management" element={<UserManagement />} />
           <Route path="permission/role-permission" element={<RolePermission />} />
+          <Route path="permission/create-role" element={<CreateRole />} />
           <Route path="permission/data-permission" element={<DataPermissionConfig />} />
         </Route>
       </Routes>

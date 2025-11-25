@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, Input, Button, Tooltip } from 'antd';
-import { SearchOutlined, SettingOutlined } from '@ant-design/icons';
+import { SearchOutlined, SettingOutlined, PlusOutlined } from '@ant-design/icons';
 import './PageStyle.css';
 
 const RolePermission = () => {
@@ -208,6 +208,11 @@ const RolePermission = () => {
     navigate('/permission/data-permission', { state: { role: record } });
   };
 
+  // 新建角色处理
+  const handleCreateRole = () => {
+    navigate('/permission/create-role');
+  };
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -224,7 +229,7 @@ const RolePermission = () => {
           <div style={{ fontSize: '16px', fontWeight: 500 }}>
             角色数：<span style={{ fontWeight: 'bold' }}>{dataSource.length}</span>
           </div>
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Input
               placeholder="搜索角色名/备注"
               prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
@@ -233,6 +238,13 @@ const RolePermission = () => {
               style={{ width: 300 }}
               allowClear
             />
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />}
+              onClick={handleCreateRole}
+            >
+              新建角色
+            </Button>
           </div>
         </div>
 
