@@ -18,6 +18,7 @@ import PermissionConfig from '../pages/PermissionConfig';
 import UserManagement from '../pages/UserManagement';
 import RolePermission from '../pages/RolePermission';
 import DataPermissionConfig from '../pages/DataPermissionConfig';
+import CreateRole from '../pages/CreateRole';
 import DocumentSearch from '../pages/DocumentSearch';
 import DataImport from '../pages/DataImport';
 import BackupFiles from '../pages/BackupFiles';
@@ -114,6 +115,9 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
     }
     if (location.pathname === '/permission/role-permission') {
       return <RolePermission />;
+    }
+    if (location.pathname === '/permission/create-role') {
+      return <CreateRole />;
     }
     if (location.pathname === '/permission/data-permission') {
       return <DataPermissionConfig />;
