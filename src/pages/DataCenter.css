@@ -767,6 +767,40 @@
   flex-shrink: 0;
 }
 
+/* 页面头部的标签管理按钮 - 更突出的样式 */
+.tag-management-btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #1890ff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.2);
+}
+
+.tag-management-btn-primary:hover {
+  background: #40a9ff;
+  box-shadow: 0 4px 8px rgba(24, 144, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.tag-management-btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.2);
+}
+
+.tag-management-btn-primary svg {
+  flex-shrink: 0;
+  color: #fff;
+}
+
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -1867,6 +1901,247 @@
   color: #999;
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* 编辑标签模态框 */
+.edit-tag-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  animation: fadeIn 0.3s;
+}
+
+.edit-tag-modal-content {
+  background: #fff;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.edit-tag-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.edit-tag-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  color: #333;
+}
+
+.edit-tag-modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.edit-tag-modal-close-btn:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.edit-tag-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.edit-tag-section {
+  margin-bottom: 24px;
+}
+
+.edit-tag-section:last-child {
+  margin-bottom: 0;
+}
+
+.edit-tag-section-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.edit-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.edit-tag-empty {
+  color: #999;
+  font-size: 14px;
+  padding: 8px 0;
+}
+
+.edit-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #f0f0f0;
+  color: #333;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.edit-tag-remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.edit-tag-remove-btn:hover {
+  background: #ff4d4f;
+  color: #fff;
+}
+
+.edit-tag-remove-btn svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+}
+
+.edit-tag-dropdown-wrapper {
+  position: relative;
+}
+
+.edit-tag-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.edit-tag-input:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.edit-tag-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1002;
+}
+
+.edit-tag-dropdown-item {
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-tag-dropdown-item:hover {
+  background: #f5f5f5;
+  color: #1890ff;
+}
+
+.edit-tag-dropdown-item-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1890ff;
+  border-top: 1px solid #e8e8e8;
+  font-weight: 500;
+}
+
+.edit-tag-dropdown-item-new:hover {
+  background: #e6f7ff;
+}
+
+.edit-tag-dropdown-item-new svg {
+  flex-shrink: 0;
+}
+
+.edit-tag-modal-footer {
+  padding: 12px 24px;
+  border-top: 1px solid #e8e8e8;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: #fafafa;
+}
+
+.edit-tag-cancel-btn {
+  padding: 8px 24px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  color: #333;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.edit-tag-cancel-btn:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.edit-tag-save-btn {
+  padding: 8px 24px;
+  border: none;
+  background: #1890ff;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.edit-tag-save-btn:hover {
+  background: #40a9ff;
+  box-shadow: 0 2px 6px rgba(24, 144, 255, 0.4);
 }
 
 /* 响应式设计 */

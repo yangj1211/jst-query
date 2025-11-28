@@ -96,6 +96,10 @@ const DataCenter = () => {
   const [isTagManagementModalVisible, setIsTagManagementModalVisible] = useState(false); // 标签管理模态框显示状态
   const [allTags, setAllTags] = useState([]); // 所有可用标签列表
   const [allSources, setAllSources] = useState([]); // 所有可用来源列表
+  const [editingItemId, setEditingItemId] = useState(null); // 正在编辑标签的项目ID
+  const [editingItemTags, setEditingItemTags] = useState([]); // 正在编辑的标签列表
+  const [tagSearchInput, setTagSearchInput] = useState(''); // 标签搜索输入
+  const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false); // 标签下拉菜单是否打开
 
   // 初始化标签列表和来源列表
   useEffect(() => {
@@ -188,6 +192,52 @@ const DataCenter = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     }
+  };
+
+  // 打开编辑标签模态框
+  const handleOpenEditTags = (itemId) => {
+    const item = savedTables.find(t => t.id === itemId);
+    if (item) {
+      setEditingItemId(itemId);
+      setEditingItemTags(item.tags && Array.isArray(item.tags) ? [...item.tags] : []);
+      setTagSearchInput('');
+      setIsTagDropdownOpen(false);
+    }
+  };
+
+  // 关闭编辑标签模态框
+  const handleCloseEditTags = () => {
+    setEditingItemId(null);
+    setEditingItemTags([]);
+    setTagSearchInput('');
+    setIsTagDropdownOpen(false);
+  };
+
+  // 保存编辑的标签
+  const handleSaveEditTags = () => {
+    if (editingItemId) {
+      setSavedTables(savedTables.map(item => {
+        if (item.id === editingItemId) {
+          return { ...item, tags: editingItemTags };
+        }
+        return item;
+      }));
+      handleCloseEditTags();
+    }
+  };
+
+  // 添加标签到编辑列表
+  const handleAddTagToEdit = (tag) => {
+    if (!editingItemTags.includes(tag)) {
+      setEditingItemTags([...editingItemTags, tag]);
+    }
+    setTagSearchInput('');
+    setIsTagDropdownOpen(false);
+  };
+
+  // 从编辑列表移除标签
+  const handleRemoveTagFromEdit = (tag) => {
+    setEditingItemTags(editingItemTags.filter(t => t !== tag));
   };
 
   // 处理标签变更
@@ -444,13 +494,16 @@ const DataCenter = () => {
       if (isSourceFilterDropdownOpen && !event.target.closest('.source-filter-wrapper')) {
         setIsSourceFilterDropdownOpen(false);
       }
+      if (isTagDropdownOpen && !event.target.closest('.edit-tag-dropdown-wrapper')) {
+        setIsTagDropdownOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isFilterDropdownOpen, isTagFilterDropdownOpen, isSourceFilterDropdownOpen]);
+  }, [isFilterDropdownOpen, isTagFilterDropdownOpen, isSourceFilterDropdownOpen, isTagDropdownOpen]);
 
   // 生成表数据（模拟）
   const generateSampleData = (table, count = 100) => {
@@ -513,6 +566,20 @@ const DataCenter = () => {
           )}
           <h2>{viewingTableId ? '表详情' : '数据总览'}</h2>
         </div>
+        {!viewingTableId && (
+          <div className="header-right">
+            <button 
+              className="tag-management-btn-primary"
+              onClick={() => setIsTagManagementModalVisible(true)}
+              title="标签管理"
+            >
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M2 2h12v12H2V2zm1 1v10h10V3H3zm2 1h6v1H5V4zm0 2h6v1H5V6zm0 2h4v1H5V8z"/>
+              </svg>
+              <span>标签管理</span>
+            </button>
+          </div>
+        )}
       </div>
       <div className="page-content">
         {/* 表列表和详情 */}
@@ -564,17 +631,6 @@ const DataCenter = () => {
                 onChange={setUpdateTimeRange}
                 placeholder="选择最近更新时间范围"
               />
-              <button 
-                className="tag-management-btn"
-                onClick={() => setIsTagManagementModalVisible(true)}
-                title="标签管理"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M2 2h12v12H2V2zm1 1v10h10V3H3zm2 1h6v1H5V4zm0 2h6v1H5V6zm0 2h4v1H5V8z"/>
-                  <path d="M3 2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H3zm0 1h10v10H3V3z"/>
-                </svg>
-                <span>标签管理</span>
-              </button>
             </div>
 
             {/* 统计信息 */}
@@ -790,6 +846,15 @@ const DataCenter = () => {
                     <div className="list-col-time">{item.objectType === 'file' ? '-' : (item.updateTime || '-')}</div>
                     <div className="list-col-creator">{item.creator || '-'}</div>
                     <div className="list-col-actions">
+                      <button 
+                        className="list-action-btn"
+                        onClick={() => handleOpenEditTags(item.id)}
+                        title="编辑标签"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.08-.286.235-.547.445-.758l8.61-8.61Zm1.414 1.06a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354L11.427 2.487ZM11.19 6.25L9.75 4.81l-6.286 6.287a.25.25 0 0 0-.064.108l-.558 1.953 1.953-.558a.25.25 0 0 0 .108-.064l6.286-6.286Z"/>
+                        </svg>
+                      </button>
                       {item.objectType === 'table' && (
                         <>
                           <button 
@@ -1019,6 +1084,115 @@ const DataCenter = () => {
         onTagsChange={handleTagsChange}
         checkTagInUse={checkTagInUse}
       />
+
+      {/* 编辑标签模态框 */}
+      {editingItemId && (() => {
+        const editingItem = savedTables.find(item => item.id === editingItemId);
+        if (!editingItem) return null;
+        
+        // 过滤可用的标签（排除已选中的）
+        const availableTags = allTags.filter(tag => !editingItemTags.includes(tag));
+        const filteredAvailableTags = availableTags.filter(tag => 
+          tag.toLowerCase().includes(tagSearchInput.toLowerCase())
+        );
+
+        return (
+          <div className="edit-tag-modal-overlay" onClick={handleCloseEditTags}>
+            <div className="edit-tag-modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="edit-tag-modal-header">
+                <h3>编辑标签 - {editingItem.name}</h3>
+                <button className="edit-tag-modal-close-btn" onClick={handleCloseEditTags}>
+                  ✕
+                </button>
+              </div>
+              <div className="edit-tag-modal-body">
+                {/* 当前标签 */}
+                <div className="edit-tag-section">
+                  <div className="edit-tag-section-title">当前标签</div>
+                  <div className="edit-tag-list">
+                    {editingItemTags.length === 0 ? (
+                      <div className="edit-tag-empty">暂无标签</div>
+                    ) : (
+                      editingItemTags.map((tag) => (
+                        <span key={tag} className="edit-tag-badge">
+                          {tag}
+                          <button
+                            className="edit-tag-remove-btn"
+                            onClick={() => handleRemoveTagFromEdit(tag)}
+                            title="移除标签"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                              <path d="M3 3l6 6M9 3l-6 6"/>
+                            </svg>
+                          </button>
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* 添加标签 */}
+                <div className="edit-tag-section">
+                  <div className="edit-tag-section-title">添加标签</div>
+                  <div className="edit-tag-dropdown-wrapper">
+                    <input
+                      type="text"
+                      className="edit-tag-input"
+                      placeholder="搜索或输入标签名称"
+                      value={tagSearchInput}
+                      onChange={(e) => {
+                        setTagSearchInput(e.target.value);
+                        setIsTagDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsTagDropdownOpen(true)}
+                    />
+                    {isTagDropdownOpen && (filteredAvailableTags.length > 0 || tagSearchInput.trim()) && (
+                      <div className="edit-tag-dropdown">
+                        {filteredAvailableTags.slice(0, 10).map((tag) => (
+                          <div
+                            key={tag}
+                            className="edit-tag-dropdown-item"
+                            onClick={() => handleAddTagToEdit(tag)}
+                          >
+                            {tag}
+                          </div>
+                        ))}
+                        {tagSearchInput.trim() && !availableTags.includes(tagSearchInput.trim()) && (
+                          <div
+                            className="edit-tag-dropdown-item edit-tag-dropdown-item-new"
+                            onClick={() => {
+                              const newTag = tagSearchInput.trim();
+                              handleAddTagToEdit(newTag);
+                              // 如果新标签不在allTags中，添加到allTags
+                              if (!allTags.includes(newTag)) {
+                                setAllTags([...allTags, newTag]);
+                              }
+                            }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                              <path d="M7 0C3.13 0 0 3.13 0 7s3.13 7 7 7 7-3.13 7-7-3.13-7-7-7zm0 12.6c-3.09 0-5.6-2.51-5.6-5.6S3.91 1.4 7 1.4s5.6 2.51 5.6 5.6-2.51 5.6-5.6 5.6z"/>
+                              <path d="M7 3.5c-.38 0-.7.32-.7.7v1.4H4.9c-.38 0-.7.32-.7.7s.32.7.7.7h1.4v1.4c0 .38.32.7.7.7s.7-.32.7-.7V6.3h1.4c.38 0 .7-.32.7-.7s-.32-.7-.7-.7H7.7V4.2c0-.38-.32-.7-.7-.7z"/>
+                            </svg>
+                            创建标签 "{tagSearchInput.trim()}"
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="edit-tag-modal-footer">
+                <button className="edit-tag-cancel-btn" onClick={handleCloseEditTags}>
+                  取消
+                </button>
+                <button className="edit-tag-save-btn" onClick={handleSaveEditTags}>
+                  保存
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
