@@ -17,6 +17,8 @@ import {
   CheckOutlined,
   FilterFilled,
 } from '@ant-design/icons';
+import companyData from '../pages/company.json';
+import departmentData from '../pages/department.json';
 
 const tableOptions = [
   { name: '测试表1', tags: ['财务', '数据'], sources: ['SAP', 'BPC'] },
@@ -215,62 +217,55 @@ const treeWrapperStyle = {
   background: '#f9fafc',
 };
 
-const companyTreeData = [
-  {
-    title: 'EO_1000 - 金盘科技大合并 (84)',
-    key: 'eo_1000',
-    children: [
-      { title: '1100 - 海南金盘电气研究院有限公司', key: 'eo_1100' },
-      { title: '1200 - 海南金盘电气有限公司', key: 'eo_1200' },
-      { title: '1600 - 海南金盘科技储能技术有限公司', key: 'eo_1600' },
-      { title: '2300 - 武汉金盘智能科技有限公司', key: 'eo_2300' },
-      {
-        title: 'E_1000 - 海南金盘科技小合并（合并组） (4)',
-        key: 'e_1000',
-        children: [
-          { title: 'E_1300 - 桐乡同亨数字科技有限公司 (6)', key: 'e_1300' },
-          { title: 'E_1400 - 海南金盘科技新能源小合并 (4)', key: 'e_1400' },
-          { title: 'E_1800 - 金盘（扬州）新能源装备 (1)', key: 'e_1800' },
-          { title: 'E_2000 - 金盘中国小合并 (2)', key: 'e_2000' },
-          { title: 'E_2400 - 武汉智能科技研究院小合并 (6)', key: 'e_2400' },
-          { title: 'E_4000 - 桂林君泰福电气有限公司小合并 (4)', key: 'e_4000' },
-          { title: 'E_4300 - 金盘智能机器人(海南)小合并 (2)', key: 'e_4300' },
-          { title: 'E_5000 - JST Powr HK小合并 (12)', key: 'e_5000' },
-          { title: 'E_6601 - JST Global Energy Group小合并 (9)', key: 'e_6601' },
-          { title: 'E_7000 - 海南金盘科技新能源投资小合并 (1)', key: 'e_7000' },
-          { title: 'E_7019 - 海口琼山金盘新能源小合并 (2)', key: 'e_7019' },
-        ],
-      },
-    ],
-  },
-];
+/**
+ * 将 company.json 的数据结构转换为 Tree 组件需要的格式
+ * @param {Object} node - 公司节点数据
+ * @returns {Object} Tree 节点格式
+ */
+const convertCompanyNodeToTree = (node) => {
+  const { id, name, count, children } = node;
+  // 生成 title: "id - name (count)" 或 "id - name"
+  const title = count !== undefined ? `${id} - ${name} (${count})` : `${id} - ${name}`;
+  // 使用 id 作为 key（转换为小写，保持一致性）
+  const key = id.toLowerCase();
+  
+  const treeNode = {
+    title,
+    key,
+  };
+  
+  // 如果有子节点，递归转换
+  if (children && children.length > 0) {
+    treeNode.children = children.map(child => convertCompanyNodeToTree(child));
+  }
+  
+  return treeNode;
+};
 
-const departmentTreeData = [
-  {
-    title: 'PC_11 - 考核合并组 (194)',
-    key: 'pc_11',
-    children: [
-      {
-        title: 'PC_1101 - 中国业务 (161)',
-        key: 'pc_1101',
-        children: [
-          {
-            title: 'PC_110101 - 事业部-中国 (126)',
-            key: 'pc_110101',
-            children: [
-              { title: 'PC_11010101 - 干变事业部 (14)', key: 'pc_11010101' },
-              { title: 'PC_11010102 - 成套电气事业部 (15)', key: 'pc_11010102' },
-              { title: 'PC_11010103 - 电抗变频事业部 (18)', key: 'pc_11010103' },
-              { title: 'PC_11010104 - 出口开关事业部 (13)', key: 'pc_11010104' },
-              { title: 'PC_11010105 - 国内储能事业部 (2)', key: 'pc_11010105' },
-              { title: 'PC_11010106 - 海南电力系统工程事业部 (3)', key: 'pc_11010106' },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-];
+/**
+ * 从 company.json 生成公司树数据
+ * @returns {Array} Tree 数据数组
+ */
+const generateCompanyTreeData = () => {
+  // 将根节点转换为数组格式（Tree 组件期望数组）
+  return [convertCompanyNodeToTree(companyData)];
+};
+
+// 使用 company.json 数据生成公司树
+const companyTreeData = generateCompanyTreeData();
+
+/**
+ * 从 department.json 生成事业部树数据
+ * @returns {Array} Tree 数据数组
+ */
+const generateDepartmentTreeData = () => {
+  // 将根节点转换为数组格式（Tree 组件期望数组）
+  // 复用 convertCompanyNodeToTree 函数，因为数据结构相同
+  return [convertCompanyNodeToTree(departmentData)];
+};
+
+// 使用 department.json 数据生成事业部树
+const departmentTreeData = generateDepartmentTreeData();
 
 const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
   const [sourceMode, setSourceMode] = useState(initialConfig.sourceMode || 'all');
