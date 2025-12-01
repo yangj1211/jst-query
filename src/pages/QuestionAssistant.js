@@ -6,65 +6,19 @@ import QueryResult from '../components/QueryResult'; // 引入查询结果组件
 import QueryConfigModal from '../components/QueryConfigModal';
 import CombinedThinking from '../components/CombinedThinking';
 import { useConversationState } from '../contexts/ConversationStateContext';
+import companyData from './company.json';
+import departmentData from './department.json';
+import { buildTreeDataFromJson } from '../utils/treeData';
 
-// 公司树形数据（用于构建层级显示）
-const companyTreeData = [
-  {
-    title: 'EO_1000 - 金盘科技大合并 (84)',
-    key: 'eo_1000',
-    children: [
-      { title: '1100 - 海南金盘电气研究院有限公司', key: 'eo_1100' },
-      { title: '1200 - 海南金盘电气有限公司', key: 'eo_1200' },
-      { title: '1600 - 海南金盘科技储能技术有限公司', key: 'eo_1600' },
-      { title: '2300 - 武汉金盘智能科技有限公司', key: 'eo_2300' },
-      {
-        title: 'E_1000 - 海南金盘科技小合并（合并组） (4)',
-        key: 'e_1000',
-        children: [
-          { title: 'E_1300 - 桐乡同亨数字科技有限公司 (6)', key: 'e_1300' },
-          { title: 'E_1400 - 海南金盘科技新能源小合并 (4)', key: 'e_1400' },
-          { title: 'E_1800 - 金盘（扬州）新能源装备 (1)', key: 'e_1800' },
-          { title: 'E_2000 - 金盘中国小合并 (2)', key: 'e_2000' },
-          { title: 'E_2400 - 武汉智能科技研究院小合并 (6)', key: 'e_2400' },
-          { title: 'E_4000 - 桂林君泰福电气有限公司小合并 (4)', key: 'e_4000' },
-          { title: 'E_4300 - 金盘智能机器人(海南)小合并 (2)', key: 'e_4300' },
-          { title: 'E_5000 - JST Powr HK小合并 (12)', key: 'e_5000' },
-          { title: 'E_6601 - JST Global Energy Group小合并 (9)', key: 'e_6601' },
-          { title: 'E_7000 - 海南金盘科技新能源投资小合并 (1)', key: 'e_7000' },
-          { title: 'E_7019 - 海口琼山金盘新能源小合并 (2)', key: 'e_7019' },
-        ],
-      },
-    ],
-  },
-];
+/**
+ * 公司树形数据（与问数配置保持一致）
+ */
+const companyTreeData = buildTreeDataFromJson(companyData);
 
-// 事业部树形数据（用于构建层级显示）
-const departmentTreeData = [
-  {
-    title: 'PC_11 - 考核合并组 (194)',
-    key: 'pc_11',
-    children: [
-      {
-        title: 'PC_1101 - 中国业务 (161)',
-        key: 'pc_1101',
-        children: [
-          {
-            title: 'PC_110101 - 事业部-中国 (126)',
-            key: 'pc_110101',
-            children: [
-              { title: 'PC_11010101 - 干变事业部 (14)', key: 'pc_11010101' },
-              { title: 'PC_11010102 - 成套电气事业部 (15)', key: 'pc_11010102' },
-              { title: 'PC_11010103 - 电抗变频事业部 (18)', key: 'pc_11010103' },
-              { title: 'PC_11010104 - 出口开关事业部 (13)', key: 'pc_11010104' },
-              { title: 'PC_11010105 - 国内储能事业部 (2)', key: 'pc_11010105' },
-              { title: 'PC_11010106 - 海南电力系统工程事业部 (3)', key: 'pc_11010106' },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-];
+/**
+ * 事业部树形数据（与问数配置保持一致）
+ */
+const departmentTreeData = buildTreeDataFromJson(departmentData);
 
 /**
  * 问数助手页面组件

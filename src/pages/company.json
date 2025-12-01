@@ -1,7 +1,7 @@
 {
   "id": "EO_1000",
   "name": "海南金盘智能科技股份有限公司",
-  "count": 84,
+  "count": 66,
   "children": [
     {
       "id": "1100",
@@ -180,7 +180,7 @@
     {
       "id": "E_4000",
       "name": "桂林君泰福电气有限公司小合并（合并组）",
-      "count": 4,
+      "count": 3,
       "children": [
         {
           "id": "4000",
@@ -221,7 +221,7 @@
     {
       "id": "E_5000",
       "name": "JST Powr HK小合并（合并组）",
-      "count": 12,
+      "count": 11,
       "children": [
         {
           "id": "5000",
@@ -279,7 +279,7 @@
     {
       "id": "E_6601",
       "name": "JST Global Energy Group小合并（合并组）",
-      "count": 4,
+      "count": 6,
       "children": [
         {
           "id": "6601",
@@ -299,13 +299,32 @@
               "name": "JST Energy Group Malaysia Sdn. Bhd."
             }
           ]
+        },
+        {
+          "id": "E_5001",
+          "name": "Jinpan Digital Holding Limited（小合并）",
+          "count": 3,
+          "children": [
+            {
+              "id": "5001",
+              "name": "Jinpan Digital Holding Limited"
+            },
+            {
+              "id": "5002",
+              "name": "Jinpan Chain Technology HongKong Limited"
+            },
+            {
+              "id": "5003",
+              "name": "Jinpan Digital Technology HongKong Limited"
+            }
+          ]
         }
       ]
     },
     {
       "id": "E_7000",
       "name": "海南金盘科技新能源投资小合并(合并组)",
-      "count": 11,
+      "count": 9,
       "children": [
         {
           "id": "7000",
@@ -318,7 +337,7 @@
         {
           "id": "E_7003",
           "name": "金盘新能源（湖南）小合并（合并组）",
-          "count": 8,
+          "count": 7,
           "children": [
             {
               "id": "7003",
