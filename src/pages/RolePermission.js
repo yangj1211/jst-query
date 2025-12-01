@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Input, Button, Tooltip } from 'antd';
-import { SearchOutlined, SettingOutlined, PlusOutlined } from '@ant-design/icons';
+import { Table, Input, Button, Tooltip, Popconfirm } from 'antd';
+import { SearchOutlined, SettingOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import './PageStyle.css';
 
 const RolePermission = () => {
@@ -102,7 +102,24 @@ const RolePermission = () => {
     },
   ];
 
+  const [allRoles, setAllRoles] = useState(mockData);
   const [dataSource, setDataSource] = useState(mockData);
+
+  const filterRoles = (list, keyword) => {
+    if (!keyword) {
+      return list;
+    }
+
+    const searchLower = keyword.toLowerCase().trim();
+    return list.filter((item) => {
+      const roleNameMatch = item.roleName && 
+        item.roleName.toLowerCase().includes(searchLower);
+      const remarkMatch = item.remark && 
+        item.remark !== '-' && 
+        item.remark.toLowerCase().includes(searchLower);
+      return roleNameMatch || remarkMatch;
+    });
+  };
 
   // 表格列定义
   const columns = [
@@ -162,14 +179,31 @@ const RolePermission = () => {
           );
         }
         return (
-          <Tooltip title="配置数据权限">
-            <Button 
-              type="link" 
-              icon={<SettingOutlined />}
-              onClick={() => handleConfigPermission(record)}
-              style={{ padding: 0, fontSize: '16px' }}
-            />
-          </Tooltip>
+          <span style={{ display: 'flex', gap: '8px' }}>
+            <Tooltip title="配置数据权限">
+              <Button 
+                type="link" 
+                icon={<SettingOutlined />}
+                onClick={() => handleConfigPermission(record)}
+                style={{ padding: 0, fontSize: '16px' }}
+              />
+            </Tooltip>
+            <Tooltip title="删除角色">
+              <Popconfirm
+                title="确认删除该角色？"
+                okText="删除"
+                cancelText="取消"
+                onConfirm={() => handleDeleteRole(record.key)}
+              >
+                <Button 
+                  type="link" 
+                  danger
+                  icon={<DeleteOutlined />}
+                  style={{ padding: 0, fontSize: '16px' }}
+                />
+              </Popconfirm>
+            </Tooltip>
+          </span>
         );
       },
     },
@@ -180,26 +214,7 @@ const RolePermission = () => {
     const value = e.target.value;
     setSearchText(value);
     
-    if (!value) {
-      setDataSource(mockData);
-      return;
-    }
-
-    const searchLower = value.toLowerCase().trim();
-    const filtered = mockData.filter((item) => {
-      // 搜索角色名
-      const roleNameMatch = item.roleName && 
-        item.roleName.toLowerCase().includes(searchLower);
-      
-      // 搜索备注（排除"-"等占位符）
-      const remarkMatch = item.remark && 
-        item.remark !== '-' && 
-        item.remark.toLowerCase().includes(searchLower);
-      
-      return roleNameMatch || remarkMatch;
-    });
-    
-    setDataSource(filtered);
+    setDataSource(filterRoles(allRoles, value));
   };
 
   // 配置数据权限处理
@@ -211,6 +226,15 @@ const RolePermission = () => {
   // 新建角色处理
   const handleCreateRole = () => {
     navigate('/permission/create-role');
+  };
+
+  // 删除角色
+  const handleDeleteRole = (roleKey) => {
+    setAllRoles((prev) => {
+      const updated = prev.filter((item) => item.key !== roleKey);
+      setDataSource(filterRoles(updated, searchText));
+      return updated;
+    });
   };
 
   return (
