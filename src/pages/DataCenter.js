@@ -93,7 +93,6 @@ const DataCenter = () => {
   const [sourceFilter, setSourceFilter] = useState('all'); // 来源筛选: 'all' | source名称
   const [isSourceFilterDropdownOpen, setIsSourceFilterDropdownOpen] = useState(false); // 来源筛选下拉菜单是否打开
   const [createTimeRange, setCreateTimeRange] = useState({ startDate: null, endDate: null }); // 创建时间范围筛选
-  const [updateTimeRange, setUpdateTimeRange] = useState({ startDate: null, endDate: null }); // 最近更新时间范围筛选
   const [isTagManagementModalVisible, setIsTagManagementModalVisible] = useState(false); // 标签管理模态框显示状态
   const [allTags, setAllTags] = useState([]); // 所有可用标签列表
   const [allSources, setAllSources] = useState([]); // 所有可用来源列表
@@ -424,26 +423,6 @@ const DataCenter = () => {
       });
     }
 
-    // 按最近更新时间范围筛选
-    if (updateTimeRange.startDate || updateTimeRange.endDate) {
-      filtered = filtered.filter(table => {
-        // 文件类型没有更新时间，跳过
-        if (table.objectType === 'file' || !table.updateTime) return false;
-        
-        const updateTime = parseDateTimeString(table.updateTime);
-        if (!updateTime) return false;
-
-        if (updateTimeRange.startDate && updateTimeRange.endDate) {
-          return updateTime >= updateTimeRange.startDate && updateTime <= updateTimeRange.endDate;
-        } else if (updateTimeRange.startDate) {
-          return updateTime >= updateTimeRange.startDate;
-        } else if (updateTimeRange.endDate) {
-          return updateTime <= updateTimeRange.endDate;
-        }
-        return true;
-      });
-    }
-
     return filtered;
   };
 
@@ -481,7 +460,6 @@ const DataCenter = () => {
     setTagFilterSearchKeyword('');
     setIsTagFilterDropdownOpen(false);
     setCreateTimeRange({ startDate: null, endDate: null });
-    setUpdateTimeRange({ startDate: null, endDate: null });
   };
 
   // 点击外部关闭下拉菜单
@@ -713,16 +691,6 @@ const DataCenter = () => {
                     />
                   </div>
                 </div>
-                <div className="search-group date-range-group">
-                  <label className="search-label">最近更新时间：</label>
-                  <div className="date-range-picker-field">
-                    <DateTimeRangePicker
-                      value={updateTimeRange}
-                      onChange={setUpdateTimeRange}
-                      placeholder="选择最近更新时间范围"
-                    />
-                  </div>
-                </div>
               <div className="search-group search-actions-group">
                 <label className="search-label">&nbsp;</label>
                 <div className="search-actions">
@@ -851,7 +819,6 @@ const DataCenter = () => {
                   <div className="list-col-desc">描述</div>
                   <div className="list-col-size">大小</div>
                   <div className="list-col-time">创建时间</div>
-                  <div className="list-col-time">最近更新时间</div>
                   <div className="list-col-creator">创建人</div>
                   <div className="list-col-actions">操作</div>
                 </div>
@@ -889,7 +856,6 @@ const DataCenter = () => {
                     <div className="list-col-desc">{item.objectType === 'file' ? '-' : (item.description || '-')}</div>
                     <div className="list-col-size">{getSizeDisplay(item)}</div>
                     <div className="list-col-time">{item.createTime}</div>
-                    <div className="list-col-time">{item.objectType === 'file' ? '-' : (item.updateTime || '-')}</div>
                     <div className="list-col-creator">{item.creator || '-'}</div>
                     <div className="list-col-actions">
                       <button 
