@@ -87,8 +87,9 @@ const DataCenter = () => {
   const [detailTab, setDetailTab] = useState('fields'); // 表详情tab: 'fields' 或 'data'
   const [objectTypeFilter, setObjectTypeFilter] = useState('all'); // 对象类型筛选: 'all' | 'file' | 'table'
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false); // 对象类型筛选下拉菜单是否打开
-  const [tagFilter, setTagFilter] = useState([]); // 标签筛选: 数组，支持多选，OR关系
+  const [tagFilter, setTagFilter] = useState([]); // 标签筛选：多选
   const [isTagFilterDropdownOpen, setIsTagFilterDropdownOpen] = useState(false); // 标签筛选下拉菜单是否打开
+  const [tagFilterSearchKeyword, setTagFilterSearchKeyword] = useState(''); // 标签筛选搜索关键词
   const [sourceFilter, setSourceFilter] = useState('all'); // 来源筛选: 'all' | source名称
   const [isSourceFilterDropdownOpen, setIsSourceFilterDropdownOpen] = useState(false); // 来源筛选下拉菜单是否打开
   const [createTimeRange, setCreateTimeRange] = useState({ startDate: null, endDate: null }); // 创建时间范围筛选
@@ -122,18 +123,19 @@ const DataCenter = () => {
     setAllTags(newTags);
     setAllSources(newSources);
     
-    // 如果当前选中的标签不再存在，从筛选列表中移除
+    // 移除已被删除的标签筛选项
     if (Array.isArray(tagFilter) && tagFilter.length > 0) {
       const validTags = tagFilter.filter(tag => newTags.includes(tag));
       if (validTags.length !== tagFilter.length) {
         setTagFilter(validTags);
       }
     }
+
     // 如果当前选中的来源不再存在，重置为"全部来源"
     if (sourceFilter !== 'all' && !newSources.includes(sourceFilter)) {
       setSourceFilter('all');
     }
-  }, [savedTables, tagFilter, sourceFilter]);
+  }, [savedTables, sourceFilter, tagFilter]);
 
   // 检查标签是否被使用
   const checkTagInUse = (tag) => {
@@ -392,10 +394,10 @@ const DataCenter = () => {
       filtered = filtered.filter(table => table.objectType === objectTypeFilter);
     }
 
-    // 按标签筛选（OR关系：只要包含任意一个选中的标签就显示）
+    // 按标签筛选（多选，包含任意一个即可）
     if (Array.isArray(tagFilter) && tagFilter.length > 0) {
       filtered = filtered.filter(table => 
-        table.tags && Array.isArray(table.tags) && 
+        table.tags && Array.isArray(table.tags) &&
         tagFilter.some(selectedTag => table.tags.includes(selectedTag))
       );
     }
@@ -451,29 +453,18 @@ const DataCenter = () => {
     setIsFilterDropdownOpen(false);
   };
 
-  // 处理标签筛选选项点击（支持多选）
+  // 处理标签筛选选项点击（多选）
   const handleTagFilterSelect = (value) => {
     if (value === 'all') {
-      // 点击"全部标签"时清空所有选择
       setTagFilter([]);
-    } else {
-      // 切换标签选择状态
-      setTagFilter(prev => {
-        if (Array.isArray(prev)) {
-          if (prev.includes(value)) {
-            // 如果已选中，则取消选择
-            const newFilter = prev.filter(tag => tag !== value);
-            return newFilter;
-          } else {
-            // 如果未选中，则添加选择
-            return [...prev, value];
-          }
-        }
-        return [value];
-      });
+      return;
     }
-    // 多选时不自动关闭下拉菜单
-    // setIsTagFilterDropdownOpen(false);
+    setTagFilter(prev => {
+      if (Array.isArray(prev) && prev.includes(value)) {
+        return prev.filter(tag => tag !== value);
+      }
+      return Array.isArray(prev) ? [...prev, value] : [value];
+    });
   };
 
   // 处理来源筛选选项点击
@@ -482,13 +473,24 @@ const DataCenter = () => {
     setIsSourceFilterDropdownOpen(false);
   };
 
+  // 重置搜索条件
+  const handleResetSearch = () => {
+    setSearchKeyword('');
+    setCreatorSearchKeyword('');
+    setTagFilter([]);
+    setTagFilterSearchKeyword('');
+    setIsTagFilterDropdownOpen(false);
+    setCreateTimeRange({ startDate: null, endDate: null });
+    setUpdateTimeRange({ startDate: null, endDate: null });
+  };
+
   // 点击外部关闭下拉菜单
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isFilterDropdownOpen && !event.target.closest('.object-type-filter-wrapper')) {
         setIsFilterDropdownOpen(false);
       }
-      if (isTagFilterDropdownOpen && !event.target.closest('.tag-filter-wrapper')) {
+      if (isTagFilterDropdownOpen && !event.target.closest('.tag-filter-search-group')) {
         setIsTagFilterDropdownOpen(false);
       }
       if (isSourceFilterDropdownOpen && !event.target.closest('.source-filter-wrapper')) {
@@ -587,50 +589,149 @@ const DataCenter = () => {
           <>
             {/* 搜索栏 */}
             <div className="table-search-bar">
-              <div className="search-group">
-                <label className="search-label">文件名/表名：</label>
-                <div className="search-input-wrapper">
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="搜索文件名/表名..."
-                    value={searchKeyword}
-                    onChange={(e) => setSearchKeyword(e.target.value)}
-                  />
-                  {searchKeyword && (
-                    <button className="clear-search-btn" onClick={() => setSearchKeyword('')}>
-                      ✕
+              <div className="search-row">
+                <div className="search-group">
+                  <label className="search-label">文件名/表名：</label>
+                  <div className="search-input-wrapper">
+                    <input
+                      type="text"
+                      className="search-input"
+                      placeholder="搜索文件名/表名..."
+                      value={searchKeyword}
+                      onChange={(e) => setSearchKeyword(e.target.value)}
+                    />
+                    {searchKeyword && (
+                      <button className="clear-search-btn" onClick={() => setSearchKeyword('')}>
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="search-group">
+                  <label className="search-label">创建人：</label>
+                  <div className="search-input-wrapper">
+                    <input
+                      type="text"
+                      className="search-input"
+                      placeholder="搜索创建人..."
+                      value={creatorSearchKeyword}
+                      onChange={(e) => setCreatorSearchKeyword(e.target.value)}
+                    />
+                    {creatorSearchKeyword && (
+                      <button className="clear-search-btn" onClick={() => setCreatorSearchKeyword('')}>
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className={`search-group tag-filter-search-group ${isTagFilterDropdownOpen ? 'active' : ''}`}>
+                  <label className="search-label">标签：</label>
+                  <div className="tag-filter-wrapper">
+                    <button
+                      type="button"
+                      className="tag-filter-btn"
+                      onClick={() => {
+                        const nextState = !isTagFilterDropdownOpen;
+                        setIsTagFilterDropdownOpen(nextState);
+                        if (nextState) {
+                          setTagFilterSearchKeyword('');
+                        }
+                      }}
+                    >
+                      <span>
+                        {Array.isArray(tagFilter) && tagFilter.length > 0
+                          ? `已选 ${tagFilter.length} 个`
+                          : '全部标签'}
+                      </span>
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                        <path d="M6 9L1 4h10L6 9z"/>
+                      </svg>
                     </button>
-                  )}
+                    {isTagFilterDropdownOpen && (
+                      <div className="filter-dropdown tag-filter-dropdown">
+                        <div className="tag-filter-search-input">
+                          <input
+                            type="text"
+                            placeholder="输入关键字搜索"
+                            value={tagFilterSearchKeyword}
+                            onChange={(e) => setTagFilterSearchKeyword(e.target.value)}
+                          />
+                        </div>
+                        <div
+                          className={`filter-dropdown-item ${Array.isArray(tagFilter) && tagFilter.length === 0 ? 'active' : ''}`}
+                          onClick={() => handleTagFilterSelect('all')}
+                        >
+                          {Array.isArray(tagFilter) && tagFilter.length === 0 && (
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
+                            </svg>
+                          )}
+                          <span>全部标签</span>
+                        </div>
+                        {allTags.length === 0 ? (
+                          <div className="filter-dropdown-item disabled">
+                            <span>暂无标签</span>
+                          </div>
+                        ) : (
+                          allTags
+                            .filter(tag =>
+                              tagFilterSearchKeyword
+                                ? tag.toLowerCase().includes(tagFilterSearchKeyword.toLowerCase())
+                                : true
+                            )
+                            .map(tag => {
+                              const isSelected = Array.isArray(tagFilter) && tagFilter.includes(tag);
+                              return (
+                                <div
+                                  key={tag}
+                                  className={`filter-dropdown-item ${isSelected ? 'active' : ''}`}
+                                  onClick={() => handleTagFilterSelect(tag)}
+                                >
+                                  {isSelected && (
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                      <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
+                                    </svg>
+                                  )}
+                                  <span>{tag}</span>
+                                </div>
+                              );
+                            })
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="search-group">
-                <label className="search-label">创建人：</label>
-                <div className="search-input-wrapper">
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="搜索创建人..."
-                    value={creatorSearchKeyword}
-                    onChange={(e) => setCreatorSearchKeyword(e.target.value)}
-                  />
-                  {creatorSearchKeyword && (
-                    <button className="clear-search-btn" onClick={() => setCreatorSearchKeyword('')}>
-                      ✕
-                    </button>
-                  )}
+              <div className="search-row">
+                <div className="search-group date-range-group">
+                  <label className="search-label">创建时间：</label>
+                  <div className="date-range-picker-field">
+                    <DateTimeRangePicker
+                      value={createTimeRange}
+                      onChange={setCreateTimeRange}
+                      placeholder="选择创建时间范围"
+                    />
+                  </div>
+                </div>
+                <div className="search-group date-range-group">
+                  <label className="search-label">最近更新时间：</label>
+                  <div className="date-range-picker-field">
+                    <DateTimeRangePicker
+                      value={updateTimeRange}
+                      onChange={setUpdateTimeRange}
+                      placeholder="选择最近更新时间范围"
+                    />
+                  </div>
+                </div>
+              <div className="search-group search-actions-group">
+                <label className="search-label">&nbsp;</label>
+                <div className="search-actions">
+                  <button className="search-reset-btn" onClick={handleResetSearch}>
+                    重置
+                  </button>
                 </div>
               </div>
-              <DateTimeRangePicker
-                value={createTimeRange}
-                onChange={setCreateTimeRange}
-                placeholder="选择创建时间范围"
-              />
-              <DateTimeRangePicker
-                value={updateTimeRange}
-                onChange={setUpdateTimeRange}
-                placeholder="选择最近更新时间范围"
-              />
+              </div>
             </div>
 
             {/* 统计信息 */}
@@ -698,62 +799,7 @@ const DataCenter = () => {
                       )}
                     </div>
                   </div>
-                  <div className="list-col-tags">
-                    <div className={`tag-filter-wrapper ${isTagFilterDropdownOpen ? 'active' : ''}`}>
-                      <button 
-                        className="tag-filter-btn"
-                        onClick={() => setIsTagFilterDropdownOpen(!isTagFilterDropdownOpen)}
-                      >
-                        <span>
-                          标签
-                          {Array.isArray(tagFilter) && tagFilter.length > 0 && (
-                            <span className="tag-filter-count">({tagFilter.length})</span>
-                          )}
-                        </span>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                          <path d="M6 9L1 4h10L6 9z"/>
-                        </svg>
-                      </button>
-                      {isTagFilterDropdownOpen && (
-                        <div className="filter-dropdown">
-                          <div 
-                            className={`filter-dropdown-item ${Array.isArray(tagFilter) && tagFilter.length === 0 ? 'active' : ''}`}
-                            onClick={() => handleTagFilterSelect('all')}
-                          >
-                            {Array.isArray(tagFilter) && tagFilter.length === 0 && (
-                              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
-                              </svg>
-                            )}
-                            <span>全部标签</span>
-                          </div>
-                          {allTags.length === 0 ? (
-                            <div className="filter-dropdown-item disabled">
-                              <span>暂无标签</span>
-                            </div>
-                          ) : (
-                            allTags.map((tag) => {
-                              const isSelected = Array.isArray(tagFilter) && tagFilter.includes(tag);
-                              return (
-                                <div 
-                                  key={tag}
-                                  className={`filter-dropdown-item ${isSelected ? 'active' : ''}`}
-                                  onClick={() => handleTagFilterSelect(tag)}
-                                >
-                                  {isSelected && (
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                      <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
-                                    </svg>
-                                  )}
-                                  <span>{tag}</span>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <div className="list-col-tags">标签</div>
                   <div className="list-col-source">
                     <div className={`source-filter-wrapper ${isSourceFilterDropdownOpen ? 'active' : ''}`}>
                       <button 

@@ -125,6 +125,8 @@ const DataImport = () => {
   const [filterSource, setFilterSource] = useState('all'); // all, local, online
   const [filterStatus, setFilterStatus] = useState('all'); // all, processing, pausing, paused, completed, failed
   const [filterTags, setFilterTags] = useState([]); // 选中的标签数组，空数组表示全部
+  const [isTaskTagDropdownOpen, setIsTaskTagDropdownOpen] = useState(false); // 标签筛选下拉是否打开
+  const [taskTagSearchKeyword, setTaskTagSearchKeyword] = useState(''); // 标签筛选搜索关键词
   const [taskSearchKeyword, setTaskSearchKeyword] = useState(''); // 载入对象名搜索关键词
   const [creatorSearchKeyword, setCreatorSearchKeyword] = useState(''); // 导入人搜索关键词
   const [createTimeRange, setCreateTimeRange] = useState({ startDate: null, endDate: null }); // 导入时间范围筛选
@@ -573,6 +575,7 @@ const DataImport = () => {
 
   // 本地上传标签下拉框的ref
   const localTagDropdownRef = useRef(null);
+  const taskTagDropdownRef = useRef(null);
 
   // 点击外部关闭本地上传标签下拉框
   useEffect(() => {
@@ -590,6 +593,23 @@ const DataImport = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showLocalTagDropdown]);
+  
+  // 点击外部关闭任务标签筛选下拉
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (taskTagDropdownRef.current && !taskTagDropdownRef.current.contains(event.target)) {
+        setIsTaskTagDropdownOpen(false);
+      }
+    };
+
+    if (isTaskTagDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isTaskTagDropdownOpen]);
 
   // 所有可用的标签选项
   const availableTags = ['收入成本', '费用明细', '财务报告'];
@@ -899,6 +919,31 @@ const DataImport = () => {
     return Math.ceil(allTasks.length / taskPageSize);
   };
 
+  const handleTaskTagFilterSelect = (tag) => {
+    if (tag === 'all') {
+      setFilterTags([]);
+      setTaskPage(1);
+      return;
+    }
+    setFilterTags(prev => {
+      const isSelected = Array.isArray(prev) && prev.includes(tag);
+      const next = isSelected ? prev.filter(t => t !== tag) : [...prev, tag];
+      return next;
+    });
+    setTaskPage(1);
+  };
+
+  const handleResetTaskFilters = () => {
+    setTaskSearchKeyword('');
+    setCreatorSearchKeyword('');
+    setFilterTags([]);
+    setTaskTagSearchKeyword('');
+    setIsTaskTagDropdownOpen(false);
+    setCreateTimeRange({ startDate: null, endDate: null });
+    setCompleteTimeRange({ startDate: null, endDate: null });
+    setTaskPage(1);
+  };
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -976,6 +1021,75 @@ const DataImport = () => {
                 )}
               </div>
             </div>
+            <div className="task-search-item task-tag-filter" ref={taskTagDropdownRef}>
+              <span className="task-search-label">标签：</span>
+              <div className="task-tag-filter-wrapper">
+                <button
+                  type="button"
+                  className="task-tag-filter-btn"
+                  onClick={() => {
+                    const nextState = !isTaskTagDropdownOpen;
+                    setIsTaskTagDropdownOpen(nextState);
+                    if (nextState) {
+                      setTaskTagSearchKeyword('');
+                    }
+                  }}
+                >
+                  <span>
+                    {filterTags.length > 0 ? `已选 ${filterTags.length} 个` : '全部标签'}
+                  </span>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                    <path d="M6 9L1 4h10L6 9z"/>
+                  </svg>
+                </button>
+                {isTaskTagDropdownOpen && (
+                  <div className="task-tag-filter-dropdown">
+                    <div className="task-tag-filter-search-input">
+                      <input
+                        type="text"
+                        placeholder="输入关键字搜索"
+                        value={taskTagSearchKeyword}
+                        onChange={(e) => setTaskTagSearchKeyword(e.target.value)}
+                      />
+                    </div>
+                    <div
+                      className={`task-tag-filter-item ${filterTags.length === 0 ? 'active' : ''}`}
+                      onClick={() => handleTaskTagFilterSelect('all')}
+                    >
+                      {filterTags.length === 0 && (
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
+                        </svg>
+                      )}
+                      <span>全部标签</span>
+                    </div>
+                    {availableTags
+                      .filter(tag =>
+                        taskTagSearchKeyword
+                          ? tag.toLowerCase().includes(taskTagSearchKeyword.toLowerCase())
+                          : true
+                      )
+                      .map(tag => {
+                        const isSelected = filterTags.includes(tag);
+                        return (
+                          <div
+                            key={tag}
+                            className={`task-tag-filter-item ${isSelected ? 'active' : ''}`}
+                            onClick={() => handleTaskTagFilterSelect(tag)}
+                          >
+                            {isSelected && (
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
+                              </svg>
+                            )}
+                            <span>{tag}</span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            </div>
             <DateTimeRangePicker
               value={createTimeRange}
               onChange={(range) => {
@@ -992,6 +1106,11 @@ const DataImport = () => {
               }}
               placeholder="选择完成时间范围"
             />
+            <div className="task-search-item task-search-actions">
+              <button className="task-reset-btn" onClick={handleResetTaskFilters}>
+                重置
+              </button>
+            </div>
           </div>
           
           {getFilteredTasks().length === 0 ? (
@@ -1040,51 +1159,7 @@ const DataImport = () => {
                   </div>
                 </div>
                 <div className="task-col-object">载入对象名</div>
-                <div className="task-col-tags">
-                  <div className="header-filter-dropdown">
-                    标签
-                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" style={{ marginLeft: '4px' }}>
-                      <path d="M1.5 2.5h13l-5 6v5l-3 1v-6l-5-6z" fill="currentColor"/>
-                    </svg>
-                    {filterTags.length > 0 && <span className="header-filter-badge"></span>}
-                    <div className="header-filter-menu">
-                      <div 
-                        className={`filter-menu-item ${filterTags.length === 0 ? 'active' : ''}`}
-                        onClick={() => {
-                          setFilterTags([]);
-                          setTaskPage(1);
-                        }}
-                      >
-                        全部标签
-                      </div>
-                      {availableTags.map(tag => {
-                        const isSelected = filterTags.includes(tag);
-                        return (
-                          <div 
-                            key={tag}
-                            className={`filter-menu-item filter-menu-item-checkbox ${isSelected ? 'active' : ''}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (isSelected) {
-                                // 取消选择
-                                setFilterTags(filterTags.filter(t => t !== tag));
-                              } else {
-                                // 添加选择
-                                setFilterTags([...filterTags, tag]);
-                              }
-                              setTaskPage(1);
-                            }}
-                          >
-                            <span className="filter-checkbox">
-                              {isSelected && '✓'}
-                            </span>
-                            {tag}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
+                <div className="task-col-tags">标签</div>
                 <div className="task-col-status">
                   <div className="header-filter-dropdown">
                     状态
