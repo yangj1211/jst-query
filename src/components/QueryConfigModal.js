@@ -19,6 +19,7 @@ import {
 } from '@ant-design/icons';
 import companyData from '../pages/company.json';
 import departmentData from '../pages/department.json';
+import { buildTreeDataFromJson } from '../utils/treeData';
 
 const tableOptions = [
   { name: '测试表1', tags: ['财务', '数据'], sources: ['SAP', 'BPC'] },
@@ -217,55 +218,8 @@ const treeWrapperStyle = {
   background: '#f9fafc',
 };
 
-/**
- * 将 company.json 的数据结构转换为 Tree 组件需要的格式
- * @param {Object} node - 公司节点数据
- * @returns {Object} Tree 节点格式
- */
-const convertCompanyNodeToTree = (node) => {
-  const { id, name, count, children } = node;
-  // 生成 title: "id - name (count)" 或 "id - name"
-  const title = count !== undefined ? `${id} - ${name} (${count})` : `${id} - ${name}`;
-  // 使用 id 作为 key（转换为小写，保持一致性）
-  const key = id.toLowerCase();
-  
-  const treeNode = {
-    title,
-    key,
-  };
-  
-  // 如果有子节点，递归转换
-  if (children && children.length > 0) {
-    treeNode.children = children.map(child => convertCompanyNodeToTree(child));
-  }
-  
-  return treeNode;
-};
-
-/**
- * 从 company.json 生成公司树数据
- * @returns {Array} Tree 数据数组
- */
-const generateCompanyTreeData = () => {
-  // 将根节点转换为数组格式（Tree 组件期望数组）
-  return [convertCompanyNodeToTree(companyData)];
-};
-
-// 使用 company.json 数据生成公司树
-const companyTreeData = generateCompanyTreeData();
-
-/**
- * 从 department.json 生成事业部树数据
- * @returns {Array} Tree 数据数组
- */
-const generateDepartmentTreeData = () => {
-  // 将根节点转换为数组格式（Tree 组件期望数组）
-  // 复用 convertCompanyNodeToTree 函数，因为数据结构相同
-  return [convertCompanyNodeToTree(departmentData)];
-};
-
-// 使用 department.json 数据生成事业部树
-const departmentTreeData = generateDepartmentTreeData();
+const companyTreeData = buildTreeDataFromJson(companyData);
+const departmentTreeData = buildTreeDataFromJson(departmentData);
 
 const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
   const [sourceMode, setSourceMode] = useState(initialConfig.sourceMode || 'all');
