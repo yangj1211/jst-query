@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
 import { Table, Input, Button, Modal, Checkbox, message } from 'antd';
 import { SearchOutlined, EditOutlined } from '@ant-design/icons';
+import DateTimeRangePicker from '../components/DateTimeRangePicker';
 import './PageStyle.css';
 
 const UserManagement = () => {
-  const [searchText, setSearchText] = useState('');
+  const [searchFilters, setSearchFilters] = useState({
+    userId: '',
+    username: '',
+    account: '',
+    department: '',
+    role: '',
+  });
+  const [createTimeRange, setCreateTimeRange] = useState({ startDate: null, endDate: null });
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [selectedRoles, setSelectedRoles] = useState([]);
@@ -338,17 +346,7 @@ const UserManagement = () => {
     setAllUsers(updatedData);
     
     // 如果当前有搜索条件，需要重新过滤
-    if (searchText) {
-      const filtered = updatedData.filter(
-        (item) =>
-          item.username.toLowerCase().includes(searchText.toLowerCase()) ||
-          item.account.toLowerCase().includes(searchText.toLowerCase()) ||
-          item.department.toLowerCase().includes(searchText.toLowerCase())
-      );
-      setDataSource(filtered);
-    } else {
-      setDataSource(updatedData);
-    }
+    applyFilters(searchFilters, createTimeRange);
 
     message.success('用户角色已更新');
     handleCancel();
@@ -416,21 +414,93 @@ const UserManagement = () => {
   ];
 
   // 搜索处理
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    setSearchText(value);
+  const handleSearch = (field, value) => {
+    const newFilters = {
+      ...searchFilters,
+      [field]: value,
+    };
+    setSearchFilters(newFilters);
+    applyFilters(newFilters, createTimeRange);
+  };
+
+  // 时间范围变化处理
+  const handleTimeRangeChange = (range) => {
+    setCreateTimeRange(range);
+    applyFilters(searchFilters, range);
+  };
+
+  // 重置搜索条件
+  const handleResetSearch = () => {
+    setSearchFilters({
+      userId: '',
+      username: '',
+      account: '',
+      department: '',
+      role: '',
+    });
+    setCreateTimeRange({ startDate: null, endDate: null });
+    setDataSource(allUsers);
+  };
+
+  // 应用所有过滤条件
+  const applyFilters = (filters, timeRange) => {
+    // 检查是否所有搜索条件都为空
+    const hasAnyFilter = Object.values(filters).some(filter => filter && filter.trim() !== '') ||
+      (timeRange.startDate || timeRange.endDate);
     
-    if (!value) {
+    if (!hasAnyFilter) {
       setDataSource(allUsers);
       return;
     }
 
-    const filtered = allUsers.filter(
-      (item) =>
-        item.username.toLowerCase().includes(value.toLowerCase()) ||
-        item.account.toLowerCase().includes(value.toLowerCase()) ||
-        item.department.toLowerCase().includes(value.toLowerCase())
-    );
+    // 多字段过滤
+    const filtered = allUsers.filter((item) => {
+      const matchUserId = !filters.userId || 
+        item.userId.toString().toLowerCase().includes(filters.userId.toLowerCase());
+      const matchUsername = !filters.username || 
+        item.username.toLowerCase().includes(filters.username.toLowerCase());
+      const matchAccount = !filters.account || 
+        item.account.toLowerCase().includes(filters.account.toLowerCase());
+      const matchDepartment = !filters.department || 
+        item.department.toLowerCase().includes(filters.department.toLowerCase());
+      const matchRole = !filters.role || 
+        item.role.toLowerCase().includes(filters.role.toLowerCase());
+      
+      // 时间范围过滤：将创建时间字符串转换为Date对象进行比较
+      let matchCreateTime = true;
+      if (timeRange.startDate || timeRange.endDate) {
+        try {
+          // 解析创建时间字符串，格式：MM/DD/YYYY HH:MM:SS AM/PM
+          const parseDateTime = (dateStr) => {
+            const parts = dateStr.split(' ');
+            const datePart = parts[0];
+            const timePart = parts[1];
+            const period = parts[2];
+            const [month, day, year] = datePart.split('/');
+            const [hours, minutes, seconds] = timePart.split(':');
+            let hour = parseInt(hours);
+            if (period === 'PM' && hour !== 12) hour += 12;
+            if (period === 'AM' && hour === 12) hour = 0;
+            return new Date(year, parseInt(month) - 1, parseInt(day), hour, parseInt(minutes), parseInt(seconds));
+          };
+          
+          const itemDate = parseDateTime(item.createTime);
+          
+          if (timeRange.startDate && itemDate < timeRange.startDate) {
+            matchCreateTime = false;
+          }
+          if (timeRange.endDate && itemDate > timeRange.endDate) {
+            matchCreateTime = false;
+          }
+        } catch (e) {
+          // 如果解析失败，不匹配
+          matchCreateTime = false;
+        }
+      }
+
+      return matchUserId && matchUsername && matchAccount && 
+             matchDepartment && matchRole && matchCreateTime;
+    });
     setDataSource(filtered);
   };
 
@@ -440,29 +510,110 @@ const UserManagement = () => {
         <h2>用户信息</h2>
       </div>
       <div className="page-content" style={{ padding: '24px' }}>
-        {/* 顶部统计和搜索栏 */}
+        {/* 搜索栏 */}
         <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: '24px'
+          background: '#fafafa',
+          padding: '16px',
+          borderRadius: '4px',
+          marginBottom: '24px',
+          border: '1px solid #e8e8e8'
         }}>
-          <div style={{ fontSize: '16px', fontWeight: 500 }}>
-            用户数：<span style={{ fontWeight: 'bold' }}>{dataSource.length}</span>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(3, 1fr)', 
+            gap: '16px',
+            marginBottom: '16px'
+          }}>
+            <div>
+              <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
+                用户ID
+              </div>
+              <Input
+                placeholder="搜索用户ID"
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                value={searchFilters.userId}
+                onChange={(e) => handleSearch('userId', e.target.value)}
+                allowClear
+              />
+            </div>
+            <div>
+              <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
+                用户名
+              </div>
+              <Input
+                placeholder="搜索用户名"
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                value={searchFilters.username}
+                onChange={(e) => handleSearch('username', e.target.value)}
+                allowClear
+              />
+            </div>
+            <div>
+              <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
+                账号
+              </div>
+              <Input
+                placeholder="搜索账号"
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                value={searchFilters.account}
+                onChange={(e) => handleSearch('account', e.target.value)}
+                allowClear
+              />
+            </div>
+            <div>
+              <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
+                部门
+              </div>
+              <Input
+                placeholder="搜索部门"
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                value={searchFilters.department}
+                onChange={(e) => handleSearch('department', e.target.value)}
+                allowClear
+              />
+            </div>
+            <div>
+              <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
+                角色
+              </div>
+              <Input
+                placeholder="搜索角色"
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                value={searchFilters.role}
+                onChange={(e) => handleSearch('role', e.target.value)}
+                allowClear
+              />
+            </div>
+            <div>
+              <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
+                创建时间
+              </div>
+              <DateTimeRangePicker
+                value={createTimeRange}
+                onChange={handleTimeRangeChange}
+                placeholder="选择创建时间范围"
+              />
+            </div>
           </div>
-          <div>
-            <Input
-              placeholder="搜索用户名/账号/部门"
-              prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-              value={searchText}
-              onChange={handleSearch}
-              style={{ width: 300 }}
-              allowClear
-            />
+          {/* 重置按钮 */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'flex-end',
+            marginTop: '16px'
+          }}>
+            <Button 
+              onClick={handleResetSearch}
+              style={{ minWidth: '80px' }}
+            >
+              重置
+            </Button>
           </div>
         </div>
 
-        {/* 用户表格 */}
+        {/* 用户列表 */}
+        <div style={{ marginBottom: '16px', fontSize: '16px', fontWeight: 500 }}>
+          用户数：<span style={{ fontWeight: 'bold' }}>{dataSource.length}</span>
+        </div>
         <Table
           dataSource={dataSource}
           columns={columns}
