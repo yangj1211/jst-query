@@ -2,11 +2,17 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, Input, Button, Tooltip, Popconfirm } from 'antd';
 import { SearchOutlined, SettingOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import DateTimeRangePicker from '../components/DateTimeRangePicker';
 import './PageStyle.css';
 
 const RolePermission = () => {
   const navigate = useNavigate();
-  const [searchText, setSearchText] = useState('');
+  const [searchFilters, setSearchFilters] = useState({
+    roleId: '',
+    roleName: '',
+    remark: '',
+  });
+  const [createTimeRange, setCreateTimeRange] = useState({ startDate: null, endDate: null });
 
   // 模拟角色数据
   const mockData = [
@@ -60,20 +66,89 @@ const RolePermission = () => {
   const [allRoles, setAllRoles] = useState(mockData);
   const [dataSource, setDataSource] = useState(mockData);
 
-  const filterRoles = (list, keyword) => {
-    if (!keyword) {
-      return list;
+  // 搜索处理
+  const handleSearch = (field, value) => {
+    const newFilters = {
+      ...searchFilters,
+      [field]: value,
+    };
+    setSearchFilters(newFilters);
+    applyFilters(newFilters, createTimeRange);
+  };
+
+  // 时间范围变化处理
+  const handleTimeRangeChange = (range) => {
+    setCreateTimeRange(range);
+    applyFilters(searchFilters, range);
+  };
+
+  // 应用所有过滤条件
+  const applyFilters = (filters, timeRange) => {
+    // 检查是否所有搜索条件都为空
+    const hasAnyFilter = Object.values(filters).some(filter => filter && filter.trim() !== '') ||
+      (timeRange.startDate || timeRange.endDate);
+    
+    if (!hasAnyFilter) {
+      setDataSource(allRoles);
+      return;
     }
 
-    const searchLower = keyword.toLowerCase().trim();
-    return list.filter((item) => {
-      const roleNameMatch = item.roleName && 
-        item.roleName.toLowerCase().includes(searchLower);
-      const remarkMatch = item.remark && 
-        item.remark !== '-' && 
-        item.remark.toLowerCase().includes(searchLower);
-      return roleNameMatch || remarkMatch;
+    // 多字段过滤
+    const filtered = allRoles.filter((item) => {
+      const matchRoleId = !filters.roleId || 
+        item.roleId.toString().toLowerCase().includes(filters.roleId.toLowerCase());
+      const matchRoleName = !filters.roleName || 
+        item.roleName.toLowerCase().includes(filters.roleName.toLowerCase());
+      const matchRemark = !filters.remark || 
+        (item.remark && item.remark !== '-' && 
+         item.remark.toLowerCase().includes(filters.remark.toLowerCase()));
+      
+      // 时间范围过滤：将创建时间字符串转换为Date对象进行比较
+      let matchCreateTime = true;
+      if (timeRange.startDate || timeRange.endDate) {
+        try {
+          // 解析创建时间字符串，格式：MM/DD/YYYY HH:MM:SS AM/PM
+          const parseDateTime = (dateStr) => {
+            const parts = dateStr.split(' ');
+            const datePart = parts[0];
+            const timePart = parts[1];
+            const period = parts[2];
+            const [month, day, year] = datePart.split('/');
+            const [hours, minutes, seconds] = timePart.split(':');
+            let hour = parseInt(hours);
+            if (period === 'PM' && hour !== 12) hour += 12;
+            if (period === 'AM' && hour === 12) hour = 0;
+            return new Date(year, parseInt(month) - 1, parseInt(day), hour, parseInt(minutes), parseInt(seconds));
+          };
+          
+          const itemDate = parseDateTime(item.createTime);
+          
+          if (timeRange.startDate && itemDate < timeRange.startDate) {
+            matchCreateTime = false;
+          }
+          if (timeRange.endDate && itemDate > timeRange.endDate) {
+            matchCreateTime = false;
+          }
+        } catch (e) {
+          // 如果解析失败，不匹配
+          matchCreateTime = false;
+        }
+      }
+
+      return matchRoleId && matchRoleName && matchRemark && matchCreateTime;
     });
+    setDataSource(filtered);
+  };
+
+  // 重置搜索条件
+  const handleResetSearch = () => {
+    setSearchFilters({
+      roleId: '',
+      roleName: '',
+      remark: '',
+    });
+    setCreateTimeRange({ startDate: null, endDate: null });
+    setDataSource(allRoles);
   };
 
   // 表格列定义
@@ -150,13 +225,6 @@ const RolePermission = () => {
     },
   ];
 
-  // 搜索处理
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    setSearchText(value);
-    
-    setDataSource(filterRoles(allRoles, value));
-  };
 
   // 配置数据权限处理
   const handleConfigPermission = (record) => {
@@ -173,7 +241,9 @@ const RolePermission = () => {
   const handleDeleteRole = (roleKey) => {
     setAllRoles((prev) => {
       const updated = prev.filter((item) => item.key !== roleKey);
-      setDataSource(filterRoles(updated, searchText));
+      setDataSource(updated);
+      // 重新应用过滤条件
+      applyFilters(searchFilters, createTimeRange);
       return updated;
     });
   };
@@ -184,25 +254,80 @@ const RolePermission = () => {
         <h2>角色权限</h2>
       </div>
       <div className="page-content" style={{ padding: '24px' }}>
-        {/* 顶部统计和搜索栏 */}
+        {/* 搜索栏 */}
         <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: '24px'
+          background: '#fafafa',
+          padding: '16px',
+          borderRadius: '4px',
+          marginBottom: '24px',
+          border: '1px solid #e8e8e8'
         }}>
-          <div style={{ fontSize: '16px', fontWeight: 500 }}>
-            角色数：<span style={{ fontWeight: 'bold' }}>{dataSource.length}</span>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(2, 1fr)', 
+            gap: '16px',
+            marginBottom: '16px'
+          }}>
+            <div>
+              <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
+                角色ID
+              </div>
+              <Input
+                placeholder="搜索角色ID"
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                value={searchFilters.roleId}
+                onChange={(e) => handleSearch('roleId', e.target.value)}
+                allowClear
+              />
+            </div>
+            <div>
+              <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
+                角色名
+              </div>
+              <Input
+                placeholder="搜索角色名"
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                value={searchFilters.roleName}
+                onChange={(e) => handleSearch('roleName', e.target.value)}
+                allowClear
+              />
+            </div>
+            <div>
+              <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
+                创建时间
+              </div>
+              <DateTimeRangePicker
+                value={createTimeRange}
+                onChange={handleTimeRangeChange}
+                placeholder="选择创建时间范围"
+              />
+            </div>
+            <div>
+              <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
+                备注
+              </div>
+              <Input
+                placeholder="搜索备注"
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                value={searchFilters.remark}
+                onChange={(e) => handleSearch('remark', e.target.value)}
+                allowClear
+              />
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Input
-              placeholder="搜索角色名/备注"
-              prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-              value={searchText}
-              onChange={handleSearch}
-              style={{ width: 300 }}
-              allowClear
-            />
+          {/* 操作按钮 */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: '16px'
+          }}>
+            <Button 
+              onClick={handleResetSearch}
+              style={{ minWidth: '80px' }}
+            >
+              重置
+            </Button>
             <Button 
               type="primary" 
               icon={<PlusOutlined />}
@@ -213,6 +338,10 @@ const RolePermission = () => {
           </div>
         </div>
 
+        {/* 角色列表 */}
+        <div style={{ marginBottom: '16px', fontSize: '16px', fontWeight: 500 }}>
+          角色数：<span style={{ fontWeight: 'bold' }}>{dataSource.length}</span>
+        </div>
         {/* 角色表格 */}
         <Table
           dataSource={dataSource}
