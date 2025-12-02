@@ -11,15 +11,6 @@ const RolePermission = () => {
   // 模拟角色数据
   const mockData = [
     {
-      key: '0',
-      roleId: '0',
-      roleName: '默认',
-      status: '正常',
-      createTime: '07/01/2025 9:00:00 AM',
-      updateTime: '07/01/2025 9:00:00 AM',
-      remark: '系统内置默认角色，无任何权限，且不可修改或删除',
-    },
-    {
       key: '1',
       roleId: '1',
       roleName: '超级管理员',
@@ -31,83 +22,38 @@ const RolePermission = () => {
     {
       key: '2',
       roleId: '2',
-      roleName: '管理员',
+      roleName: '普通角色',
       status: '正常',
       createTime: '07/10/2025 10:30:15 AM',
-      updateTime: '10/15/2025 3:20:10 PM',
-      remark: '负责日常管理工作',
+      updateTime: '07/10/2025 10:30:15 AM',
+      remark: '普通用户角色',
     },
     {
       key: '3',
-      roleId: '10001',
-      roleName: '开发者',
+      roleId: '3',
+      roleName: '财务角色',
       status: '正常',
-      createTime: '09/19/2025 2:05:21 PM',
-      updateTime: '09/19/2025 2:05:21 PM',
-      remark: '负责系统开发与维护',
+      createTime: '07/15/2025 11:20:00 AM',
+      updateTime: '07/15/2025 11:20:00 AM',
+      remark: '财务部门角色',
     },
     {
       key: '4',
-      roleId: '10002',
-      roleName: '测试工程师',
-      status: '禁用',
-      createTime: '08/01/2025 9:15:30 AM',
-      updateTime: '10/20/2025 4:50:45 PM',
-      remark: '负责功能测试和bug反馈',
+      roleId: '4',
+      roleName: '销售角色',
+      status: '正常',
+      createTime: '07/20/2025 2:15:30 PM',
+      updateTime: '07/20/2025 2:15:30 PM',
+      remark: '销售部门角色',
     },
     {
       key: '5',
-      roleId: '10003',
-      roleName: '运营人员',
+      roleId: '5',
+      roleName: '财务总监角色',
       status: '正常',
-      createTime: '08/15/2025 11:20:00 AM',
-      updateTime: '10/25/2025 2:35:18 PM',
-      remark: '负责业务运营和数据分析',
-    },
-    {
-      key: '6',
-      roleId: '10004',
-      roleName: '产品经理',
-      status: '正常',
-      createTime: '07/20/2025 3:45:10 PM',
-      updateTime: '10/28/2025 10:15:25 AM',
-      remark: '负责产品规划和需求管理',
-    },
-    {
-      key: '7',
-      roleId: '10005',
-      roleName: '销售主管',
-      status: '正常',
-      createTime: '09/01/2025 8:30:00 AM',
-      updateTime: '10/30/2025 5:40:30 PM',
-      remark: '管理销售团队和客户关系',
-    },
-    {
-      key: '8',
-      roleId: '10006',
-      roleName: '财务专员',
-      status: '禁用',
-      createTime: '09/10/2025 1:20:45 PM',
-      updateTime: '10/31/2025 11:25:50 AM',
-      remark: '负责财务报表和账务处理',
-    },
-    {
-      key: '9',
-      roleId: '10007',
-      roleName: '客服人员',
-      status: '正常',
-      createTime: '09/25/2025 10:10:20 AM',
-      updateTime: '11/01/2025 9:05:15 AM',
-      remark: '处理客户咨询和售后服务',
-    },
-    {
-      key: '10',
-      roleId: '10008',
-      roleName: '数据分析师',
-      status: '正常',
-      createTime: '10/05/2025 2:50:35 PM',
-      updateTime: '11/01/2025 3:30:40 PM',
-      remark: '负责数据挖掘和业务洞察',
+      createTime: '07/25/2025 3:45:10 PM',
+      updateTime: '07/25/2025 3:45:10 PM',
+      remark: '财务总监角色',
     },
   ];
 
@@ -162,26 +108,7 @@ const RolePermission = () => {
       key: 'action',
       width: 150,
       render: (_, record) => {
-        // 系统内置角色（默认、超级管理员、管理员）不允许配置或删除
-        if (
-          record.roleName === '默认' || record.roleId === '0' ||
-          record.roleName === '超级管理员' || record.roleId === '1' || 
-          record.roleName === '管理员' || record.roleId === '2'
-        ) {
-          return (
-            <span style={{ color: '#999', fontSize: '14px' }}>
-              -
-            </span>
-          );
-        }
-        // 禁用状态的角色不能配置
-        if (record.status === '禁用') {
-          return (
-            <span style={{ color: '#999', fontSize: '14px' }}>
-              -
-            </span>
-          );
-        }
+        const isSuperAdmin = record.roleName === '超级管理员' || record.roleId === '1';
         return (
           <span style={{ display: 'flex', gap: '8px' }}>
             <Tooltip title="配置数据权限">
@@ -189,7 +116,12 @@ const RolePermission = () => {
                 type="link" 
                 icon={<SettingOutlined />}
                 onClick={() => handleConfigPermission(record)}
-                style={{ padding: 0, fontSize: '16px' }}
+                disabled={isSuperAdmin}
+                style={{ 
+                  padding: 0, 
+                  fontSize: '16px',
+                  ...(isSuperAdmin ? { color: '#d9d9d9', cursor: 'not-allowed' } : {})
+                }}
               />
             </Tooltip>
             <Tooltip title="删除角色">
@@ -203,7 +135,12 @@ const RolePermission = () => {
                   type="link" 
                   danger
                   icon={<DeleteOutlined />}
-                  style={{ padding: 0, fontSize: '16px' }}
+                  disabled={isSuperAdmin}
+                  style={{ 
+                    padding: 0, 
+                    fontSize: '16px',
+                    ...(isSuperAdmin ? { color: '#d9d9d9', cursor: 'not-allowed' } : {})
+                  }}
                 />
               </Popconfirm>
             </Tooltip>

@@ -28,9 +28,9 @@ const UserManagement = () => {
       username: '张伟',
       account: 'zhangwei@company.com',
       department: '财务部',
-      role: '管理员',
-      roles: ['管理员'],
-      defaultRole: '管理员',
+      role: '财务角色',
+      roles: ['财务角色'],
+      defaultRole: '财务角色',
       createTime: '03/20/2025 10:30:15 AM',
     },
     {
@@ -39,9 +39,9 @@ const UserManagement = () => {
       username: '李娜',
       account: 'lina@company.com',
       department: '人力资源部',
-      role: '管理员',
-      roles: ['管理员'],
-      defaultRole: '管理员',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '04/05/2025 2:15:30 PM',
     },
     {
@@ -50,9 +50,9 @@ const UserManagement = () => {
       username: '王芳',
       account: 'wangfang@company.com',
       department: '销售部',
-      role: '管理员',
-      roles: ['管理员'],
-      defaultRole: '管理员',
+      role: '销售角色',
+      roles: ['销售角色'],
+      defaultRole: '销售角色',
       createTime: '05/12/2025 11:20:45 AM',
     },
     {
@@ -61,9 +61,9 @@ const UserManagement = () => {
       username: '刘强',
       account: 'liuqiang@company.com',
       department: '市场部',
-      role: '普通用户',
-      roles: ['默认', '普通用户'],
-      defaultRole: '默认',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '06/08/2025 3:45:20 PM',
     },
     {
@@ -72,9 +72,9 @@ const UserManagement = () => {
       username: '陈静',
       account: 'chenjing@company.com',
       department: '财务部',
-      role: '普通用户',
-      roles: ['默认', '普通用户'],
-      defaultRole: '默认',
+      role: '财务角色',
+      roles: ['财务角色'],
+      defaultRole: '财务角色',
       createTime: '07/15/2025 8:30:00 AM',
     },
     {
@@ -83,9 +83,9 @@ const UserManagement = () => {
       username: '杨明',
       account: 'yangming@company.com',
       department: '信息技术部',
-      role: '开发者',
-      roles: ['默认', '开发者'],
-      defaultRole: '默认',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '08/22/2025 1:15:35 PM',
     },
     {
@@ -94,9 +94,9 @@ const UserManagement = () => {
       username: '赵丽',
       account: 'zhaoli@company.com',
       department: '信息技术部',
-      role: '开发者',
-      roles: ['默认', '开发者'],
-      defaultRole: '默认',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '09/10/2025 4:20:10 PM',
     },
     {
@@ -105,9 +105,9 @@ const UserManagement = () => {
       username: '孙浩',
       account: 'sunhao@company.com',
       department: '采购部',
-      role: '普通用户',
-      roles: ['默认', '普通用户'],
-      defaultRole: '默认',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '09/28/2025 10:05:50 AM',
     },
     {
@@ -116,9 +116,9 @@ const UserManagement = () => {
       username: '周敏',
       account: 'zhoumin@company.com',
       department: '信息技术部',
-      role: '开发者',
-      roles: ['默认', '开发者'],
-      defaultRole: '默认',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '10/15/2025 2:40:25 PM',
     },
     {
@@ -127,9 +127,9 @@ const UserManagement = () => {
       username: '吴刚',
       account: 'wugang@company.com',
       department: '销售部',
-      role: '普通用户',
-      roles: ['默认', '普通用户'],
-      defaultRole: '默认',
+      role: '销售角色',
+      roles: ['销售角色'],
+      defaultRole: '销售角色',
       createTime: '10/20/2025 9:15:00 AM',
     },
     {
@@ -138,9 +138,9 @@ const UserManagement = () => {
       username: '郑萍',
       account: 'zhengping@company.com',
       department: '人力资源部',
-      role: '普通用户',
-      roles: ['默认', '普通用户'],
-      defaultRole: '默认',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '10/25/2025 3:50:40 PM',
     },
     {
@@ -149,9 +149,9 @@ const UserManagement = () => {
       username: '冯涛',
       account: 'fengtao@company.com',
       department: '运营部',
-      role: '管理员',
-      roles: ['管理员'],
-      defaultRole: '管理员',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '06/18/2025 11:45:20 AM',
     },
     {
@@ -160,9 +160,9 @@ const UserManagement = () => {
       username: '黄秀英',
       account: 'huangxiuying@company.com',
       department: '客服部',
-      role: '普通用户',
-      roles: ['默认', '普通用户'],
-      defaultRole: '默认',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '10/28/2025 8:25:15 AM',
     },
     {
@@ -171,9 +171,9 @@ const UserManagement = () => {
       username: '徐磊',
       account: 'xulei@company.com',
       department: '信息技术部',
-      role: '开发者',
-      roles: ['默认', '开发者'],
-      defaultRole: '默认',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '10/30/2025 2:10:30 PM',
     },
     {
@@ -182,9 +182,9 @@ const UserManagement = () => {
       username: '朱婷',
       account: 'zhuting@company.com',
       department: '市场部',
-      role: '普通用户',
-      roles: ['默认', '普通用户'],
-      defaultRole: '默认',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '11/01/2025 9:35:45 AM',
     },
     {
@@ -193,9 +193,9 @@ const UserManagement = () => {
       username: '马超',
       account: 'machao@company.com',
       department: '采购部',
-      role: '管理员',
-      roles: ['管理员'],
-      defaultRole: '管理员',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '07/22/2025 3:20:00 PM',
     },
     {
@@ -204,9 +204,9 @@ const UserManagement = () => {
       username: '胡雪',
       account: 'huxue@company.com',
       department: '信息技术部',
-      role: '开发者',
-      roles: ['默认', '开发者'],
-      defaultRole: '默认',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '11/01/2025 10:55:20 AM',
     },
     {
@@ -215,9 +215,9 @@ const UserManagement = () => {
       username: '林峰',
       account: 'linfeng@company.com',
       department: '销售部',
-      role: '普通用户',
-      roles: ['默认', '普通用户'],
-      defaultRole: '默认',
+      role: '销售角色',
+      roles: ['销售角色'],
+      defaultRole: '销售角色',
       createTime: '11/01/2025 1:40:10 PM',
     },
     {
@@ -226,9 +226,9 @@ const UserManagement = () => {
       username: '郭静',
       account: 'guojing@company.com',
       department: '信息技术部',
-      role: '开发者',
-      roles: ['默认', '开发者'],
-      defaultRole: '默认',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '11/01/2025 4:15:35 PM',
     },
     {
@@ -237,9 +237,9 @@ const UserManagement = () => {
       username: '何军',
       account: 'hejun@company.com',
       department: '运营部',
-      role: '普通用户',
-      roles: ['默认', '普通用户'],
-      defaultRole: '默认',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '11/02/2025 8:50:25 AM',
     },
     {
@@ -248,9 +248,9 @@ const UserManagement = () => {
       username: '罗红',
       account: 'luohong@company.com',
       department: '信息技术部',
-      role: '开发者',
-      roles: ['默认', '开发者'],
-      defaultRole: '默认',
+      role: '普通角色',
+      roles: ['普通角色'],
+      defaultRole: '普通角色',
       createTime: '11/02/2025 9:30:40 AM',
     },
   ];
@@ -261,23 +261,16 @@ const UserManagement = () => {
   // 可用角色列表
   const roleOptions = [
     '超级管理员',
-    '管理员',
-    '开发者',
-    '默认',
-    '普通用户',
+    '普通角色',
+    '财务角色',
+    '销售角色',
+    '财务总监角色',
   ];
 
   // 打开编辑角色弹窗
   const handleEditRoles = (record) => {
-    // 确保非管理员/超级管理员的用户，默认角色是"默认"
-    const isAdmin = record.defaultRole === '管理员' || record.defaultRole === '超级管理员';
-    const userToEdit = isAdmin ? record : {
-      ...record,
-      defaultRole: '默认',
-      roles: record.roles.includes('默认') ? record.roles : ['默认', ...record.roles.filter(r => r !== '默认')]
-    };
-    setEditingUser(userToEdit);
-    setSelectedRoles([...userToEdit.roles]);
+    setEditingUser(record);
+    setSelectedRoles([...record.roles]);
     setIsModalVisible(true);
   };
 
@@ -290,13 +283,21 @@ const UserManagement = () => {
 
   // 处理角色选择变化
   const handleRoleCheckboxChange = (role, checked) => {
+    // 只有admin用户（userId === '1'）才能操作超级管理员角色
+    const isAdmin = editingUser && editingUser.userId === '1';
+    
     if (checked) {
+      // 如果不是admin用户，不允许勾选超级管理员
+      if (role === '超级管理员' && !isAdmin) {
+        message.warning('只有admin用户可以拥有超级管理员角色');
+        return;
+      }
       // 添加角色
       setSelectedRoles([...selectedRoles, role]);
     } else {
-      // 移除角色，但不能移除默认角色
-      if (role === editingUser.defaultRole) {
-        message.warning('默认角色不能删除');
+      // 移除角色，但不能移除超级管理员角色（如果是admin用户）
+      if (role === '超级管理员' && isAdmin) {
+        message.warning('超级管理员角色不能删除');
         return;
       }
       setSelectedRoles(selectedRoles.filter(r => r !== role));
@@ -307,16 +308,19 @@ const UserManagement = () => {
   const handleSaveRoles = () => {
     if (!editingUser) return;
 
-    // 判断是否是管理员或超级管理员
-    const isAdmin = editingUser.defaultRole === '管理员' || editingUser.defaultRole === '超级管理员';
+    // 只有admin用户（userId === '1'）才能拥有超级管理员角色
+    const isAdmin = editingUser.userId === '1';
     
-    // 如果不是管理员/超级管理员，确保默认角色是"默认"
-    const finalDefaultRole = isAdmin ? editingUser.defaultRole : '默认';
-    
-    // 确保默认角色始终在选中列表中
-    if (!selectedRoles.includes(finalDefaultRole)) {
-      setSelectedRoles([...selectedRoles, finalDefaultRole]);
-      message.warning('默认角色不能删除，已自动添加');
+    // 如果不是admin用户，但选中了超级管理员角色，不允许保存
+    if (!isAdmin && selectedRoles.includes('超级管理员')) {
+      message.warning('只有admin用户可以拥有超级管理员角色');
+      return;
+    }
+
+    // 如果是admin用户，确保超级管理员角色始终在选中列表中
+    if (isAdmin && !selectedRoles.includes('超级管理员')) {
+      setSelectedRoles([...selectedRoles, '超级管理员']);
+      message.warning('超级管理员角色不能删除，已自动添加');
       return;
     }
 
@@ -326,7 +330,6 @@ const UserManagement = () => {
           ...item,
           roles: [...selectedRoles],
           role: selectedRoles.join(', '), // 显示多个角色，用逗号分隔
-          defaultRole: finalDefaultRole, // 确保默认角色正确
         };
       }
       return item;
@@ -394,16 +397,21 @@ const UserManagement = () => {
       title: '操作',
       key: 'action',
       width: 120,
-      render: (_, record) => (
-        <Button
-          type="link"
-          icon={<EditOutlined />}
-          onClick={() => handleEditRoles(record)}
-          size="small"
-        >
-          编辑角色
-        </Button>
-      ),
+      render: (_, record) => {
+        const isSuperAdmin = record.defaultRole === '超级管理员' || record.role === '超级管理员';
+        return (
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEditRoles(record)}
+            size="small"
+            disabled={isSuperAdmin}
+            style={isSuperAdmin ? { color: '#d9d9d9', cursor: 'not-allowed' } : {}}
+          >
+            编辑角色
+          </Button>
+        );
+      },
     },
   ];
 
@@ -493,30 +501,20 @@ const UserManagement = () => {
                   overflowY: 'auto'
                 }}>
                   {roleOptions.map(role => {
-                    const isDefault = role === editingUser.defaultRole;
+                    const isSuperAdmin = role === '超级管理员';
                     const isChecked = selectedRoles.includes(role);
+                    // 只有admin用户（userId === '1'）才能操作超级管理员角色
+                    const isAdmin = editingUser && editingUser.userId === '1';
+                    // 超级管理员角色：如果不是admin用户，完全禁用；如果是admin用户且已选中，不能取消
+                    const isDisabled = isSuperAdmin && (!isAdmin || (isAdmin && isChecked));
                     return (
                       <div key={role} style={{ marginBottom: '8px' }}>
                         <Checkbox
                           checked={isChecked}
-                          disabled={isDefault}
+                          disabled={isDisabled}
                           onChange={(e) => handleRoleCheckboxChange(role, e.target.checked)}
                         >
-                          <span style={{ 
-                            color: isDefault ? '#1890ff' : 'inherit',
-                            fontWeight: isDefault ? 500 : 'normal'
-                          }}>
-                            {role}
-                            {isDefault && (
-                              <span style={{ 
-                                color: '#999', 
-                                fontSize: '12px',
-                                marginLeft: '8px'
-                              }}>
-                                (默认)
-                              </span>
-                            )}
-                          </span>
+                          {role}
                         </Checkbox>
                       </div>
                     );
