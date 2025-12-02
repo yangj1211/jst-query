@@ -11,6 +11,15 @@ const RolePermission = () => {
   // 模拟角色数据
   const mockData = [
     {
+      key: '0',
+      roleId: '0',
+      roleName: '默认',
+      status: '正常',
+      createTime: '07/01/2025 9:00:00 AM',
+      updateTime: '07/01/2025 9:00:00 AM',
+      remark: '系统内置默认角色，无任何权限，且不可修改或删除',
+    },
+    {
       key: '1',
       roleId: '1',
       roleName: '超级管理员',
@@ -153,17 +162,12 @@ const RolePermission = () => {
       key: 'action',
       width: 150,
       render: (_, record) => {
-        // 超级管理员和管理员默认拥有所有权限，不需要配置
-        if (record.roleName === '超级管理员' || record.roleId === '1' || 
-            record.roleName === '管理员' || record.roleId === '2') {
-          return (
-            <span style={{ color: '#999', fontSize: '14px' }}>
-              -
-            </span>
-          );
-        }
-        // 管理员默认拥有所有权限，不需要配置
-        if (record.roleName === '管理员' || record.roleId === '2') {
+        // 系统内置角色（默认、超级管理员、管理员）不允许配置或删除
+        if (
+          record.roleName === '默认' || record.roleId === '0' ||
+          record.roleName === '超级管理员' || record.roleId === '1' || 
+          record.roleName === '管理员' || record.roleId === '2'
+        ) {
           return (
             <span style={{ color: '#999', fontSize: '14px' }}>
               -

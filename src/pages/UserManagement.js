@@ -62,8 +62,8 @@ const UserManagement = () => {
       account: 'liuqiang@company.com',
       department: '市场部',
       role: '普通用户',
-      roles: ['普通用户'],
-      defaultRole: '普通用户',
+      roles: ['默认', '普通用户'],
+      defaultRole: '默认',
       createTime: '06/08/2025 3:45:20 PM',
     },
     {
@@ -73,8 +73,8 @@ const UserManagement = () => {
       account: 'chenjing@company.com',
       department: '财务部',
       role: '普通用户',
-      roles: ['普通用户'],
-      defaultRole: '普通用户',
+      roles: ['默认', '普通用户'],
+      defaultRole: '默认',
       createTime: '07/15/2025 8:30:00 AM',
     },
     {
@@ -84,8 +84,8 @@ const UserManagement = () => {
       account: 'yangming@company.com',
       department: '信息技术部',
       role: '开发者',
-      roles: ['开发者'],
-      defaultRole: '开发者',
+      roles: ['默认', '开发者'],
+      defaultRole: '默认',
       createTime: '08/22/2025 1:15:35 PM',
     },
     {
@@ -95,8 +95,8 @@ const UserManagement = () => {
       account: 'zhaoli@company.com',
       department: '信息技术部',
       role: '开发者',
-      roles: ['开发者'],
-      defaultRole: '开发者',
+      roles: ['默认', '开发者'],
+      defaultRole: '默认',
       createTime: '09/10/2025 4:20:10 PM',
     },
     {
@@ -106,8 +106,8 @@ const UserManagement = () => {
       account: 'sunhao@company.com',
       department: '采购部',
       role: '普通用户',
-      roles: ['普通用户'],
-      defaultRole: '普通用户',
+      roles: ['默认', '普通用户'],
+      defaultRole: '默认',
       createTime: '09/28/2025 10:05:50 AM',
     },
     {
@@ -117,8 +117,8 @@ const UserManagement = () => {
       account: 'zhoumin@company.com',
       department: '信息技术部',
       role: '开发者',
-      roles: ['开发者'],
-      defaultRole: '开发者',
+      roles: ['默认', '开发者'],
+      defaultRole: '默认',
       createTime: '10/15/2025 2:40:25 PM',
     },
     {
@@ -128,8 +128,8 @@ const UserManagement = () => {
       account: 'wugang@company.com',
       department: '销售部',
       role: '普通用户',
-      roles: ['普通用户'],
-      defaultRole: '普通用户',
+      roles: ['默认', '普通用户'],
+      defaultRole: '默认',
       createTime: '10/20/2025 9:15:00 AM',
     },
     {
@@ -139,8 +139,8 @@ const UserManagement = () => {
       account: 'zhengping@company.com',
       department: '人力资源部',
       role: '普通用户',
-      roles: ['普通用户'],
-      defaultRole: '普通用户',
+      roles: ['默认', '普通用户'],
+      defaultRole: '默认',
       createTime: '10/25/2025 3:50:40 PM',
     },
     {
@@ -161,8 +161,8 @@ const UserManagement = () => {
       account: 'huangxiuying@company.com',
       department: '客服部',
       role: '普通用户',
-      roles: ['普通用户'],
-      defaultRole: '普通用户',
+      roles: ['默认', '普通用户'],
+      defaultRole: '默认',
       createTime: '10/28/2025 8:25:15 AM',
     },
     {
@@ -172,8 +172,8 @@ const UserManagement = () => {
       account: 'xulei@company.com',
       department: '信息技术部',
       role: '开发者',
-      roles: ['开发者'],
-      defaultRole: '开发者',
+      roles: ['默认', '开发者'],
+      defaultRole: '默认',
       createTime: '10/30/2025 2:10:30 PM',
     },
     {
@@ -183,8 +183,8 @@ const UserManagement = () => {
       account: 'zhuting@company.com',
       department: '市场部',
       role: '普通用户',
-      roles: ['普通用户'],
-      defaultRole: '普通用户',
+      roles: ['默认', '普通用户'],
+      defaultRole: '默认',
       createTime: '11/01/2025 9:35:45 AM',
     },
     {
@@ -205,8 +205,8 @@ const UserManagement = () => {
       account: 'huxue@company.com',
       department: '信息技术部',
       role: '开发者',
-      roles: ['开发者'],
-      defaultRole: '开发者',
+      roles: ['默认', '开发者'],
+      defaultRole: '默认',
       createTime: '11/01/2025 10:55:20 AM',
     },
     {
@@ -216,8 +216,8 @@ const UserManagement = () => {
       account: 'linfeng@company.com',
       department: '销售部',
       role: '普通用户',
-      roles: ['普通用户'],
-      defaultRole: '普通用户',
+      roles: ['默认', '普通用户'],
+      defaultRole: '默认',
       createTime: '11/01/2025 1:40:10 PM',
     },
     {
@@ -227,8 +227,8 @@ const UserManagement = () => {
       account: 'guojing@company.com',
       department: '信息技术部',
       role: '开发者',
-      roles: ['开发者'],
-      defaultRole: '开发者',
+      roles: ['默认', '开发者'],
+      defaultRole: '默认',
       createTime: '11/01/2025 4:15:35 PM',
     },
     {
@@ -238,8 +238,8 @@ const UserManagement = () => {
       account: 'hejun@company.com',
       department: '运营部',
       role: '普通用户',
-      roles: ['普通用户'],
-      defaultRole: '普通用户',
+      roles: ['默认', '普通用户'],
+      defaultRole: '默认',
       createTime: '11/02/2025 8:50:25 AM',
     },
     {
@@ -249,8 +249,8 @@ const UserManagement = () => {
       account: 'luohong@company.com',
       department: '信息技术部',
       role: '开发者',
-      roles: ['开发者'],
-      defaultRole: '开发者',
+      roles: ['默认', '开发者'],
+      defaultRole: '默认',
       createTime: '11/02/2025 9:30:40 AM',
     },
   ];
@@ -263,13 +263,21 @@ const UserManagement = () => {
     '超级管理员',
     '管理员',
     '开发者',
+    '默认',
     '普通用户',
   ];
 
   // 打开编辑角色弹窗
   const handleEditRoles = (record) => {
-    setEditingUser(record);
-    setSelectedRoles([...record.roles]);
+    // 确保非管理员/超级管理员的用户，默认角色是"默认"
+    const isAdmin = record.defaultRole === '管理员' || record.defaultRole === '超级管理员';
+    const userToEdit = isAdmin ? record : {
+      ...record,
+      defaultRole: '默认',
+      roles: record.roles.includes('默认') ? record.roles : ['默认', ...record.roles.filter(r => r !== '默认')]
+    };
+    setEditingUser(userToEdit);
+    setSelectedRoles([...userToEdit.roles]);
     setIsModalVisible(true);
   };
 
@@ -299,9 +307,15 @@ const UserManagement = () => {
   const handleSaveRoles = () => {
     if (!editingUser) return;
 
+    // 判断是否是管理员或超级管理员
+    const isAdmin = editingUser.defaultRole === '管理员' || editingUser.defaultRole === '超级管理员';
+    
+    // 如果不是管理员/超级管理员，确保默认角色是"默认"
+    const finalDefaultRole = isAdmin ? editingUser.defaultRole : '默认';
+    
     // 确保默认角色始终在选中列表中
-    if (!selectedRoles.includes(editingUser.defaultRole)) {
-      setSelectedRoles([...selectedRoles, editingUser.defaultRole]);
+    if (!selectedRoles.includes(finalDefaultRole)) {
+      setSelectedRoles([...selectedRoles, finalDefaultRole]);
       message.warning('默认角色不能删除，已自动添加');
       return;
     }
@@ -312,6 +326,7 @@ const UserManagement = () => {
           ...item,
           roles: [...selectedRoles],
           role: selectedRoles.join(', '), // 显示多个角色，用逗号分隔
+          defaultRole: finalDefaultRole, // 确保默认角色正确
         };
       }
       return item;
@@ -465,23 +480,6 @@ const UserManagement = () => {
             <div>
               <div style={{ marginBottom: '16px' }}>
                 <strong>用户：</strong>{editingUser.username} ({editingUser.account})
-              </div>
-              <div style={{ marginBottom: '8px' }}>
-                <strong>默认角色：</strong>
-                <span style={{ 
-                  color: '#1890ff', 
-                  fontWeight: 500,
-                  marginLeft: '8px'
-                }}>
-                  {editingUser.defaultRole}
-                </span>
-                <span style={{ 
-                  color: '#999', 
-                  fontSize: '12px',
-                  marginLeft: '8px'
-                }}>
-                  (不可删除)
-                </span>
               </div>
               <div style={{ marginTop: '16px' }}>
                 <div style={{ marginBottom: '12px', fontWeight: 500 }}>
