@@ -160,6 +160,7 @@ const DataImport = () => {
   const [announcementTags, setAnnouncementTags] = useState([]); // 选择的标签（支持多选）
   const [tagSearchInput, setTagSearchInput] = useState(''); // 标签搜索输入
   const [showTagDropdown, setShowTagDropdown] = useState(false); // 是否显示标签下拉列表
+  const [announcementRemark, setAnnouncementRemark] = useState(''); // 备注（非必填）
   
   // 模拟已保存的表数据
   const [savedTables] = useState([
@@ -194,31 +195,18 @@ const DataImport = () => {
 
   // 模拟上市公司数据
   const [companies] = useState([
-    { id: 1, code: '688676', name: '金盘科技', market: '科创板', industry: '电气设备' },
-    { id: 2, code: '600519', name: '贵州茅台', market: '主板', industry: '食品饮料' },
-    { id: 3, code: '000858', name: '五粮液', market: '主板', industry: '食品饮料' },
-    { id: 4, code: '000651', name: '格力电器', market: '主板', industry: '家用电器' },
-    { id: 5, code: '601318', name: '中国平安', market: '主板', industry: '保险' },
-    { id: 6, code: '600036', name: '招商银行', market: '主板', industry: '银行' },
-    { id: 7, code: '000333', name: '美的集团', market: '主板', industry: '家用电器' },
-    { id: 8, code: '601888', name: '中国中免', market: '主板', industry: '零售' },
-    { id: 9, code: '300750', name: '宁德时代', market: '创业板', industry: '电气设备' },
-    { id: 10, code: '002475', name: '立讯精密', market: '主板', industry: '电子' },
-    { id: 11, code: '600887', name: '伊利股份', market: '主板', industry: '食品饮料' },
-    { id: 12, code: '000568', name: '泸州老窖', market: '主板', industry: '食品饮料' },
-    { id: 13, code: '600031', name: '三一重工', market: '主板', industry: '机械设备' },
-    { id: 14, code: '002594', name: '比亚迪', market: '主板', industry: '汽车' },
-    { id: 15, code: '600276', name: '恒瑞医药', market: '主板', industry: '医药生物' },
-    { id: 16, code: '000661', name: '长春高新', market: '主板', industry: '医药生物' },
-    { id: 17, code: '600309', name: '万华化学', market: '主板', industry: '化工' },
-    { id: 18, code: '601012', name: '隆基绿能', market: '主板', industry: '电气设备' },
-    { id: 19, code: '002129', name: '中环股份', market: '主板', industry: '电子' },
-    { id: 20, code: '688981', name: '中芯国际', market: '科创板', industry: '半导体' },
-    { id: 21, code: '688008', name: '澜起科技', market: '科创板', industry: '半导体' },
-    { id: 22, code: '603259', name: '药明康德', market: '主板', industry: '医药生物' },
-    { id: 23, code: '300760', name: '迈瑞医疗', market: '创业板', industry: '医疗器械' },
-    { id: 24, code: '601128', name: '常熟银行', market: '主板', industry: '银行' },
-    { id: 25, code: '600196', name: '复星医药', market: '主板', industry: '医药生物' },
+    { id: 1, code: '600089', name: '特变电工', market: '主板', industry: '电气设备' },
+    { id: 2, code: '002922', name: '伊戈尔', market: '主板', industry: '电气设备' },
+    { id: 3, code: '601877', name: '正泰电器', market: '主板', industry: '电气设备' },
+    { id: 4, code: '000400', name: '许继电气', market: '主板', industry: '电气设备' },
+    { id: 5, code: '300001', name: '特锐德', market: '创业板', industry: '电气设备' },
+    { id: 6, code: '601179', name: '中国西电', market: '主板', industry: '电气设备' },
+    { id: 7, code: '002358', name: '森源电气', market: '主板', industry: '电气设备' },
+    { id: 8, code: '000533', name: '顺纳股份', market: '主板', industry: '电气设备' },
+    { id: 9, code: '603861', name: '白云电器', market: '主板', industry: '电气设备' },
+    { id: 10, code: '002028', name: '思源电气', market: '主板', industry: '电气设备' },
+    { id: 11, code: '301291', name: '明阳电气', market: '创业板', industry: '电气设备' },
+    { id: 12, code: '688676', name: '金盘科技', market: '科创板', industry: '电气设备' },
   ]);
 
   // ========== 本地上传相关函数 ==========
@@ -318,14 +306,6 @@ const DataImport = () => {
     }
     if (!tableName.trim()) {
       alert('请填写表名');
-      return;
-    }
-    if (selectedTags.length === 0) {
-      alert('请选择至少一个标签');
-      return;
-    }
-    if (selectedTags.length > 5) {
-      alert('最多只能选择5个标签');
       return;
     }
     const hasEmptyNames = fields.some(field => !field.name.trim());
@@ -452,23 +432,21 @@ const DataImport = () => {
 
   // 确认标签选择后执行单个导入
   const handleConfirmSingleImport = () => {
-    if (announcementTags.length === 0) {
-      alert('请至少选择一个标签');
-      return;
-    }
-    
     const item = pendingImportItem;
     let fileName = item.content.length > 30 
       ? item.content.substring(0, 30) 
       : item.content;
     fileName = fileName.replace(/[^\u4e00-\u9fa5A-Za-z0-9_-]/g, '_');
     
-    alert(`已成功导入文档！\n文件名：${fileName}.pdf\n标签：${announcementTags.join('、')}`);
+    const tagText = announcementTags.length > 0 ? `\n标签：${announcementTags.join('、')}` : '';
+    const remarkText = announcementRemark.trim() ? `\n备注：${announcementRemark.trim()}` : '';
+    alert(`已成功导入文档！\n文件名：${fileName}.pdf${tagText}${remarkText}`);
     
     setShowTagModal(false);
     setPendingImportType(null);
     setPendingImportItem(null);
     setAnnouncementTags([]);
+    setAnnouncementRemark('');
   };
 
   // 切换单个公告的选中状态
@@ -512,16 +490,12 @@ const DataImport = () => {
     setAnnouncementTags([]);
     setTagSearchInput('');
     setShowTagDropdown(false);
+    setAnnouncementRemark('');
     setShowTagModal(true);
   };
 
   // 确认标签选择后执行批量导入
   const handleConfirmBatchImport = () => {
-    if (announcementTags.length === 0) {
-      alert('请至少选择一个标签');
-      return;
-    }
-
     const allAnnouncements = getFilteredAnnouncements();
     const selectedItems = allAnnouncements.filter(item => selectedAnnouncements.includes(item.id));
     
@@ -532,13 +506,16 @@ const DataImport = () => {
       return fileName.replace(/[^\u4e00-\u9fa5A-Za-z0-9_-]/g, '_') + '.pdf';
     });
 
-    alert(`已成功批量导入 ${selectedItems.length} 个文档！\n标签：${announcementTags.join('、')}\n\n文件列表：\n${fileNames.join('\n')}`);
+    const tagText = announcementTags.length > 0 ? `\n标签：${announcementTags.join('、')}` : '';
+    const remarkText = announcementRemark.trim() ? `\n备注：${announcementRemark.trim()}` : '';
+    alert(`已成功批量导入 ${selectedItems.length} 个文档！${tagText}${remarkText}\n\n文件列表：\n${fileNames.join('\n')}`);
     setSelectedAnnouncements([]); // 导入后清空选择
     
     setShowTagModal(false);
     setPendingImportType(null);
     setPendingImportItem(null);
     setAnnouncementTags([]);
+    setAnnouncementRemark('');
   };
 
   // 取消标签选择
@@ -549,6 +526,7 @@ const DataImport = () => {
     setAnnouncementTags([]);
     setTagSearchInput('');
     setShowTagDropdown(false);
+    setAnnouncementRemark('');
   };
 
   // 处理本地上传的标签选择
@@ -557,11 +535,6 @@ const DataImport = () => {
       // 如果已选中，则取消选择
       setSelectedTags(selectedTags.filter(t => t !== tag));
     } else {
-      // 如果未选中，检查是否已达到上限
-      if (selectedTags.length >= 5) {
-        alert('最多只能选择5个标签');
-        return;
-      }
       // 添加标签
       setSelectedTags([...selectedTags, tag]);
     }
@@ -625,11 +598,6 @@ const DataImport = () => {
       // 如果已选中，则取消选择
       setAnnouncementTags(announcementTags.filter(t => t !== tag));
     } else {
-      // 如果未选中，检查是否已达到上限
-      if (announcementTags.length >= 5) {
-        alert('最多只能选择5个标签');
-        return;
-      }
       // 添加标签
       setAnnouncementTags([...announcementTags, tag]);
     }
@@ -1512,10 +1480,7 @@ const DataImport = () => {
                 </div>
                 <div className="config-row">
                   <label className="config-label">
-                    <span className="required">*</span>标签：
-                    <span className="optional-tag" style={{ marginLeft: '8px', fontSize: '12px', color: '#999', fontWeight: 'normal' }}>
-                      （最多5个）
-                    </span>
+                    标签：
                   </label>
                   <div ref={localTagDropdownRef} style={{ flex: 1, maxWidth: '500px', position: 'relative' }}>
                     {/* 多选标签输入框 */}
@@ -2234,10 +2199,7 @@ const DataImport = () => {
               <div className="filename-modal-body">
                 <div className="config-row" style={{ marginBottom: '20px' }}>
                   <label className="config-label">
-                    <span className="required">*</span>标签：
-                    <span className="optional-tag" style={{ marginLeft: '8px', fontSize: '12px', color: '#999', fontWeight: 'normal' }}>
-                      （最多5个）
-                    </span>
+                    标签：
                   </label>
                   <div ref={tagDropdownRef} style={{ flex: 1, maxWidth: '500px', position: 'relative' }}>
                     {/* 多选标签输入框 */}
@@ -2406,6 +2368,29 @@ const DataImport = () => {
                     )}
                   </div>
                 </div>
+                <div className="config-row" style={{ marginTop: '20px' }}>
+                  <label className="config-label">
+                    备注：
+                  </label>
+                  <textarea
+                    className="config-input"
+                    value={announcementRemark}
+                    onChange={(e) => setAnnouncementRemark(e.target.value)}
+                    placeholder="请输入备注信息（选填）"
+                    rows="3"
+                    style={{
+                      flex: 1,
+                      maxWidth: '500px',
+                      minHeight: '80px',
+                      padding: '8px 12px',
+                      border: '1px solid #d9d9d9',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      fontFamily: 'inherit',
+                      resize: 'vertical'
+                    }}
+                  />
+                </div>
                 {pendingImportType === 'single' && pendingImportItem && (
                   <div className="filename-hint" style={{ marginTop: '12px' }}>
                     将导入：{pendingImportItem.content}
@@ -2422,7 +2407,6 @@ const DataImport = () => {
                 <button 
                   className="confirm-import-btn" 
                   onClick={pendingImportType === 'batch' ? handleConfirmBatchImport : handleConfirmSingleImport}
-                  disabled={announcementTags.length === 0}
                 >
                   确认导入
                 </button>
