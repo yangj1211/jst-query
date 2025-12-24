@@ -90,12 +90,9 @@ const DataCenter = () => {
   const [tagFilter, setTagFilter] = useState([]); // 标签筛选：多选
   const [isTagFilterDropdownOpen, setIsTagFilterDropdownOpen] = useState(false); // 标签筛选下拉菜单是否打开
   const [tagFilterSearchKeyword, setTagFilterSearchKeyword] = useState(''); // 标签筛选搜索关键词
-  const [sourceFilter, setSourceFilter] = useState('all'); // 来源筛选: 'all' | source名称
-  const [isSourceFilterDropdownOpen, setIsSourceFilterDropdownOpen] = useState(false); // 来源筛选下拉菜单是否打开
   const [createTimeRange, setCreateTimeRange] = useState({ startDate: null, endDate: null }); // 创建时间范围筛选
   const [isTagManagementModalVisible, setIsTagManagementModalVisible] = useState(false); // 标签管理模态框显示状态
   const [allTags, setAllTags] = useState([]); // 所有可用标签列表
-  const [allSources, setAllSources] = useState([]); // 所有可用来源列表
   const [editingItemId, setEditingItemId] = useState(null); // 正在编辑标签的项目ID
   const [editingItemTags, setEditingItemTags] = useState([]); // 正在编辑的标签列表
   const [tagSearchInput, setTagSearchInput] = useState(''); // 标签搜索输入
@@ -104,7 +101,6 @@ const DataCenter = () => {
   // 初始化标签列表和来源列表
   useEffect(() => {
     const tags = new Set();
-    const sources = new Set();
     savedTables.forEach(item => {
       if (item.tags && Array.isArray(item.tags)) {
         item.tags.forEach(tag => {
@@ -113,28 +109,10 @@ const DataCenter = () => {
           }
         });
       }
-      if (item.source) {
-        sources.add(item.source);
-      }
     });
     const newTags = Array.from(tags);
-    const newSources = Array.from(sources);
     setAllTags(newTags);
-    setAllSources(newSources);
-    
-    // 移除已被删除的标签筛选项
-    if (Array.isArray(tagFilter) && tagFilter.length > 0) {
-      const validTags = tagFilter.filter(tag => newTags.includes(tag));
-      if (validTags.length !== tagFilter.length) {
-        setTagFilter(validTags);
-      }
-    }
-
-    // 如果当前选中的来源不再存在，重置为"全部来源"
-    if (sourceFilter !== 'all' && !newSources.includes(sourceFilter)) {
-      setSourceFilter('all');
-    }
-  }, [savedTables, sourceFilter, tagFilter]);
+  }, [savedTables, tagFilter]);
 
   // 检查标签是否被使用
   const checkTagInUse = (tag) => {
@@ -401,11 +379,6 @@ const DataCenter = () => {
       );
     }
 
-    // 按来源筛选
-    if (sourceFilter !== 'all') {
-      filtered = filtered.filter(table => table.source === sourceFilter);
-    }
-
     // 按创建时间范围筛选
     if (createTimeRange.startDate || createTimeRange.endDate) {
       filtered = filtered.filter(table => {
@@ -446,12 +419,6 @@ const DataCenter = () => {
     });
   };
 
-  // 处理来源筛选选项点击
-  const handleSourceFilterSelect = (value) => {
-    setSourceFilter(value);
-    setIsSourceFilterDropdownOpen(false);
-  };
-
   // 重置搜索条件
   const handleResetSearch = () => {
     setSearchKeyword('');
@@ -471,9 +438,6 @@ const DataCenter = () => {
       if (isTagFilterDropdownOpen && !event.target.closest('.tag-filter-search-group')) {
         setIsTagFilterDropdownOpen(false);
       }
-      if (isSourceFilterDropdownOpen && !event.target.closest('.source-filter-wrapper')) {
-        setIsSourceFilterDropdownOpen(false);
-      }
       if (isTagDropdownOpen && !event.target.closest('.edit-tag-dropdown-wrapper')) {
         setIsTagDropdownOpen(false);
       }
@@ -483,7 +447,7 @@ const DataCenter = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isFilterDropdownOpen, isTagFilterDropdownOpen, isSourceFilterDropdownOpen, isTagDropdownOpen]);
+  }, [isFilterDropdownOpen, isTagFilterDropdownOpen, isTagDropdownOpen]);
 
   // 生成表数据（模拟）
   const generateSampleData = (table, count = 100) => {
@@ -768,54 +732,6 @@ const DataCenter = () => {
                     </div>
                   </div>
                   <div className="list-col-tags">标签</div>
-                  <div className="list-col-source">
-                    <div className={`source-filter-wrapper ${isSourceFilterDropdownOpen ? 'active' : ''}`}>
-                      <button 
-                        className="source-filter-btn"
-                        onClick={() => setIsSourceFilterDropdownOpen(!isSourceFilterDropdownOpen)}
-                      >
-                        <span>来源</span>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                          <path d="M6 9L1 4h10L6 9z"/>
-                        </svg>
-                      </button>
-                      {isSourceFilterDropdownOpen && (
-                        <div className="filter-dropdown">
-                          <div 
-                            className={`filter-dropdown-item ${sourceFilter === 'all' ? 'active' : ''}`}
-                            onClick={() => handleSourceFilterSelect('all')}
-                          >
-                            {sourceFilter === 'all' && (
-                              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
-                              </svg>
-                            )}
-                            <span>全部来源</span>
-                          </div>
-                          {allSources.length === 0 ? (
-                            <div className="filter-dropdown-item disabled">
-                              <span>暂无来源</span>
-                            </div>
-                          ) : (
-                            allSources.map((source) => (
-                              <div 
-                                key={source}
-                                className={`filter-dropdown-item ${sourceFilter === source ? 'active' : ''}`}
-                                onClick={() => handleSourceFilterSelect(source)}
-                              >
-                                {sourceFilter === source && (
-                                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                    <path d="M13.5 2L6 9.5 2.5 6l1.41-1.41L6 6.68l6.09-6.09L13.5 2z"/>
-                                  </svg>
-                                )}
-                                <span>{source}</span>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
                   <div className="list-col-desc">描述</div>
                   <div className="list-col-size">大小</div>
                   <div className="list-col-time">创建时间</div>
@@ -849,9 +765,6 @@ const DataCenter = () => {
                       ) : (
                         <span style={{ color: '#999' }}>-</span>
                       )}
-                    </div>
-                    <div className="list-col-source">
-                      <span className="source-badge">{item.source || '-'}</span>
                     </div>
                     <div className="list-col-desc">{item.objectType === 'file' ? '-' : (item.description || '-')}</div>
                     <div className="list-col-size">{getSizeDisplay(item)}</div>

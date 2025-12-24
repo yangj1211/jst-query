@@ -280,8 +280,8 @@
 
 .tasks-list-header {
   display: grid;
-  grid-template-columns: 160px 1fr 150px 100px 180px 180px 120px 200px 150px;
-  min-width: 1470px;
+  grid-template-columns: 1fr 150px 100px 180px 180px 120px 200px 150px;
+  min-width: 1310px;
   padding: 16px 20px;
   background: #fafafa;
   border-bottom: 1px solid #e0e0e0;
@@ -292,8 +292,8 @@
 
 .tasks-list-row {
   display: grid;
-  grid-template-columns: 160px 1fr 150px 100px 180px 180px 120px 200px 150px;
-  min-width: 1470px;
+  grid-template-columns: 1fr 150px 100px 180px 180px 120px 200px 150px;
+  min-width: 1310px;
   padding: 16px 20px;
   border-bottom: 1px solid #f0f0f0;
   transition: background 0.2s;
@@ -306,32 +306,6 @@
 
 .tasks-list-row:last-child {
   border-bottom: none;
-}
-
-/* 来源列 */
-.task-col-type {
-  font-weight: 500;
-}
-
-.source-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 400;
-  color: #333;
-}
-
-.source-icon {
-  flex-shrink: 0;
-}
-
-.source-local .source-icon {
-  color: #1890ff;
-}
-
-.source-online .source-icon {
-  color: #52c41a;
 }
 
 /* 载入对象名 */
