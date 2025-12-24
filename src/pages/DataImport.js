@@ -122,7 +122,6 @@ const DataImport = () => {
   
 
   // 筛选条件
-  const [filterSource, setFilterSource] = useState('all'); // all, local, online
   const [filterStatus, setFilterStatus] = useState('all'); // all, processing, pausing, paused, completed, failed
   const [filterTags, setFilterTags] = useState([]); // 选中的标签数组，空数组表示全部
   const [isTaskTagDropdownOpen, setIsTaskTagDropdownOpen] = useState(false); // 标签筛选下拉是否打开
@@ -789,12 +788,6 @@ const DataImport = () => {
   // 获取筛选后的任务列表
   const getFilteredTasks = () => {
     return importTasks.filter(task => {
-      // 来源筛选
-      if (filterSource !== 'all') {
-        if (filterSource === 'local' && task.type !== 'excel') return false;
-        if (filterSource === 'online' && task.type !== 'announcement') return false;
-      }
-      
       // 状态筛选
       if (filterStatus !== 'all' && task.status !== filterStatus) {
         return false;
@@ -1087,45 +1080,7 @@ const DataImport = () => {
             </div>
           ) : (
             <div className="tasks-list">
-              <div className="tasks-list-header">
-                <div className="task-col-type">
-                  <div className="header-filter-dropdown">
-                    来源
-                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" style={{ marginLeft: '4px' }}>
-                      <path d="M1.5 2.5h13l-5 6v5l-3 1v-6l-5-6z" fill="currentColor"/>
-                    </svg>
-                    {filterSource !== 'all' && <span className="header-filter-badge"></span>}
-                    <div className="header-filter-menu">
-                      <div 
-                        className={`filter-menu-item ${filterSource === 'all' ? 'active' : ''}`}
-                        onClick={() => {
-                          setFilterSource('all');
-                          setTaskPage(1);
-                        }}
-                      >
-                        全部来源
-                      </div>
-                      <div 
-                        className={`filter-menu-item ${filterSource === 'local' ? 'active' : ''}`}
-                        onClick={() => {
-                          setFilterSource('local');
-                          setTaskPage(1);
-                        }}
-                      >
-                        本地上传
-                      </div>
-                      <div 
-                        className={`filter-menu-item ${filterSource === 'online' ? 'active' : ''}`}
-                        onClick={() => {
-                          setFilterSource('online');
-                          setTaskPage(1);
-                        }}
-                      >
-                        上市公司公告
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <div className="tasks-list-header">
                 <div className="task-col-object">载入对象名</div>
                 <div className="task-col-tags">标签</div>
                 <div className="task-col-status">
@@ -1201,18 +1156,6 @@ const DataImport = () => {
               </div>
               {getCurrentPageTasks().map((task) => (
                 <div key={task.id} className="tasks-list-row">
-                  <div className="task-col-type">
-                    <span className={`source-badge ${task.type === 'excel' ? 'source-local' : 'source-online'}`}>
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" className="source-icon">
-                        {task.type === 'excel' ? (
-                          <path d="M4 2h8l2 2v10l-2 2H4l-2-2V4l2-2zm1 3v6h6V5H5z"/>
-                        ) : (
-                          <path d="M4 2h8v12H4V2zm2 2v2h4V4H6zm0 3v2h4V7H6zm0 3v2h4v-2H6z"/>
-                        )}
-                      </svg>
-                      {task.source}
-                    </span>
-                  </div>
                   <div className="task-col-object">{task.objectName}</div>
                   <div className="task-col-tags">
                     {task.tags && Array.isArray(task.tags) && task.tags.length > 0 ? (

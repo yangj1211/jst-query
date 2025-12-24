@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button, Select, Checkbox, Modal, Input } from 'antd';
-import { SettingOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { SettingOutlined, ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons';
 import './PageStyle.css';
 
 const { Option } = Select;
@@ -33,6 +33,14 @@ const DataPermissionConfig = () => {
   const [currentEditingObject, setCurrentEditingObject] = useState(null); // 当前编辑的对象
   const [columnConfigs, setColumnConfigs] = useState([]); // 列配置，包含是否选中和行权限表达式
   const [isEditingMode, setIsEditingMode] = useState(false); // 标记是否在编辑模式
+  const [columnSearchKeyword, setColumnSearchKeyword] = useState(''); // 列搜索关键词
+  const [expandedColumns, setExpandedColumns] = useState(() => new Set()); // 展开行权限配置的列
+  
+  // 添加行权限弹窗相关状态
+  const [isAddRowPermissionModalVisible, setIsAddRowPermissionModalVisible] = useState(false);
+  const [currentConfiguringColumn, setCurrentConfiguringColumn] = useState(null); // 当前正在配置的列
+  const [rowPermissionExpressions, setRowPermissionExpressions] = useState([]); // 行权限表达式列表
+  const [rowPermissionRelation, setRowPermissionRelation] = useState('且'); // 行权限表达式之间的关系：'且' 或 '或'
 
   // 表权限选项（普通用户只能查询，不能写入）
   const tablePermissionOptions = [
@@ -927,6 +935,7 @@ const DataPermissionConfig = () => {
   // 关闭行列权限配置弹窗
   const handleRowColumnModalClose = () => {
     setIsRowColumnModalVisible(false);
+    setExpandedColumns(new Set());
   };
 
   // 保存行列权限配置
@@ -945,6 +954,14 @@ const DataPermissionConfig = () => {
     setIsRowColumnModalVisible(false);
     setCurrentEditingObject(null);
     setIsEditingMode(false);
+    setExpandedColumns(new Set());
+  };
+
+  // 获取搜索过滤后的列
+  const getFilteredColumns = () => {
+    if (!columnSearchKeyword.trim()) return columnConfigs;
+    const keyword = columnSearchKeyword.trim().toLowerCase();
+    return columnConfigs.filter(col => col.name.toLowerCase().includes(keyword));
   };
 
   // 全选/取消全选列
@@ -953,6 +970,108 @@ const DataPermissionConfig = () => {
       ...col,
       selected: e.target.checked,
     })));
+    setExpandedColumns(new Set());
+  };
+
+  // 切换某列的行权限面板展开 - 改为打开弹窗
+  const toggleColumnExpand = (columnName) => {
+    const column = columnConfigs.find(col => col.name === columnName);
+    if (!column) return;
+    
+    setCurrentConfiguringColumn(column);
+    // 如果已有表达式，使用已有的，否则初始化一个空表达式
+    if (column.expressions && column.expressions.length > 0) {
+      // 确保"包含"操作符有values数组
+      const normalizedExpressions = column.expressions.map(exp => {
+        if (exp.operator === '包含' && !exp.values) {
+          return { ...exp, values: exp.value ? [exp.value] : [''] };
+        }
+        return exp;
+      });
+      setRowPermissionExpressions(normalizedExpressions);
+      // 使用已有的relation，如果没有则默认为'且'
+      setRowPermissionRelation(column.relation || '且');
+    } else {
+      setRowPermissionExpressions([{
+        id: Date.now(),
+        operator: '等于',
+        value: ''
+      }]);
+      setRowPermissionRelation('且');
+    }
+    setIsAddRowPermissionModalVisible(true);
+  };
+  
+  // 关闭添加行权限弹窗
+  const handleCloseAddRowPermissionModal = () => {
+    setIsAddRowPermissionModalVisible(false);
+    setCurrentConfiguringColumn(null);
+    setRowPermissionExpressions([]);
+    setRowPermissionRelation('且');
+  };
+  
+  // 切换行权限表达式之间的关系（且/或）
+  const handleToggleRowPermissionRelation = () => {
+    setRowPermissionRelation(prev => prev === '且' ? '或' : '且');
+  };
+  
+  // 保存行权限配置
+  const handleSaveRowPermission = () => {
+    if (!currentConfiguringColumn) return;
+    
+    // 过滤掉值为空的表达式
+    const validExpressions = rowPermissionExpressions.filter(exp => {
+      if (exp.operator === '包含') {
+        return exp.values && exp.values.length > 0 && exp.values.some(v => v.trim());
+      }
+      return exp.value && exp.value.trim();
+    });
+    
+    // 更新列配置，同时保存relation
+    setColumnConfigs(columnConfigs.map(col => 
+      col.name === currentConfiguringColumn.name
+        ? { ...col, expressions: validExpressions, relation: rowPermissionRelation }
+        : col
+    ));
+    
+    handleCloseAddRowPermissionModal();
+  };
+  
+  // 添加表达式
+  const handleAddRowPermissionExpression = () => {
+    setRowPermissionExpressions([...rowPermissionExpressions, {
+      id: Date.now(),
+      operator: '等于',
+      value: ''
+    }]);
+  };
+  
+  // 删除表达式
+  const handleRemoveRowPermissionExpression = (expId) => {
+    setRowPermissionExpressions(rowPermissionExpressions.filter(exp => exp.id !== expId));
+  };
+  
+  // 更新表达式
+  const handleUpdateRowPermissionExpression = (expId, field, value) => {
+    setRowPermissionExpressions(rowPermissionExpressions.map(exp => {
+      if (exp.id === expId) {
+        const updated = { ...exp, [field]: value };
+        // 如果操作符改为"包含"，初始化values数组
+        if (field === 'operator' && value === '包含' && !updated.values) {
+          updated.values = [''];
+          delete updated.value;
+        }
+        // 如果操作符从"包含"改为其他，移除values
+        if (field === 'operator' && value !== '包含' && updated.values) {
+          delete updated.values;
+          if (!updated.value) {
+            updated.value = '';
+          }
+        }
+        return updated;
+      }
+      return exp;
+    }));
   };
 
   // 切换单个列的选中状态
@@ -960,6 +1079,13 @@ const DataPermissionConfig = () => {
     setColumnConfigs(columnConfigs.map(col => 
       col.name === columnName ? { ...col, selected: !col.selected } : col
     ));
+    setExpandedColumns(prev => {
+      const next = new Set(prev);
+      if (next.has(columnName)) {
+        next.delete(columnName);
+      }
+      return next;
+    });
   };
 
   // 获取字段内已选择的运算符（排除当前正在编辑的表达式）
@@ -1528,7 +1654,7 @@ const DataPermissionConfig = () => {
               列权限配置
             </div>
             
-            <div style={{ marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <Checkbox
                 checked={columnConfigs.filter(col => col.selected).length === columnConfigs.length && columnConfigs.length > 0}
                 indeterminate={columnConfigs.filter(col => col.selected).length > 0 && columnConfigs.filter(col => col.selected).length < columnConfigs.length}
@@ -1538,6 +1664,14 @@ const DataPermissionConfig = () => {
                   全选列 已选择 {columnConfigs.filter(col => col.selected).length}/{columnConfigs.length} 列
                 </span>
               </Checkbox>
+              <div style={{ width: 260 }}>
+                <Input
+                  allowClear
+                  placeholder="搜索列名"
+                  value={columnSearchKeyword}
+                  onChange={(e) => setColumnSearchKeyword(e.target.value)}
+                />
+              </div>
             </div>
 
             {/* 表格形式展示列配置 */}
@@ -1549,182 +1683,390 @@ const DataPermissionConfig = () => {
               {/* 表头 */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '50px 120px 100px 400px 200px',
+                gridTemplateColumns: '60px 1.6fr 1.6fr 140px',
                 backgroundColor: '#fafafa',
                 borderBottom: '1px solid #e8e8e8',
                 fontWeight: 600,
-                padding: '12px 16px'
+                padding: '12px 16px',
+                alignItems: 'center'
               }}>
                 <div>选择</div>
                 <div>列名</div>
-                <div>表达式关系</div>
-                <div>行权限表达式</div>
                 <div>样例数据</div>
+                <div style={{ textAlign: 'center' }}>设置行权限</div>
               </div>
 
               {/* 表体 */}
-              {columnConfigs.map((col, index) => (
-                <div 
-                  key={col.name}
-                  style={{
-                    borderBottom: index < columnConfigs.length - 1 ? '1px solid #e8e8e8' : 'none',
-                    backgroundColor: col.selected ? '#fffbe6' : '#fff'
-                  }}
-                >
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '50px 120px 100px 400px 200px',
-                    padding: '16px',
-                    alignItems: 'start'
-                  }}>
-                    {/* 选择列 */}
-                    <div>
-                      <Checkbox
-                        checked={col.selected}
-                        onChange={() => handleToggleColumn(col.name)}
-                      />
+              {getFilteredColumns().map((col, index) => {
+                const isExpanded = expandedColumns.has(col.name);
+                const sampleText = Array.isArray(col.sampleData) ? col.sampleData.join('; ') : '-';
+                const hasExpression = col.expressions && col.expressions.length > 0;
+
+                return (
+                  <div 
+                    key={col.name}
+                    style={{
+                      borderBottom: index < getFilteredColumns().length - 1 ? '1px solid #e8e8e8' : 'none',
+                      backgroundColor: col.selected ? '#f5faff' : '#fff'
+                    }}
+                  >
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '60px 1.6fr 1.6fr 140px',
+                      padding: '14px 16px',
+                      alignItems: 'center',
+                      gap: '12px'
+                    }}>
+                      {/* 选择列 */}
+                      <div>
+                        <Checkbox
+                          checked={col.selected}
+                          onChange={() => handleToggleColumn(col.name)}
+                        />
+                      </div>
+
+                      {/* 列名与类型 */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ fontWeight: 600, color: '#1f1f1f' }}>{col.name}</div>
+                        <div style={{ 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          gap: '6px', 
+                          fontSize: '12px', 
+                          color: '#1677ff',
+                          background: '#e6f4ff',
+                          borderRadius: '4px',
+                          padding: '2px 8px',
+                          width: 'fit-content'
+                        }}>
+                          {col.type ? col.type.toUpperCase() : 'VARCHAR(255)'}
+                        </div>
+                      </div>
+
+                      {/* 样例数据 */}
+                      <div style={{ fontSize: '12px', color: '#666', lineHeight: '18px', whiteSpace: 'pre-wrap' }}>
+                        {sampleText || '-'}
+                      </div>
+
+                      {/* 行权限设置 */}
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <Button
+                          size="small"
+                          type={hasExpression ? 'primary' : 'default'}
+                          icon={<span style={{ fontSize: '16px', lineHeight: '16px' }}>＋</span>}
+                          onClick={() => col.selected && toggleColumnExpand(col.name)}
+                          disabled={!col.selected}
+                        >
+                          {hasExpression ? `已配置${col.expressions.length}条` : '设置行权限'}
+                        </Button>
+                      </div>
                     </div>
 
-                    {/* 列名 */}
-                    <div>
-                      <div style={{ fontWeight: 500 }}>{col.name}</div>
-                    </div>
-
-                    {/* 表达式关系 */}
-                    <div>
-                      {!col.selected ? (
-                        <div style={{ color: '#999', fontSize: '14px' }}>-</div>
-                      ) : (
-                        <div style={{ paddingTop: '12px' }}>
+                    {/* 行权限表达式配置区 */}
+                    {isExpanded && col.selected && (
+                      <div style={{ padding: '12px 16px 16px 16px', background: '#fafafa', borderTop: '1px solid #f0f0f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                          <span style={{ color: '#666' }}>表达式关系</span>
                           <Select
                             value={col.relation || '或'}
                             onChange={(value) => handleUpdateColumnRelation(col.name, value)}
-                            style={{ width: '80px' }}
+                            style={{ width: '100px' }}
                             size="small"
                           >
                             <Option value="且">且</Option>
                             <Option value="或">或</Option>
                           </Select>
+                          <span style={{ color: '#999', fontSize: 12 }}>(同一列内表达式的 AND / OR 关系)</span>
                         </div>
-                      )}
-                    </div>
 
-                    {/* 行权限表达式 */}
-                    <div>
-                      {!col.selected ? (
-                        <div style={{ color: '#999', fontSize: '14px' }}>请先选择此列</div>
-                      ) : col.expressions.length === 0 ? (
-                        <Button 
-                          size="small" 
-                          onClick={() => handleAddExpression(col.name)}
-                          disabled={!canAddExpression(col.name)}
-                        >
-                          + 添加表达式
-                        </Button>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          {col.expressions.map((exp) => (
-                            <div key={exp.id} style={{ 
-                              padding: '12px 0'
-                            }}>
-                              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                <Select
-                                  value={exp.operator}
-                                  onChange={(value) => {
-                                    // 如果改为不允许的运算符，给出提示并阻止
-                                    const allowedOperators = getAllowedOperators(col.name, exp.id);
-                                    if (!allowedOperators.includes(value) && allowedOperators.length > 0) {
-                                      alert(`根据当前已选择的运算符，不能使用"${value}"运算符`);
-                                      return;
-                                    }
-                                    handleUpdateExpression(col.name, exp.id, 'operator', value);
-                                  }}
-                                  style={{ width: 120 }}
-                                  size="small"
-                                >
-                                  {['等于', '不等于', '大于', '大于等于', '小于', '小于等于', '包含', '模糊匹配'].map(op => {
-                                    const allowedOperators = getAllowedOperators(col.name, exp.id);
-                                    const isDisabled = allowedOperators.length > 0 && !allowedOperators.includes(op);
-                                    return (
-                                      <Option key={op} value={op} disabled={isDisabled}>
-                                        {op}
-                                      </Option>
-                                    );
-                                  })}
-                                </Select>
-
-                                {exp.operator !== '包含' && (
-                                  <Input
+                        {/* 行权限表达式 */}
+                        {(!col.expressions || col.expressions.length === 0) ? (
+                          <Button 
+                            size="small" 
+                            onClick={() => handleAddExpression(col.name)}
+                            disabled={!canAddExpression(col.name)}
+                            type="dashed"
+                          >
+                            + 添加表达式
+                          </Button>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {col.expressions.map((exp) => (
+                              <div key={exp.id} style={{ 
+                                padding: '12px',
+                                border: '1px solid #e8e8e8',
+                                borderRadius: '6px',
+                                background: '#fff'
+                              }}>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                  <Select
+                                    value={exp.operator}
+                                    onChange={(value) => {
+                                      // 如果改为不允许的运算符，给出提示并阻止
+                                      const allowedOperators = getAllowedOperators(col.name, exp.id);
+                                      if (!allowedOperators.includes(value) && allowedOperators.length > 0) {
+                                        alert(`根据当前已选择的运算符，不能使用"${value}"运算符`);
+                                        return;
+                                      }
+                                      handleUpdateExpression(col.name, exp.id, 'operator', value);
+                                    }}
+                                    style={{ width: 140 }}
                                     size="small"
-                                    value={exp.value}
-                                    onChange={(e) => handleUpdateExpression(col.name, exp.id, 'value', e.target.value)}
-                                    placeholder={exp.operator === '模糊匹配' ? "例如: '%科技公司'" : '输入值...'}
-                                    style={{ width: '120px' }}
-                                  />
-                                )}
-
-                                <Button
-                                  size="small"
-                                  onClick={() => handleAddExpression(col.name)}
-                                  icon={<span>+</span>}
-                                  title="添加表达式"
-                                  disabled={!canAddExpression(col.name)}
-                                />
-                                <Button
-                                  size="small"
-                                  danger
-                                  onClick={() => handleRemoveExpression(col.name, exp.id)}
-                                  title="删除"
-                                >
-                                  ×
-                                </Button>
-                              </div>
-
-                              {/* 包含操作符的多值输入 */}
-                              {exp.operator === '包含' && (
-                                <div style={{ marginTop: '8px' }}>
-                                  {exp.values.map((val, valIndex) => (
-                                    <div key={valIndex} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                                      <Input
-                                        size="small"
-                                        value={val}
-                                        onChange={(e) => handleUpdateExpressionValue(col.name, exp.id, valIndex, e.target.value)}
-                                        placeholder="输入值..."
-                                        style={{ width: '120px' }}
-                                      />
-                                      <Button
-                                        size="small"
-                                        danger
-                                        onClick={() => handleRemoveExpressionValue(col.name, exp.id, valIndex)}
-                                      >
-                                        删除
-                                      </Button>
-                                    </div>
-                                  ))}
-                                  <Button 
-                                    size="small" 
-                                    onClick={() => handleAddValueToExpression(col.name, exp.id)}
-                                    style={{ marginTop: '4px' }}
                                   >
-                                    + 添加值
+                                    {['等于', '不等于', '大于', '大于等于', '小于', '小于等于', '包含', '模糊匹配'].map(op => {
+                                      const allowedOperators = getAllowedOperators(col.name, exp.id);
+                                      const isDisabled = allowedOperators.length > 0 && !allowedOperators.includes(op);
+                                      return (
+                                        <Option key={op} value={op} disabled={isDisabled}>
+                                          {op}
+                                        </Option>
+                                      );
+                                    })}
+                                  </Select>
+
+                                  {exp.operator !== '包含' && (
+                                    <Input
+                                      size="small"
+                                      value={exp.value}
+                                      onChange={(e) => handleUpdateExpression(col.name, exp.id, 'value', e.target.value)}
+                                      placeholder={exp.operator === '模糊匹配' ? "例如: '%科技公司'" : '输入值...'}
+                                      style={{ width: '160px' }}
+                                    />
+                                  )}
+
+                                  <Button
+                                    size="small"
+                                    onClick={() => handleAddExpression(col.name)}
+                                    icon={<span>+</span>}
+                                    title="添加表达式"
+                                    disabled={!canAddExpression(col.name)}
+                                  />
+                                  <Button
+                                    size="small"
+                                    danger
+                                    onClick={() => handleRemoveExpression(col.name, exp.id)}
+                                    title="删除"
+                                  >
+                                    ×
                                   </Button>
                                 </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
 
-                    {/* 样例数据 */}
-                    <div style={{ fontSize: '12px', color: '#666' }}>
-                      {col.sampleData.map((data, idx) => (
-                        <div key={idx} style={{ marginBottom: '4px' }}>{data}</div>
-                      ))}
-                    </div>
+                                {/* 包含操作符的多值输入 */}
+                                {exp.operator === '包含' && (
+                                  <div style={{ marginTop: '8px' }}>
+                                    {exp.values.map((val, valIndex) => (
+                                      <div key={valIndex} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                        <Input
+                                          size="small"
+                                          value={val}
+                                          onChange={(e) => handleUpdateExpressionValue(col.name, exp.id, valIndex, e.target.value)}
+                                          placeholder="输入值..."
+                                          style={{ width: '160px' }}
+                                        />
+                                        <Button
+                                          size="small"
+                                          danger
+                                          onClick={() => handleRemoveExpressionValue(col.name, exp.id, valIndex)}
+                                        >
+                                          删除
+                                        </Button>
+                                      </div>
+                                    ))}
+                                    <Button 
+                                      size="small" 
+                                      onClick={() => handleAddValueToExpression(col.name, exp.id)}
+                                      style={{ marginTop: '4px' }}
+                                    >
+                                      + 添加值
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
+                );
+              })}
+
+              {getFilteredColumns().length === 0 && (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
+                  未找到匹配的列
                 </div>
-              ))}
+              )}
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* 添加行权限弹窗 */}
+      <Modal
+        title="添加行权限"
+        open={isAddRowPermissionModalVisible}
+        onOk={handleSaveRowPermission}
+        onCancel={handleCloseAddRowPermissionModal}
+        width={600}
+        okText="确认"
+        cancelText="取消"
+        zIndex={2001}
+        getContainer={() => document.body}
+      >
+        <div style={{ padding: '8px 0' }}>
+          {/* 列选择 */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '8px' }}>
+              <span style={{ color: '#ff4d4f', marginRight: '4px' }}>*</span>
+              <span style={{ fontSize: '14px', fontWeight: 500 }}>列</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Select
+                value={currentConfiguringColumn?.name}
+                style={{ flex: 1 }}
+                disabled
+                size="large"
+              >
+                {currentConfiguringColumn && (
+                  <Option value={currentConfiguringColumn.name}>
+                    {currentConfiguringColumn.name}
+                  </Option>
+                )}
+              </Select>
+              {currentConfiguringColumn && (
+                <span style={{ 
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '4px 12px',
+                  background: '#e6f4ff',
+                  color: '#1677ff',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap'
+                }}>
+                  {currentConfiguringColumn.type ? currentConfiguringColumn.type.toUpperCase() : 'VARCHAR(255)'}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* 行权限表达式构建器 */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+              {/* 左侧"且/或"切换按钮 */}
+              <Button
+                type="primary"
+                size="large"
+                onClick={handleToggleRowPermissionRelation}
+                style={{
+                  width: '48px',
+                  height: 'auto',
+                  minHeight: '48px',
+                  padding: '12px 8px',
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'upright',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                title={`点击切换为${rowPermissionRelation === '且' ? '或' : '且'}`}
+              >
+                {rowPermissionRelation}
+              </Button>
+
+              {/* 表达式列表 */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {rowPermissionExpressions.map((exp, index) => (
+                  <div key={exp.id} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <Select
+                      value={exp.operator}
+                      onChange={(value) => handleUpdateRowPermissionExpression(exp.id, 'operator', value)}
+                      style={{ width: '120px' }}
+                      size="large"
+                    >
+                      <Option value="等于">=</Option>
+                      <Option value="不等于">≠</Option>
+                      <Option value="大于">&gt;</Option>
+                      <Option value="大于等于">≥</Option>
+                      <Option value="小于">&lt;</Option>
+                      <Option value="小于等于">≤</Option>
+                      <Option value="包含">包含</Option>
+                      <Option value="模糊匹配">模糊匹配</Option>
+                    </Select>
+                    
+                    {exp.operator !== '包含' && (
+                      <Input
+                        value={exp.value || ''}
+                        onChange={(e) => handleUpdateRowPermissionExpression(exp.id, 'value', e.target.value)}
+                        placeholder="请输入值"
+                        style={{ flex: 1 }}
+                        size="large"
+                      />
+                    )}
+                    
+                    {exp.operator === '包含' && (
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {(exp.values || []).map((val, valIndex) => (
+                          <div key={valIndex} style={{ display: 'flex', gap: '8px' }}>
+                            <Input
+                              value={val}
+                              onChange={(e) => {
+                                const newValues = [...(exp.values || [])];
+                                newValues[valIndex] = e.target.value;
+                                handleUpdateRowPermissionExpression(exp.id, 'values', newValues);
+                              }}
+                              placeholder="请输入值"
+                              style={{ flex: 1 }}
+                              size="large"
+                            />
+                            <Button
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => {
+                                const newValues = [...(exp.values || [])];
+                                newValues.splice(valIndex, 1);
+                                handleUpdateRowPermissionExpression(exp.id, 'values', newValues);
+                              }}
+                              size="large"
+                            />
+                          </div>
+                        ))}
+                        <Button
+                          type="dashed"
+                          onClick={() => {
+                            const newValues = [...(exp.values || []), ''];
+                            handleUpdateRowPermissionExpression(exp.id, 'values', newValues);
+                          }}
+                          size="large"
+                        >
+                          + 添加值
+                        </Button>
+                      </div>
+                    )}
+                    
+                    <Button
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => handleRemoveRowPermissionExpression(exp.id)}
+                      size="large"
+                    />
+                  </div>
+                ))}
+                
+                <Button
+                  type="primary"
+                  icon={<span style={{ fontSize: '16px' }}>+</span>}
+                  onClick={handleAddRowPermissionExpression}
+                  style={{ alignSelf: 'flex-start' }}
+                  size="large"
+                >
+                  添加表达式
+                </Button>
+              </div>
             </div>
           </div>
         </div>
