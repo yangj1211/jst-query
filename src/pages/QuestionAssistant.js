@@ -2478,16 +2478,6 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
             <div className="messages-container">
               {messages.length === 0 ? (
                 <div className="welcome-message">
-                  <div className="welcome-icon">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <rect x="3" y="5" width="18" height="14" rx="2" ry="2"/>
-                      <line x1="8" y1="3" x2="8" y2="7"/>
-                      <line x1="16" y1="3" x2="16" y2="7"/>
-                      <path d="M3 15h8l2 3h-2l-2-3z"/>
-                      <circle cx="14" cy="12" r="1.5"/>
-                      <circle cx="18" cy="12" r="1.5"/>
-                    </svg>
-                  </div>
                   <div className="welcome-text">您好！我是问数智能助手，有什么可以帮您的吗？</div>
                 </div>
               ) : (
