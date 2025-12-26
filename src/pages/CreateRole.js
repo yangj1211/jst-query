@@ -13,6 +13,8 @@ const CreateRole = () => {
   const [objectName, setObjectName] = useState([]);
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [objectPermissions, setObjectPermissions] = useState([]);
+  const [objectType, setObjectType] = useState(null); // 对象类型：'document'（单据对象）或 'table'（表对象）
+  const [selectedDocumentTypes, setSelectedDocumentTypes] = useState([]); // 选中的单据类型
 
   // 行列权限配置相关状态
   const [isRowColumnModalVisible, setIsRowColumnModalVisible] = useState(false);
@@ -22,6 +24,22 @@ const CreateRole = () => {
   // 表权限选项
   const tablePermissionOptions = [
     { value: 'DT8', label: '表查询', hasConfig: true },
+  ];
+
+  // 单据类型列表
+  const documentTypes = [
+    '运行证明',
+    '销售发票',
+    '中标通知书',
+    '报价单',
+    '合同',
+    '通电验收单',
+    '竣工验收单',
+    '应收账款催收各类单据',
+    '代付协议',
+    '拣配单',
+    '产品退货单',
+    '装箱清单'
   ];
 
   // 模拟从数据管理获取对象列表
@@ -137,6 +155,12 @@ const CreateRole = () => {
       .map(obj => obj.name);
   };
 
+  // 获取单据类型选项（过滤掉已添加的单据）
+  const getDocumentTypeOptions = () => {
+    const addedObjectNames = objectPermissions.map(obj => obj.objectName);
+    return documentTypes.filter(type => !addedObjectNames.includes(type));
+  };
+
   // 处理全选表对象
   const handleSelectAllObjects = (checked) => {
     const availableOptions = getObjectNameOptions();
@@ -149,6 +173,18 @@ const CreateRole = () => {
     }
   };
 
+  // 处理全选单据类型
+  const handleSelectAllDocumentTypes = (checked) => {
+    const availableOptions = getDocumentTypeOptions();
+    if (checked) {
+      setSelectedDocumentTypes(availableOptions);
+      setSelectedPermissions(['DT8']);
+    } else {
+      setSelectedDocumentTypes([]);
+      setSelectedPermissions([]);
+    }
+  };
+
   // 返回到角色权限列表
   const handleBack = () => {
     navigate('/permission/role-permission');
@@ -156,23 +192,48 @@ const CreateRole = () => {
 
   // 添加对象权限
   const handleAddObjectPermission = () => {
-    if (!objectName || objectName.length === 0) {
-      message.warning('请选择表对象');
+    if (!objectType) {
+      message.warning('请先选择对象类型（单据对象或表对象）');
       return;
     }
 
     const permissions = [...selectedPermissions];
     const addedObjectNames = objectPermissions.map(obj => obj.objectName);
-    
-    const newObjectPermissions = objectName
-      .filter(name => !addedObjectNames.includes(name))
-      .map(name => ({
-        id: Date.now() + Math.random(),
-        objectType: '表',
-        objectName: name,
-        permissions: [...permissions],
-        columnConfigs: [],
-      }));
+    let newObjectPermissions = [];
+
+    if (objectType === 'table') {
+      // 添加表对象
+      if (!objectName || objectName.length === 0) {
+        message.warning('请选择表对象');
+        return;
+      }
+
+      newObjectPermissions = objectName
+        .filter(name => !addedObjectNames.includes(name))
+        .map(name => ({
+          id: Date.now() + Math.random(),
+          objectType: '表',
+          objectName: name,
+          permissions: [...permissions],
+          columnConfigs: [],
+        }));
+    } else if (objectType === 'document') {
+      // 添加单据对象
+      if (!selectedDocumentTypes || selectedDocumentTypes.length === 0) {
+        message.warning('请选择单据类型');
+        return;
+      }
+
+      newObjectPermissions = selectedDocumentTypes
+        .filter(type => !addedObjectNames.includes(type))
+        .map(type => ({
+          id: Date.now() + Math.random(),
+          objectType: '单据',
+          objectName: type,
+          permissions: [...permissions],
+          columnConfigs: [], // 单据对象暂不支持行列权限配置
+        }));
+    }
 
     if (newObjectPermissions.length === 0) {
       message.warning('所选对象已全部添加，请勿重复添加');
@@ -180,8 +241,12 @@ const CreateRole = () => {
     }
 
     setObjectPermissions([...objectPermissions, ...newObjectPermissions]);
+    
+    // 重置选择
     setObjectName([]);
     setSelectedPermissions([]);
+    setObjectType(null);
+    setSelectedDocumentTypes([]);
   };
 
   // 删除对象权限
@@ -191,6 +256,11 @@ const CreateRole = () => {
 
   // 配置行列权限（从已添加的对象列表编辑）
   const handleConfigColumnPermissionFromList = (objectPermission) => {
+    // 单据对象不支持配置行列权限
+    if (objectPermission.objectType === '单据') {
+      return;
+    }
+    
     setCurrentEditingObject(objectPermission);
     
     // 获取当前表的列并初始化配置
@@ -545,52 +615,129 @@ const CreateRole = () => {
               borderRadius: '4px',
               marginBottom: '16px'
             }}>
-              <div style={{ fontWeight: 600, marginBottom: '12px' }}>添加表对象</div>
+              <div style={{ fontWeight: 600, marginBottom: '12px' }}>添加对象</div>
               
               <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div style={{ width: '300px' }}>
+                {/* 对象类型选择器 */}
+                <div style={{ width: '200px' }}>
                   <Select
-                    mode="multiple"
-                    value={objectName}
+                    value={objectType}
                     onChange={(value) => {
-                      setObjectName(value);
-                      setSelectedPermissions(['DT8']);
+                      setObjectType(value);
+                      // 重置选择
+                      setObjectName([]);
+                      setSelectedDocumentTypes([]);
+                      setSelectedPermissions([]);
+                      if (value === 'table') {
+                        // 表类型默认选中"表查询"权限
+                        setSelectedPermissions(['DT8']);
+                      } else if (value === 'document') {
+                        // 单据类型默认选中"表查询"权限
+                        setSelectedPermissions(['DT8']);
+                      }
                     }}
                     style={{ width: '100%' }}
-                    placeholder="请选择表对象"
-                    maxTagCount="responsive"
-                    dropdownRender={(menu) => {
-                      const availableOptions = getObjectNameOptions();
-                      const allSelected = availableOptions.length > 0 && 
-                        availableOptions.every(name => objectName.includes(name));
-                      const someSelected = objectName.length > 0 && !allSelected;
-                      
-                      return (
-                        <div>
-                          <div style={{ 
-                            padding: '8px 12px',
-                            borderBottom: '1px solid #e8e8e8',
-                            backgroundColor: '#fafafa'
-                          }}>
-                            <Checkbox
-                              checked={allSelected}
-                              indeterminate={someSelected}
-                              onChange={(e) => handleSelectAllObjects(e.target.checked)}
-                            >
-                              <span style={{ fontWeight: 500 }}>全选</span>
-                            </Checkbox>
-                          </div>
-                          {menu}
-                        </div>
-                      );
-                    }}
+                    placeholder="请选择对象类型"
                   >
-                    {getObjectNameOptions().map(name => (
-                      <Option key={name} value={name}>{name}</Option>
-                    ))}
+                    <Option value="document">单据对象</Option>
+                    <Option value="table">表对象</Option>
                   </Select>
                 </div>
 
+                {/* 根据对象类型显示不同的选择器 */}
+                {objectType === 'table' && (
+                  <div style={{ width: '300px' }}>
+                    <Select
+                      mode="multiple"
+                      value={objectName}
+                      onChange={(value) => {
+                        setObjectName(value);
+                        // 表类型默认选中"表查询"权限
+                        setSelectedPermissions(['DT8']);
+                      }}
+                      style={{ width: '100%' }}
+                      placeholder="请选择表对象"
+                      maxTagCount="responsive"
+                      dropdownRender={(menu) => {
+                        const availableOptions = getObjectNameOptions();
+                        const allSelected = availableOptions.length > 0 && 
+                          availableOptions.every(name => objectName.includes(name));
+                        const someSelected = objectName.length > 0 && !allSelected;
+                        
+                        return (
+                          <div>
+                            <div style={{ 
+                              padding: '8px 12px',
+                              borderBottom: '1px solid #e8e8e8',
+                              backgroundColor: '#fafafa'
+                            }}>
+                              <Checkbox
+                                checked={allSelected}
+                                indeterminate={someSelected}
+                                onChange={(e) => handleSelectAllObjects(e.target.checked)}
+                              >
+                                <span style={{ fontWeight: 500 }}>全选</span>
+                              </Checkbox>
+                            </div>
+                            {menu}
+                          </div>
+                        );
+                      }}
+                    >
+                      {getObjectNameOptions().map(name => (
+                        <Option key={name} value={name}>{name}</Option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+
+                {objectType === 'document' && (
+                  <div style={{ width: '300px' }}>
+                    <Select
+                      mode="multiple"
+                      value={selectedDocumentTypes}
+                      onChange={(value) => {
+                        setSelectedDocumentTypes(value);
+                        // 单据类型默认选中"表查询"权限
+                        setSelectedPermissions(['DT8']);
+                      }}
+                      style={{ width: '100%' }}
+                      placeholder="请选择单据类型"
+                      maxTagCount="responsive"
+                      dropdownRender={(menu) => {
+                        const availableOptions = getDocumentTypeOptions();
+                        const allSelected = availableOptions.length > 0 && 
+                          availableOptions.every(type => selectedDocumentTypes.includes(type));
+                        const someSelected = selectedDocumentTypes.length > 0 && !allSelected;
+                        
+                        return (
+                          <div>
+                            <div style={{ 
+                              padding: '8px 12px',
+                              borderBottom: '1px solid #e8e8e8',
+                              backgroundColor: '#fafafa'
+                            }}>
+                              <Checkbox
+                                checked={allSelected}
+                                indeterminate={someSelected}
+                                onChange={(e) => handleSelectAllDocumentTypes(e.target.checked)}
+                              >
+                                <span style={{ fontWeight: 500 }}>全选</span>
+                              </Checkbox>
+                            </div>
+                            {menu}
+                          </div>
+                        );
+                      }}
+                    >
+                      {getDocumentTypeOptions().map(type => (
+                        <Option key={type} value={type}>{type}</Option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+
+                {/* 添加按钮 */}
                 <Button type="primary" onClick={handleAddObjectPermission}>
                   添加
                 </Button>
@@ -620,7 +767,7 @@ const CreateRole = () => {
                   backgroundColor: '#fafafa',
                   borderRadius: '4px'
                 }}>
-                  暂无配置，请先添加表对象
+                  暂无配置，请先添加对象
                 </div>
               ) : (
                 <div style={{ 
@@ -657,23 +804,26 @@ const CreateRole = () => {
                             </span>
                             <span style={{ 
                               padding: '2px 8px',
-                              backgroundColor: '#e6f7ff',
-                              color: '#1890ff',
+                              backgroundColor: obj.objectType === '单据' ? '#f6ffed' : '#e6f7ff',
+                              color: obj.objectType === '单据' ? '#52c41a' : '#1890ff',
                               fontSize: '12px',
                               borderRadius: '2px'
                             }}>
-                              表
+                              {obj.objectType}
                             </span>
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <Button
-                            size="small"
-                            icon={<SettingOutlined />}
-                            onClick={() => handleConfigColumnPermissionFromList(obj)}
-                          >
-                            配置行列权限
-                          </Button>
+                          {/* 配置行列权限按钮 - 仅表对象显示 */}
+                          {obj.objectType === '表' && (
+                            <Button
+                              size="small"
+                              icon={<SettingOutlined />}
+                              onClick={() => handleConfigColumnPermissionFromList(obj)}
+                            >
+                              配置行列权限
+                            </Button>
+                          )}
                           <Button
                             danger
                             size="small"
