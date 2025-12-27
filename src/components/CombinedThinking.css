@@ -6,6 +6,12 @@
   overflow: hidden;
 }
 
+.combined-thinking-wrapper.collapsed {
+  background: transparent;
+  border: none;
+  margin-bottom: 8px;
+}
+
 .combined-header {
   display: flex;
   align-items: center;
@@ -21,6 +27,15 @@
   background: linear-gradient(135deg, #e6f0ff 0%, #d6e4ff 100%);
 }
 
+.combined-thinking-wrapper.collapsed .combined-header {
+  padding: 6px 8px;
+  background: transparent;
+}
+
+.combined-thinking-wrapper.collapsed .combined-header:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
 .combined-header-left {
   display: flex;
   align-items: center;
@@ -30,8 +45,18 @@
   color: #374151;
 }
 
+.combined-thinking-wrapper.collapsed .combined-header-left {
+  font-weight: 400;
+  font-size: 12px;
+  gap: 6px;
+}
+
 .combined-title {
   color: #374151;
+}
+
+.combined-thinking-wrapper.collapsed .combined-title {
+  color: #6b7280;
 }
 
 .combined-content {

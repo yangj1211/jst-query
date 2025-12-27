@@ -135,20 +135,20 @@ const CombinedThinking = ({ intentData = {}, config = {}, dataInfo = {}, steps =
   }, [status, steps, isStopped]);
 
   return (
-    <div className="combined-thinking-wrapper">
+    <div className={`combined-thinking-wrapper ${!isExpanded ? 'collapsed' : ''}`}>
       <div className="combined-header" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="combined-header-left">
           {currentPhase === 'completed' ? (
-            <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 16 }} />
+            <CheckCircleOutlined style={{ color: '#52c41a', fontSize: isExpanded ? 16 : 14 }} />
           ) : currentPhase === 'stopped' ? (
-            <CheckCircleOutlined style={{ color: '#999', fontSize: 16 }} />
+            <CheckCircleOutlined style={{ color: '#999', fontSize: isExpanded ? 16 : 14 }} />
           ) : (
-            <LoadingOutlined style={{ fontSize: 16, color: currentPhase === 'recognizing' ? '#1677ff' : '#f59e0b' }} spin />
+            <LoadingOutlined style={{ fontSize: isExpanded ? 16 : 14, color: currentPhase === 'recognizing' ? '#1677ff' : '#f59e0b' }} spin />
           )}
           <span className="combined-title">
             {currentPhase === 'completed' ? '思考完成' : currentPhase === 'stopped' ? '已停止' : currentPhase === 'recognizing' ? '意图识别' : '思考中'}
           </span>
-          {isExpanded ? <DownOutlined style={{ fontSize: 12 }} /> : <RightOutlined style={{ fontSize: 12 }} />}
+          {isExpanded ? <DownOutlined style={{ fontSize: 12 }} /> : <RightOutlined style={{ fontSize: 10 }} />}
         </div>
       </div>
       
