@@ -17,6 +17,7 @@ const DataImport = () => {
   const [conflictStrategy, setConflictStrategy] = useState('fail');
   const [tableName, setTableName] = useState('');
   const [tableDescription, setTableDescription] = useState('');
+  const [tableType, setTableType] = useState(''); // 新建表类型：'capacity' 产能表 或 'production' 产量表
   const [selectedTags, setSelectedTags] = useState([]); // 改为数组，支持多标签
   const [localTagSearchInput, setLocalTagSearchInput] = useState(''); // 本地上传标签搜索输入
   const [showLocalTagDropdown, setShowLocalTagDropdown] = useState(false); // 是否显示本地上传标签下拉列表
@@ -161,6 +162,176 @@ const DataImport = () => {
   const [showTagDropdown, setShowTagDropdown] = useState(false); // 是否显示标签下拉列表
   const [announcementRemark, setAnnouncementRemark] = useState(''); // 备注（非必填）
   
+  // 已有表信息映射
+  const existingTablesMap = {
+    'revenue_cost': { 
+      name: 'revenue_cost', 
+      displayName: '收入成本表', 
+      tags: ['收入成本'],
+      fields: [
+        { 
+          id: 1, 
+          name: '日期', 
+          type: 'datetime', 
+          dbType: 'datetime', 
+          datetimePrecision: 0, 
+          unique: false, 
+          description: '日期',
+          sampleData: ['2024-01-01 00:00:00', '2024-01-02 00:00:00', '2024-01-03 00:00:00', '2024-01-04 00:00:00', '2024-01-05 00:00:00']
+        },
+        { 
+          id: 2, 
+          name: '收入', 
+          type: 'decimal', 
+          dbType: 'decimal(10,2)', 
+          precision: 10, 
+          scale: 2, 
+          unique: false, 
+          description: '收入金额',
+          sampleData: ['100000.00', '120000.50', '95000.25', '110000.75', '105000.00']
+        },
+        { 
+          id: 3, 
+          name: '成本', 
+          type: 'decimal', 
+          dbType: 'decimal(10,2)', 
+          precision: 10, 
+          scale: 2, 
+          unique: false, 
+          description: '成本金额',
+          sampleData: ['80000.00', '96000.40', '76000.20', '88000.60', '84000.00']
+        },
+        { 
+          id: 4, 
+          name: '利润', 
+          type: 'decimal', 
+          dbType: 'decimal(10,2)', 
+          precision: 10, 
+          scale: 2, 
+          unique: false, 
+          description: '利润金额',
+          sampleData: ['20000.00', '24000.10', '19000.05', '22000.15', '21000.00']
+        }
+      ]
+    },
+    'capacity': { 
+      name: 'capacity', 
+      displayName: '产能表', 
+      tags: ['产能'],
+      fields: [
+        { 
+          id: 1, 
+          name: '日期', 
+          type: 'datetime', 
+          dbType: 'datetime', 
+          datetimePrecision: 0, 
+          unique: false, 
+          description: '日期',
+          sampleData: ['2024-01-01 00:00:00', '2024-01-02 00:00:00', '2024-01-03 00:00:00', '2024-01-04 00:00:00', '2024-01-05 00:00:00']
+        },
+        { 
+          id: 2, 
+          name: '产品名称', 
+          type: 'varchar', 
+          dbType: 'varchar(255)', 
+          length: 255, 
+          unique: false, 
+          description: '产品名称',
+          sampleData: ['变压器A型', '变压器B型', '变压器C型', '变压器D型', '变压器E型']
+        },
+        { 
+          id: 3, 
+          name: '产能', 
+          type: 'decimal', 
+          dbType: 'decimal(10,2)', 
+          precision: 10, 
+          scale: 2, 
+          unique: false, 
+          description: '产能数量',
+          sampleData: ['1000.00', '1200.50', '950.25', '1100.75', '1050.00']
+        },
+        { 
+          id: 4, 
+          name: '单位', 
+          type: 'varchar', 
+          dbType: 'varchar(50)', 
+          length: 50, 
+          unique: false, 
+          description: '单位',
+          sampleData: ['台', '台', '台', '台', '台']
+        }
+      ]
+    },
+    'open_orders_result': { 
+      name: 'open_orders_result', 
+      displayName: '在手订单表', 
+      tags: ['订单'],
+      fields: [
+        { 
+          id: 1, 
+          name: '订单编号', 
+          type: 'varchar', 
+          dbType: 'varchar(100)', 
+          length: 100, 
+          unique: true, 
+          description: '订单唯一编号',
+          sampleData: ['ORD20240101001', 'ORD20240101002', 'ORD20240101003', 'ORD20240101004', 'ORD20240101005']
+        },
+        { 
+          id: 2, 
+          name: '客户名称', 
+          type: 'varchar', 
+          dbType: 'varchar(255)', 
+          length: 255, 
+          unique: false, 
+          description: '客户名称',
+          sampleData: ['客户A', '客户B', '客户C', '客户D', '客户E']
+        },
+        { 
+          id: 3, 
+          name: '订单金额', 
+          type: 'decimal', 
+          dbType: 'decimal(10,2)', 
+          precision: 10, 
+          scale: 2, 
+          unique: false, 
+          description: '订单金额',
+          sampleData: ['50000.00', '60000.50', '45000.25', '55000.75', '52000.00']
+        },
+        { 
+          id: 4, 
+          name: '下单日期', 
+          type: 'datetime', 
+          dbType: 'datetime', 
+          datetimePrecision: 0, 
+          unique: false, 
+          description: '下单日期',
+          sampleData: ['2024-01-01 10:00:00', '2024-01-02 11:00:00', '2024-01-03 09:00:00', '2024-01-04 14:00:00', '2024-01-05 15:00:00']
+        },
+        { 
+          id: 5, 
+          name: '交货日期', 
+          type: 'datetime', 
+          dbType: 'datetime', 
+          datetimePrecision: 0, 
+          unique: false, 
+          description: '交货日期',
+          sampleData: ['2024-02-01 00:00:00', '2024-02-02 00:00:00', '2024-02-03 00:00:00', '2024-02-04 00:00:00', '2024-02-05 00:00:00']
+        },
+        { 
+          id: 6, 
+          name: '订单状态', 
+          type: 'varchar', 
+          dbType: 'varchar(50)', 
+          length: 50, 
+          unique: false, 
+          description: '订单状态',
+          sampleData: ['待生产', '生产中', '已完成', '待发货', '已发货']
+        }
+      ]
+    }
+  };
+
   // 模拟已保存的表数据
   const [savedTables] = useState([
     { 
@@ -280,6 +451,7 @@ const DataImport = () => {
     setConflictStrategy('fail');
     setTableName('');
     setTableDescription('');
+    setTableType('');
     setSelectedTags([]);
     setLocalTagSearchInput('');
     setShowLocalTagDropdown(false);
@@ -303,6 +475,10 @@ const DataImport = () => {
       alert('请先上传文件');
       return;
     }
+    if (!tableType) {
+      alert('请选择新建表类型');
+      return;
+    }
     if (!tableName.trim()) {
       alert('请填写表名');
       return;
@@ -318,10 +494,35 @@ const DataImport = () => {
 
   const getDisplayFields = () => {
     if (importMode === 'existing' && selectedTableId) {
-      const selectedTable = savedTables.find(table => table.id === selectedTableId);
+      // 导入到已有表时，返回选中表的字段结构
+      const selectedTable = existingTablesMap[selectedTableId];
       return selectedTable?.fields || [];
     }
     return fields;
+  };
+
+  // 格式化字段类型为数据库实际类型
+  const formatFieldType = (field) => {
+    // 如果字段已有 dbType，直接返回
+    if (field.dbType) {
+      return field.dbType;
+    }
+    
+    // 根据字段类型、长度、精度等生成数据库类型
+    switch (field.type) {
+      case 'varchar':
+        return `varchar(${field.length || 255})`;
+      case 'int':
+        return 'int';
+      case 'decimal':
+        return `decimal(${field.precision || 10},${field.scale || 2})`;
+      case 'datetime':
+        return 'datetime';
+      case 'text':
+        return 'text';
+      default:
+        return field.type;
+    }
   };
 
   // ========== 公司公告相关函数 ==========
@@ -689,7 +890,9 @@ const DataImport = () => {
       return;
     }
     // 执行导入逻辑
-    alert(`导入到表ID: ${selectedTableId}, 数据处理方式: ${importStrategy === 'append' ? '追加数据' : '覆盖数据'}, 冲突策略: ${conflictStrategy}`);
+    const tableInfo = existingTablesMap[selectedTableId];
+    const tableDisplayName = tableInfo ? tableInfo.displayName : selectedTableId;
+    alert(`导入到表: ${tableDisplayName}, 数据处理方式: ${importStrategy === 'append' ? '追加数据' : '覆盖数据'}, 冲突策略: ${conflictStrategy}`);
   };
 
   // 关闭导入弹窗
@@ -704,6 +907,7 @@ const DataImport = () => {
     setImportStrategy(null);
     setTableName('');
     setTableDescription('');
+    setTableType('');
     setSelectedTags([]);
     setLocalTagSearchInput('');
     setShowLocalTagDropdown(false);
@@ -1410,6 +1614,35 @@ const DataImport = () => {
               <div className="table-config-section">
                 <div className="config-row">
                   <label className="config-label">
+                    <span className="required">*</span>新建表类型：
+                  </label>
+                  <div className="table-type-selector" style={{ display: 'flex', gap: '20px' }}>
+                    <label className="strategy-option" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        value="capacity"
+                        checked={tableType === 'capacity'}
+                        onChange={(e) => setTableType(e.target.value)}
+                        disabled={!uploadedFile}
+                        style={{ marginRight: '6px' }}
+                      />
+                      <span>产能表</span>
+                    </label>
+                    <label className="strategy-option" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        value="production"
+                        checked={tableType === 'production'}
+                        onChange={(e) => setTableType(e.target.value)}
+                        disabled={!uploadedFile}
+                        style={{ marginRight: '6px' }}
+                      />
+                      <span>产量表</span>
+                    </label>
+                  </div>
+                </div>
+                <div className="config-row">
+                  <label className="config-label">
                     <span className="required">*</span>表名：
                   </label>
                   <input
@@ -1619,14 +1852,12 @@ const DataImport = () => {
                   <select
                     className="table-select"
                     value={selectedTableId || ''}
-                    onChange={(e) => setSelectedTableId(parseInt(e.target.value))}
+                    onChange={(e) => setSelectedTableId(e.target.value)}
                   >
                     <option value="">请选择表</option>
-                    {savedTables.filter(item => item.objectType === 'table').map((table) => (
-                      <option key={table.id} value={table.id}>
-                        {table.name} ({table.fieldCount}个字段)
-                      </option>
-                    ))}
+                    <option value="revenue_cost">revenue_cost（收入成本表）</option>
+                    <option value="capacity">capacity（产能表）</option>
+                    <option value="open_orders_result">open_orders_result（在手订单表）</option>
                   </select>
                 </div>
 
@@ -1667,7 +1898,7 @@ const DataImport = () => {
 
                 {/* 显示已选表的标签 */}
                 {selectedTableId && (() => {
-                  const selectedTable = savedTables.find(table => table.id === selectedTableId);
+                  const selectedTable = existingTablesMap[selectedTableId];
                   return selectedTable && selectedTable.tags && Array.isArray(selectedTable.tags) && selectedTable.tags.length > 0 ? (
                     <div className="config-row">
                       <label className="config-label">标签：</label>
@@ -1734,6 +1965,7 @@ const DataImport = () => {
                 <div className="col-type-wrapper"><span className="required">*</span> 字段类型</div>
                 <div className="col-unique">是否唯一</div>
                 <div className="col-description">字段描述</div>
+                <div className="col-sample-data">样例数据</div>
               </div>
               {/* 根据模式显示字段行 */}
               {getDisplayFields().map((field) => (
@@ -1743,31 +1975,38 @@ const DataImport = () => {
                     <input
                       type="text"
                       value={field.name}
-                      readOnly
+                      readOnly={importMode === 'existing' || (importMode === 'new' && tableType !== '')}
+                      onChange={(e) => handleUpdateField(field.id, 'name', e.target.value)}
                       placeholder="请输入"
+                      disabled={importMode === 'existing' || (importMode === 'new' && tableType !== '')}
                     />
                   </div>
                   <div className="col-type-wrapper">
-                    <div className="type-inputs">
-                      <select
-                        className="type-select"
-                        value={field.type}
-                        onChange={(e) => handleUpdateField(field.id, 'type', e.target.value)}
-                        disabled={importMode === 'existing'}
-                      >
-                        <option value="varchar">文本</option>
-                        <option value="int">整数</option>
-                        <option value="decimal">小数</option>
-                        <option value="datetime">日期</option>
-                      </select>
-                    </div>
+                    {(importMode === 'existing' || (importMode === 'new' && tableType !== '')) ? (
+                      <div style={{ padding: '8px 12px', fontSize: '14px', color: '#333' }}>
+                        {formatFieldType(field)}
+                      </div>
+                    ) : (
+                      <div className="type-inputs">
+                        <select
+                          className="type-select"
+                          value={field.type}
+                          onChange={(e) => handleUpdateField(field.id, 'type', e.target.value)}
+                        >
+                          <option value="varchar">文本</option>
+                          <option value="int">整数</option>
+                          <option value="decimal">小数</option>
+                          <option value="datetime">日期</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
                   <div className="col-unique">
                     <input
                       type="checkbox"
                       checked={(field.type !== 'varchar' && field.type !== 'datetime') && (field.unique || false)}
                       onChange={(e) => handleUpdateField(field.id, 'unique', e.target.checked)}
-                      disabled={importMode === 'existing' || field.type === 'varchar' || field.type === 'datetime'}
+                      disabled={importMode === 'existing' || field.type === 'varchar' || field.type === 'datetime' || (importMode === 'new' && tableType !== '')}
                     />
                   </div>
                   <div className="col-description">
@@ -1776,15 +2015,49 @@ const DataImport = () => {
                       value={field.description || ''}
                       onChange={(e) => handleUpdateField(field.id, 'description', e.target.value)}
                       placeholder={importMode === 'existing' ? '' : '请输入'}
-                      disabled={importMode === 'existing'}
+                      disabled={importMode === 'existing' || (importMode === 'new' && tableType !== '')}
                     />
+                  </div>
+                  <div className="col-sample-data">
+                    {field.sampleData && field.sampleData.length > 0 ? (
+                      <div style={{ 
+                        padding: '8px 12px', 
+                        fontSize: '13px', 
+                        color: '#666',
+                        display: 'flex',
+                        flexWrap: 'nowrap',
+                        gap: '4px',
+                        overflowX: 'auto',
+                        overflowY: 'hidden',
+                        whiteSpace: 'nowrap',
+                        width: '100%'
+                      }}>
+                        {field.sampleData.slice(0, 5).map((sample, index) => (
+                          <span 
+                            key={index}
+                            style={{
+                              display: 'inline-block',
+                              padding: '2px 6px',
+                              backgroundColor: '#f0f0f0',
+                              borderRadius: '3px',
+                              fontSize: '12px',
+                              flexShrink: 0
+                            }}
+                          >
+                            {sample}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ padding: '8px 12px', fontSize: '13px', color: '#999' }}>-</div>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
 
             {/* 操作按钮 */}
-            {((importMode === 'new' && uploadedFile && fields.length > 0) || 
+            {((importMode === 'new' && uploadedFile && fields.length > 0 && tableType) || 
               (importMode === 'existing' && selectedTableId && uploadedFile)) && (
               <div className="action-buttons">
                 {importMode === 'new' && (
