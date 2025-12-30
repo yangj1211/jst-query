@@ -1763,17 +1763,6 @@ const DataPermissionConfig = () => {
         getContainer={() => document.body}
       >
         <div style={{ padding: '8px 0' }}>
-          <div style={{ 
-            color: '#666', 
-            fontSize: '14px', 
-            marginBottom: '16px',
-            padding: '12px',
-            backgroundColor: '#f5f5f5',
-            borderRadius: '4px'
-          }}>
-            选择该表中可以访问的列，并可为每列设置值范围的正则表达式式规则
-          </div>
-
           {/* 列权限配置 */}
           <div>
             <div style={{ 
