@@ -16,6 +16,9 @@ import './SalesDocumentSearch.css';
 const { TextArea } = Input;
 const { Option } = Select;
 
+// 有权限的文件类型列表
+const authorizedDocumentTypes = ['合同', '发票', '通电验收单'];
+
 // 模拟数据
 const mockResults = [
   {
@@ -382,11 +385,45 @@ const SalesDocumentSearch = () => {
               style={{ width: 200, marginRight: 12 }}
               allowClear
               maxTagCount="responsive"
+              dropdownClassName="document-type-select-dropdown"
+              tagRender={(props) => {
+                const { label, value, closable, onClose } = props;
+                const isAuthorized = authorizedDocumentTypes.includes(value);
+                return (
+                  <span className={`ant-select-selection-item ${isAuthorized ? 'authorized-tag' : ''}`}>
+                    <span className="ant-select-selection-item-content">
+                      {label}
+                      {isAuthorized && (
+                        <Tag color="success" style={{ marginLeft: 4, fontSize: '10px', lineHeight: '14px', padding: '0 4px' }}>
+                          有权限
+                        </Tag>
+                      )}
+                    </span>
+                    {closable && (
+                      <span className="ant-select-selection-item-remove" onClick={onClose}>
+                        ×
+                      </span>
+                    )}
+                  </span>
+                );
+              }}
             >
               <Option key="__ALL__" value="__ALL__">全部</Option>
-              {allDocumentTypes.map(type => (
-                <Option key={type} value={type}>{type}</Option>
-              ))}
+              {allDocumentTypes.map(type => {
+                const isAuthorized = authorizedDocumentTypes.includes(type);
+                return (
+                  <Option key={type} value={type} className={isAuthorized ? 'authorized-option' : ''}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <span>{type}</span>
+                      {isAuthorized && (
+                        <Tag color="success" style={{ margin: 0, fontSize: '11px', lineHeight: '16px', padding: '0 6px' }}>
+                          有权限
+                        </Tag>
+                      )}
+                    </div>
+                  </Option>
+                );
+              })}
             </Select>
             <Button 
               type="primary" 

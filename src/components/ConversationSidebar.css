@@ -80,12 +80,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
   transition: all 0.2s;
 }
 
 .search-clear-btn:hover {
-  background: #f0f0f0;
+  background: transparent;
   color: #666;
 }
 

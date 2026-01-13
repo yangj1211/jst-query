@@ -146,12 +146,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
   transition: all 0.2s;
 }
 
 .search-clear-btn:hover {
-  background: #f0f0f0;
+  background: transparent;
   color: #666;
 }
 
@@ -846,8 +845,42 @@
 }
 
 /* 配置提示样式 */
+.config-tags-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.config-tag {
+  margin: 0;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  color: #666;
+}
+
+/* Tooltip 样式 - 浅色背景 */
+.config-tags-container .ant-tooltip-inner {
+  background-color: #fff !important;
+  color: #333 !important;
+  border: 1px solid #e8e8e8 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.config-tags-container .ant-tooltip-arrow::before {
+  background-color: #fff !important;
+  border: 1px solid #e8e8e8 !important;
+}
+
 .config-button-wrapper {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .config-hint-card {

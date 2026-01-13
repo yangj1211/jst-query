@@ -313,3 +313,8 @@
 .detail-value {
   color: #1a1a1a;
 }
+
+/* 文件类型选择器下拉菜单样式 */
+.document-type-select-dropdown .ant-select-item {
+  padding: 8px 12px;
+}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Modal } from 'antd';
 import './ConversationSidebar.css';
 
 /**
@@ -82,8 +83,22 @@ const ConversationSidebar = ({
   // 删除对话
   const handleDeleteConversation = (e, conversationId) => {
     e.stopPropagation();
-    onDelete(conversationId);
     setOpenMenuId(null);
+    
+    // 获取对话标题用于确认提示
+    const conversation = conversations.find(c => c.id === conversationId);
+    const conversationTitle = conversation?.title || '这个对话';
+    
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除"${conversationTitle}"吗？删除后无法恢复。`,
+      okText: '确定',
+      cancelText: '取消',
+      okType: 'danger',
+      onOk: () => {
+        onDelete(conversationId);
+      }
+    });
   };
 
   // 过滤对话

@@ -1001,7 +1001,7 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
                 disabled={lockStates.filter}
                 style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
               >
-                <Radio value="all"><span style={radioOptionTextStyle}>全部数据</span></Radio>
+                <Radio value="all"><span style={radioOptionTextStyle}>全部交易数据</span></Radio>
                 <Radio value="excludeInternal"><span style={radioOptionTextStyle}>不含内部关联交易数据</span></Radio>
         </Radio.Group>
             </div>
@@ -1019,7 +1019,7 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
                 disabled={lockStates.source}
                 style={radioGroupInlineStyle}
               >
-                <Radio value="all"><span style={radioOptionTextStyle}>全部数据</span></Radio>
+                <Radio value="all"><span style={radioOptionTextStyle}>全部来源</span></Radio>
                 <Radio value="custom"><span style={radioOptionTextStyle}>指定来源</span></Radio>
         </Radio.Group>
         {sourceMode === 'custom' && (
@@ -1047,7 +1047,7 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
               disabled={scopeLocked}
               style={radioGroupInlineStyle}
             >
-              <Radio value="all"><span style={radioOptionTextStyle}>所有数据</span></Radio>
+              <Radio value="all"><span style={radioOptionTextStyle}>不指定范围</span></Radio>
               <Radio value="custom"><span style={radioOptionTextStyle}>指定范围</span></Radio>
             </Radio.Group>
             {scopeMode === 'custom' && (

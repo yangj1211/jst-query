@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { DownloadOutlined, LikeOutlined, DislikeOutlined, LoadingOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Tag, Tooltip } from 'antd';
 import './PageStyle.css';
 import './QuestionAssistant.css';
 import QueryResult from '../components/QueryResult'; // 引入查询结果组件
@@ -64,6 +65,303 @@ const QuestionAssistant = () => {
     const convCfg = configPerConv[activeConversationId] || {};
     return { ...configGlobal, ...convCfg };
   };
+
+  /**
+   * 从树数据中查找节点的title中的名称部分
+   */
+  const findNodeTitle = (key, treeData) => {
+    if (!treeData || !key) return null;
+    const traverse = (nodes) => {
+      for (const node of nodes) {
+        if (node.key === key) {
+          // title格式是 "编号 - 名称 (数量)" 或 "名称 (数量)"
+          const title = node.title || '';
+          // 提取名称部分（- 后面的部分，去掉数量）
+          const parts = title.split(' - ');
+          if (parts.length > 1) {
+            // 有编号，取第二部分
+            const namePart = parts[1];
+            // 去掉末尾的数量部分 (xxx)
+            const nameMatch = namePart.match(/^(.+?)(?:\s*\(\d+\))?$/);
+            return nameMatch ? nameMatch[1].trim() : namePart.trim();
+          } else {
+            // 没有编号，直接取名称部分
+            const nameMatch = title.match(/^(.+?)(?:\s*\(\d+\))?$/);
+            return nameMatch ? nameMatch[1].trim() : title.trim();
+          }
+        }
+        if (node.children) {
+          const found = traverse(node.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    return traverse(treeData);
+  };
+
+  /**
+   * 从树数据中查找节点的完整信息（编号和名称，去掉数量）
+   */
+  const findNodeFullInfo = (key, treeData) => {
+    if (!treeData || !key) return null;
+    const traverse = (nodes) => {
+      for (const node of nodes) {
+        if (node.key === key) {
+          // title格式是 "编号 - 名称 (数量)" 或 "名称 (数量)"
+          const title = node.title || '';
+          // 去掉末尾的数量部分 (xxx)
+          const fullInfo = title.replace(/\s*\(\d+\)$/, '');
+          return fullInfo.trim();
+        }
+        if (node.children) {
+          const found = traverse(node.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    return traverse(treeData);
+  };
+
+  /**
+   * 格式化列表显示（如果项目多则显示前几个+等X项）
+   */
+  const formatListDisplay = (items, maxShow = 2) => {
+    if (!items || items.length === 0) return '';
+    if (items.length <= maxShow) {
+      return items.join('、');
+    }
+    return `${items.slice(0, maxShow).join('、')}等${items.length}项`;
+  };
+
+  /**
+   * 构建数据范围的详细信息（用于 Tooltip，按层级结构显示）
+   * @returns {React.ReactNode} 数据范围详细信息
+   */
+  const buildScopeTooltipContent = useMemo(() => {
+    const config = getEffectiveConfig();
+    
+    if (config.scopeMode !== 'custom') {
+      return '不指定范围';
+    }
+    
+    const treeType = config.scopeTreeType || 'company';
+    const treeData = treeType === 'department' ? departmentTreeData : companyTreeData;
+    const scopeKeys = treeType === 'department' 
+      ? (config.departmentRadioKeys || [])
+      : (config.companyRadioKeys || []);
+    
+    if (!scopeKeys || scopeKeys.length === 0) {
+      return '指定范围：未选择';
+    }
+    
+    // 构建层级结构显示
+    const buildHierarchicalDisplay = (selectedKeys, treeData) => {
+      const result = [];
+      
+      const traverse = (nodes, level = 0) => {
+        nodes.forEach((node) => {
+          if (selectedKeys.includes(node.key)) {
+            const nodeInfo = findNodeFullInfo(node.key, treeData);
+            if (nodeInfo) {
+              result.push({ info: nodeInfo, level });
+            }
+            // 如果选中了父节点，也遍历子节点（虽然子节点可能也被选中）
+            if (node.children && node.children.length > 0) {
+              traverse(node.children, level + 1);
+            }
+          } else {
+            // 即使当前节点未选中，也要检查子节点
+            if (node.children && node.children.length > 0) {
+              traverse(node.children, level);
+            }
+          }
+        });
+      };
+      
+      traverse(treeData);
+      
+      // 按照在树中的顺序排序（保持层级关系）
+      return result;
+    };
+    
+    const hierarchicalNodes = buildHierarchicalDisplay(scopeKeys, treeData);
+    
+    if (hierarchicalNodes.length === 0) {
+      return '指定范围：未选择';
+    }
+    
+    return (
+      <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+        {hierarchicalNodes.map((item, index) => (
+          <div 
+            key={index} 
+            style={{ 
+              marginBottom: index < hierarchicalNodes.length - 1 ? '4px' : '0',
+              paddingLeft: `${item.level * 16}px`
+            }}
+          >
+            {item.info}
+          </div>
+        ))}
+      </div>
+    );
+  }, [configGlobal, configPerConv, activeConversationId, companyTreeData, departmentTreeData]);
+
+  /**
+   * 构建数据来源的详细信息（用于 Tooltip）
+   * @returns {React.ReactNode} 数据来源详细信息
+   */
+  const buildSourceTooltipContent = useMemo(() => {
+    const config = getEffectiveConfig();
+    
+    if (config.sourceMode === 'all') {
+      return '全部数据';
+    }
+    
+    const tableSelectMode = config.tableSelectMode || 'all';
+    const fileSelectMode = config.fileSelectMode || 'all';
+    const tables = config.tables || [];
+    const files = config.files || [];
+    
+    // 处理表的显示
+    let tableDisplay = '';
+    if (tableSelectMode === 'none') {
+      tableDisplay = '表：不使用';
+    } else if (tableSelectMode === 'all') {
+      tableDisplay = '表：全部';
+    } else if (tableSelectMode === 'custom' && tables.length > 0) {
+      tableDisplay = `表：${tables.join('、')}`;
+    } else {
+      tableDisplay = '表：未选择';
+    }
+    
+    // 处理文件的显示
+    let fileDisplay = '';
+    if (fileSelectMode === 'none') {
+      fileDisplay = '文件：不使用';
+    } else if (fileSelectMode === 'all') {
+      fileDisplay = '文件：全部';
+    } else if (fileSelectMode === 'custom' && files.length > 0) {
+      fileDisplay = `文件：${files.join('、')}`;
+    } else {
+      fileDisplay = '文件：未选择';
+    }
+    
+    return (
+      <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+        <div style={{ marginBottom: '4px' }}>{tableDisplay}</div>
+        <div>{fileDisplay}</div>
+      </div>
+    );
+  }, [configGlobal, configPerConv, activeConversationId]);
+
+  /**
+   * 格式化配置标签显示
+   * @returns {Array} 配置标签数组
+   */
+  const getConfigTags = useMemo(() => {
+    const config = getEffectiveConfig();
+    const tags = [];
+
+    // 数据对象
+    const dataObjectDisplayMap = {
+      custom: '默认对象',
+      audit: '审计 / 券商 / 招投标 / 银行',
+      government: '政府相关',
+    };
+    const dataObjectText = dataObjectDisplayMap[config.dataObject] || '默认对象';
+    tags.push({ key: 'dataObject', label: '数据对象', value: dataObjectText });
+
+    // 数据口径
+    const caliberText = config.caliber === 'external' ? '法口数据' : '管口数据';
+    tags.push({ key: 'caliber', label: '数据口径', value: caliberText });
+
+    // 过滤条件
+    const filterText = config.filterOption === 'excludeInternal' 
+      ? '不含内部关联交易数据' 
+      : '全部交易数据';
+    tags.push({ key: 'filter', label: '过滤条件', value: filterText });
+
+    // 数据来源
+    let sourceText = '全部来源';
+    if (config.sourceMode === 'custom') {
+      const tableSelectMode = config.tableSelectMode || 'all';
+      const fileSelectMode = config.fileSelectMode || 'all';
+      const tables = config.tables || [];
+      const files = config.files || [];
+      
+      const parts = [];
+      
+      // 处理表的选择
+      if (tableSelectMode === 'all') {
+        parts.push('全部表');
+      } else if (tableSelectMode === 'none') {
+        parts.push('不使用表');
+      } else if (tableSelectMode === 'custom' && tables.length > 0) {
+        // 指定表：2个显示2个，超过2个显示1个+等X项，表名加粗
+        if (tables.length === 2) {
+          parts.push(`<strong>${tables[0]}</strong>、<strong>${tables[1]}</strong>`);
+        } else if (tables.length > 2) {
+          parts.push(`<strong>${tables[0]}</strong>等${tables.length}项`);
+        } else {
+          parts.push(`<strong>${tables[0]}</strong>`);
+        }
+      }
+      
+      // 处理文件的选择
+      if (fileSelectMode === 'all') {
+        parts.push('全部文件');
+      } else if (fileSelectMode === 'none') {
+        parts.push('不使用文件');
+      } else if (fileSelectMode === 'custom' && files.length > 0) {
+        // 指定文件：2个显示2个，超过2个显示1个+等X项，文件名加粗
+        if (files.length === 2) {
+          parts.push(`<strong>${files[0]}</strong>、<strong>${files[1]}</strong>`);
+        } else if (files.length > 2) {
+          parts.push(`<strong>${files[0]}</strong>等${files.length}项`);
+        } else {
+          parts.push(`<strong>${files[0]}</strong>`);
+        }
+      }
+      
+      if (parts.length > 0) {
+        sourceText = parts.join('、');
+      } else {
+        sourceText = '未选择来源';
+      }
+    }
+    tags.push({ key: 'source', label: '数据来源', value: sourceText, tooltipContent: buildSourceTooltipContent });
+
+    // 主体范围
+    let scopeText = '不指定范围';
+    if (config.scopeMode === 'custom') {
+      const treeType = config.scopeTreeType || 'company';
+      const treeData = treeType === 'department' ? departmentTreeData : companyTreeData;
+      const scopeKeys = treeType === 'department' 
+        ? (config.departmentRadioKeys || [])
+        : (config.companyRadioKeys || []);
+      if (scopeKeys && scopeKeys.length > 0) {
+        // 最多显示1个节点的代码和名称，超过1个显示"等X个"
+        const firstNodeInfo = findNodeFullInfo(scopeKeys[0], treeData);
+        if (scopeKeys.length === 1 && firstNodeInfo) {
+          scopeText = `<strong>${firstNodeInfo}</strong>`;
+        } else if (scopeKeys.length > 1) {
+          scopeText = firstNodeInfo 
+            ? `<strong>${firstNodeInfo}</strong>等${scopeKeys.length}个`
+            : `等${scopeKeys.length}个`;
+        } else {
+          scopeText = '指定范围';
+        }
+      } else {
+        scopeText = '指定范围';
+      }
+    }
+    tags.push({ key: 'scope', label: '数据范围', value: scopeText, tooltipContent: buildScopeTooltipContent });
+
+    return tags;
+  }, [configGlobal, configPerConv, activeConversationId, companyTreeData, departmentTreeData]);
 
   // 检测是否为无意义的问题
   const isMeaninglessQuestion = (text) => {
@@ -2664,6 +2962,38 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                       <span className="action-icon">⚙️</span>
                       <span>问数配置</span>
                     </button>
+                    <div className="config-tags-container">
+                      {getConfigTags.map(tag => {
+                        const tagElement = (
+                          <Tag className="config-tag">
+                            <span dangerouslySetInnerHTML={{ __html: tag.value }} />
+                          </Tag>
+                        );
+                        
+                        // 如果有 tooltipContent，添加 Tooltip
+                        if (tag.tooltipContent) {
+                          return (
+                            <Tooltip
+                              key={tag.key}
+                              title={tag.tooltipContent}
+                              overlayStyle={{ maxWidth: '400px' }}
+                              overlayInnerStyle={{ 
+                                color: '#333', 
+                                backgroundColor: '#fff',
+                                border: '1px solid #e8e8e8',
+                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+                              }}
+                              color="#fff"
+                              placement="top"
+                            >
+                              {tagElement}
+                            </Tooltip>
+                          );
+                        }
+                        
+                        return <React.Fragment key={tag.key}>{tagElement}</React.Fragment>;
+                      })}
+                    </div>
                     {showConfigHint && (
                       <div className="config-hint-card" ref={configHintRef}>
                         <button 
