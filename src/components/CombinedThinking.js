@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CheckCircleOutlined, LoadingOutlined, DownOutlined, RightOutlined } from '@ant-design/icons';
+import { CheckOutlined, LoadingOutlined, DownOutlined, RightOutlined } from '@ant-design/icons';
 import { Tree } from 'antd';
 import './CombinedThinking.css';
 
@@ -139,9 +139,9 @@ const CombinedThinking = ({ intentData = {}, config = {}, dataInfo = {}, steps =
       <div className="combined-header" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="combined-header-left">
           {currentPhase === 'completed' ? (
-            <CheckCircleOutlined style={{ color: '#52c41a', fontSize: isExpanded ? 16 : 14 }} />
+            <CheckOutlined style={{ color: '#52c41a', fontSize: isExpanded ? 16 : 14 }} />
           ) : currentPhase === 'stopped' ? (
-            <CheckCircleOutlined style={{ color: '#999', fontSize: isExpanded ? 16 : 14 }} />
+            <CheckOutlined style={{ color: '#999', fontSize: isExpanded ? 16 : 14 }} />
           ) : (
             <LoadingOutlined style={{ fontSize: isExpanded ? 16 : 14, color: currentPhase === 'recognizing' ? '#1677ff' : '#f59e0b' }} spin />
           )}
