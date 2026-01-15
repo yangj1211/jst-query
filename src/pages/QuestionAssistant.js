@@ -294,11 +294,9 @@ const QuestionAssistant = () => {
       
       const parts = [];
       
-      // 处理表的选择
+      // 处理表的选择（不使用表时不显示）
       if (tableSelectMode === 'all') {
         parts.push('全部表');
-      } else if (tableSelectMode === 'none') {
-        parts.push('不使用表');
       } else if (tableSelectMode === 'custom' && tables.length > 0) {
         // 指定表：2个显示2个，超过2个显示1个+等X项，表名加粗
         if (tables.length === 2) {
@@ -309,12 +307,11 @@ const QuestionAssistant = () => {
           parts.push(`<strong>${tables[0]}</strong>`);
         }
       }
+      // tableSelectMode === 'none' 时不添加到 parts，不显示
       
-      // 处理文件的选择
+      // 处理文件的选择（不使用文件时不显示）
       if (fileSelectMode === 'all') {
         parts.push('全部文件');
-      } else if (fileSelectMode === 'none') {
-        parts.push('不使用文件');
       } else if (fileSelectMode === 'custom' && files.length > 0) {
         // 指定文件：2个显示2个，超过2个显示1个+等X项，文件名加粗
         if (files.length === 2) {
@@ -325,6 +322,7 @@ const QuestionAssistant = () => {
           parts.push(`<strong>${files[0]}</strong>`);
         }
       }
+      // fileSelectMode === 'none' 时不添加到 parts，不显示
       
       if (parts.length > 0) {
         sourceText = parts.join('、');
