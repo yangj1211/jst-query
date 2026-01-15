@@ -186,7 +186,7 @@ const RolePermission = () => {
         const isSuperAdmin = record.roleName === '超级管理员' || record.roleId === '1';
         return (
           <span style={{ display: 'flex', gap: '8px' }}>
-            <Tooltip title="配置数据权限">
+            <Tooltip title="修改角色权限">
               <Button 
                 type="link" 
                 icon={<SettingOutlined />}
