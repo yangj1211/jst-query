@@ -21,27 +21,28 @@ import companyData from '../pages/company.json';
 import departmentData from '../pages/department.json';
 import { buildTreeDataFromJson } from '../utils/treeData';
 
+/** 表选项：name 为系统用表名，nameEn 为英文表名，description 为中文描述（筛选项展示用） */
 const tableOptions = [
-  { name: '测试表1', tags: ['财务', '数据'], sources: ['SAP', 'BPC'] },
-  { name: '测试表2', tags: ['销售'], source: 'SAP' },
-  { name: '库存快照', tags: ['库存'], source: 'BPC' },
-  { name: '订单明细', tags: ['订单', '明细'], source: '本地上传' },
-  { name: '库存对账表', tags: ['库存', '对账'], source: 'SAP' },
-  { name: '客户主数据', tags: ['客户', '基础'], source: 'SAP' },
-  { name: '供应商清单', tags: ['供应商', '基础'], sources: ['SAP', '本地上传'] },
-  { name: '合同审批记录', tags: ['合同', '审批'], sources: ['BPC', 'SAP'] },
-  { name: '发票台账', tags: ['财务', '票据'], source: 'SAP' },
-  { name: '项目进度表', tags: ['项目', '进度'], source: '本地上传' },
-  { name: '成本分摊表', tags: ['成本', '核算'], source: 'SAP' },
-  { name: '预算执行表', tags: ['预算', '执行'], source: 'BPC' },
-  { name: '资金计划表', tags: ['资金', '计划'], source: 'SAP' },
-  { name: '出货明细', tags: ['销售', '出货'], source: 'SAP' },
-  { name: '采购订单表', tags: ['采购', '订单'], source: 'SAP' },
-  { name: '招投标项目表', tags: ['招投标', '项目'], source: '本地上传' },
-  { name: '固定资产台账', tags: ['资产', '台账'], source: 'SAP' },
-  { name: '员工人力成本表', tags: ['人力', '成本'], source: 'SAP' },
-  { name: '绩效考核表', tags: ['人力', '考核'], source: 'BPC' },
-  { name: '渠道商列表', tags: ['渠道', '伙伴'], source: 'SAP' },
+  { name: '测试表1', nameEn: 'test_table_1', description: '测试表1', tags: ['财务', '数据'], sources: ['SAP', 'BPC'] },
+  { name: '测试表2', nameEn: 'test_table_2', description: '测试表2', tags: ['销售'], source: 'SAP' },
+  { name: '库存快照', nameEn: 'inventory_snapshot', description: '库存快照', tags: ['库存'], source: 'BPC' },
+  { name: '订单明细', nameEn: 'order_detail', description: '订单明细', tags: ['订单', '明细'], source: '本地上传' },
+  { name: '库存对账表', nameEn: 'inventory_reconciliation', description: '库存对账表', tags: ['库存', '对账'], source: 'SAP' },
+  { name: '客户主数据', nameEn: 'customer_master', description: '客户主数据', tags: ['客户', '基础'], source: 'SAP' },
+  { name: '供应商清单', nameEn: 'supplier_list', description: '供应商清单', tags: ['供应商', '基础'], sources: ['SAP', '本地上传'] },
+  { name: '合同审批记录', nameEn: 'contract_approval', description: '合同审批记录', tags: ['合同', '审批'], sources: ['BPC', 'SAP'] },
+  { name: '发票台账', nameEn: 'invoice_ledger', description: '发票台账', tags: ['财务', '票据'], source: 'SAP' },
+  { name: '项目进度表', nameEn: 'project_schedule', description: '项目进度表', tags: ['项目', '进度'], source: '本地上传' },
+  { name: '成本分摊表', nameEn: 'cost_allocation', description: '成本分摊表', tags: ['成本', '核算'], source: 'SAP' },
+  { name: '预算执行表', nameEn: 'budget_execution', description: '预算执行表', tags: ['预算', '执行'], source: 'BPC' },
+  { name: '资金计划表', nameEn: 'fund_plan', description: '资金计划表', tags: ['资金', '计划'], source: 'SAP' },
+  { name: '出货明细', nameEn: 'shipment_detail', description: '出货明细', tags: ['销售', '出货'], source: 'SAP' },
+  { name: '采购订单表', nameEn: 'purchase_order', description: '采购订单表', tags: ['采购', '订单'], source: 'SAP' },
+  { name: '招投标项目表', nameEn: 'bidding_project', description: '招投标项目表', tags: ['招投标', '项目'], source: '本地上传' },
+  { name: '固定资产台账', nameEn: 'fixed_asset_ledger', description: '固定资产台账', tags: ['资产', '台账'], source: 'SAP' },
+  { name: '员工人力成本表', nameEn: 'labor_cost', description: '员工人力成本表', tags: ['人力', '成本'], source: 'SAP' },
+  { name: '绩效考核表', nameEn: 'performance_review', description: '绩效考核表', tags: ['人力', '考核'], source: 'BPC' },
+  { name: '渠道商列表', nameEn: 'channel_partner_list', description: '渠道商列表', tags: ['渠道', '伙伴'], source: 'SAP' },
   { name: '售后维修记录', tags: ['售后', '维修'], source: '本地上传' },
   { name: '库存预警表', tags: ['库存', '预警'], source: 'SAP' },
   { name: '发货跟踪表', tags: ['物流', '跟踪'], source: 'SAP' },
@@ -1768,4 +1769,5 @@ const QueryConfigModal = ({ visible, initialConfig = {}, onOk, onCancel }) => {
   );
 };
 
+export { tableOptions, fileOptions };
 export default QueryConfigModal;

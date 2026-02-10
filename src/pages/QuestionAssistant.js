@@ -1,15 +1,18 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { DownloadOutlined, LikeOutlined, DislikeOutlined, LoadingOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import { Tag, Tooltip } from 'antd';
+import { DownloadOutlined, LikeOutlined, DislikeOutlined, LoadingOutlined, CheckCircleOutlined, ReloadOutlined, CustomerServiceOutlined } from '@ant-design/icons';
+import { Tag, Tooltip, Modal, Form, Input, Drawer, Button } from 'antd';
 import './PageStyle.css';
 import './QuestionAssistant.css';
 import QueryResult from '../components/QueryResult'; // 引入查询结果组件
 import QueryConfigModal from '../components/QueryConfigModal';
 import CombinedThinking from '../components/CombinedThinking';
+import SimpleRichEditor from '../components/SimpleRichEditor';
 import { useConversationState } from '../contexts/ConversationStateContext';
 import companyData from './company.json';
 import departmentData from './department.json';
 import { buildTreeDataFromJson } from '../utils/treeData';
+
+const { TextArea } = Input;
 
 /**
  * 公司树形数据（与问数配置保持一致）
@@ -49,6 +52,11 @@ const QuestionAssistant = () => {
   const [configVisible, setConfigVisible] = useState(false);
   const [configGlobal, setConfigGlobal] = useState({});
   const [configPerConv, setConfigPerConv] = useState({});
+
+  // 转人工弹窗
+  const [transferModalVisible, setTransferModalVisible] = useState(false);
+  const [transferMessageId, setTransferMessageId] = useState(null);
+  const [transferForm] = Form.useForm();
 
   // 槽位填充状态（自然语言）
   const [expectTime, setExpectTime] = useState(false);
@@ -934,6 +942,52 @@ const QuestionAssistant = () => {
         textarea.setSelectionRange(suggestedQuestion.length, suggestedQuestion.length);
       }
     }, 0);
+  };
+
+  /**
+   * 根据消息ID获取对应的用户问题
+   * @param {number|string} messageId - 消息ID
+   * @returns {string} 用户问题文本
+   */
+  const getOriginalQuestion = (messageId) => {
+    if (!messageId || !messages || messages.length === 0) return '';
+    
+    // 找到当前消息的索引
+    const currentIndex = messages.findIndex(m => m.id === messageId);
+    if (currentIndex === -1) return '';
+    
+    // 从当前消息往前查找最近的一条用户消息
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.sender === 'user' && msg.text) {
+        return msg.text;
+      }
+    }
+    
+    return '';
+  };
+
+  /** 打开转人工弹窗，问题需用户自行填写（必填） */
+  const openTransferModal = (messageId) => {
+    setTransferMessageId(messageId);
+    setTransferModalVisible(true);
+    transferForm.resetFields();
+  };
+
+  /** 关闭转人工弹窗 */
+  const closeTransferModal = () => {
+    setTransferModalVisible(false);
+    setTransferMessageId(null);
+    transferForm.resetFields();
+  };
+
+  /** 提交转人工表单（问题、数据用途、数据提供对象为必填） */
+  const handleTransferSubmit = () => {
+    transferForm.validateFields(['question', 'dataUsage', 'dataRecipient']).then((values) => {
+      // 必填项已通过校验，可在此接入提交接口（values.question, values.dataUsage, values.dataRecipient, values.remark）
+      console.log('转人工提交', { messageId: transferMessageId, ...values });
+      closeTransferModal();
+    }).catch(() => {});
   };
 
   const proceedWithQuery = (params, baseMessages, originalQuestion) => {
@@ -2763,6 +2817,28 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
     }
   };
 
+  /**
+   * 重新发送消息 - 将问题复制到输入框，不自动发送
+   * @param {string} messageText - 要重新发送的消息文本
+   */
+  const handleResendMessage = (messageText) => {
+    if (!messageText || !messageText.trim()) return;
+    
+    // 将问题复制到输入框
+    setInputValue(messageText.trim());
+    
+    // 聚焦到输入框
+    setTimeout(() => {
+      const textarea = document.querySelector('.message-input');
+      if (textarea) {
+        textarea.focus();
+        // 将光标移动到文本末尾
+        const text = messageText.trim();
+        textarea.setSelectionRange(text.length, text.length);
+      }
+    }, 0);
+  };
+
 
   return (
     <div className="chat-container">
@@ -2901,6 +2977,14 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                                     <DislikeOutlined style={{ fontSize: 16, color: message.disliked ? '#ff4d4f' : undefined }} />
                                   </button>
                                 </div>
+                                <button
+                                  className="footer-icon-btn"
+                                  onClick={() => openTransferModal(message.id)}
+                                  title="转人工"
+                                >
+                                  <CustomerServiceOutlined style={{ fontSize: 16 }} />
+                                  <span>转人工</span>
+                                </button>
                               </div>
                               <div className="footer-time">{message.time}</div>
                             </div>
@@ -2910,8 +2994,22 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
                         <p>{message.text}</p>
                       )}
                     </div>
-                    {/* 文本消息的时间显示在气泡外面 */}
-                    {message.type !== 'result' && message.type !== 'combined' && (
+                    {/* 用户消息的重新发送按钮和时间 */}
+                    {message.sender === 'user' && message.text && message.type !== 'result' && message.type !== 'combined' && (
+                      <div className="user-message-actions">
+                        <Tooltip title="重新提问" placement="bottom">
+                          <button
+                            className="resend-message-btn"
+                            onClick={() => handleResendMessage(message.text)}
+                          >
+                            <ReloadOutlined style={{ fontSize: 12 }} />
+                          </button>
+                        </Tooltip>
+                        <div className="message-time">{message.time}</div>
+                      </div>
+                    )}
+                    {/* 文本消息的时间显示在气泡外面（非用户消息） */}
+                    {message.sender !== 'user' && message.type !== 'result' && message.type !== 'combined' && (
                       <div className="message-time">{message.time}</div>
                     )}
                     {/* 在AI回答消息下方显示推荐问题 - 只有result类型且结果完成后才显示 */}
@@ -3047,6 +3145,71 @@ ${top3.name}华东${regionData[2].regions[0].value}万元、华南${regionData[2
         }}
         onCancel={() => setConfigVisible(false)}
       />
+
+      {/* 转人工抽屉 */}
+      <Drawer
+        title="转人工"
+        open={transferModalVisible}
+        onClose={closeTransferModal}
+        placement="right"
+        width={480}
+        destroyOnClose
+        footer={
+          <div style={{ textAlign: 'right' }}>
+            <Button onClick={closeTransferModal} style={{ marginRight: 8 }}>
+              取消
+            </Button>
+            <Button type="primary" onClick={handleTransferSubmit}>
+              提交
+            </Button>
+          </div>
+        }
+      >
+        <Form form={transferForm} layout="vertical">
+          <Form.Item
+            name="question"
+            label="问题"
+            rules={[{ required: true, message: '请填写要提交的问题' }]}
+          >
+            <Input.TextArea
+              placeholder="请尽量准确描述你想询问的问题"
+              rows={3}
+              style={{ resize: 'vertical' }}
+            />
+          </Form.Item>
+          <Form.Item
+            name="dataUsage"
+            label="数据用途"
+            rules={[{ required: true, message: '请填写数据用于做什么' }]}
+          >
+            <Input.TextArea
+              placeholder="请写明数据用于做什么"
+              rows={3}
+              style={{ resize: 'vertical' }}
+            />
+          </Form.Item>
+          <Form.Item
+            name="dataRecipient"
+            label="数据提供对象"
+            rules={[{ required: true, message: '请填写数据要提供给谁' }]}
+          >
+            <Input.TextArea
+              placeholder="请写明这个数据要提供给谁"
+              rows={3}
+              style={{ resize: 'vertical' }}
+            />
+          </Form.Item>
+          <Form.Item
+            name="remark"
+            label="备注"
+          >
+            <SimpleRichEditor
+              placeholder="可补充想补充的信息，支持 Ctrl+V 粘贴图片（选填）"
+              style={{ minHeight: 80 }}
+            />
+          </Form.Item>
+        </Form>
+      </Drawer>
     </div>
   );
 };

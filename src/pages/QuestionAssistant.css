@@ -444,6 +444,49 @@
   box-shadow: 0 2px 6px rgba(22, 119, 255, 0.15);
 }
 
+.user-message-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  justify-content: flex-end;
+}
+
+.user-message-actions .message-time {
+  margin-top: 0;
+  line-height: 20px;
+}
+
+.resend-message-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #999;
+  flex-shrink: 0;
+  opacity: 0;
+  line-height: 20px;
+}
+
+.user-message:hover .resend-message-btn {
+  opacity: 1;
+}
+
+.resend-message-btn:hover {
+  color: #1890ff;
+  transform: scale(1.1);
+}
+
+.resend-message-btn:active {
+  transform: scale(0.95);
+}
+
 .ai-message .message-content {
   background-color: transparent;
   border: none;
@@ -541,6 +584,11 @@
   font-size: 16px;
   cursor: pointer;
   transition: color 0.2s;
+}
+
+/* 带文案的图标按钮（如转人工）与导出报告一致保留间距 */
+.footer-icon-btn:not(.rating-btn) {
+  gap: 6px;
 }
 
 .footer-icon-btn:hover {

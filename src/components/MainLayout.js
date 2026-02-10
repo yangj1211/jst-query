@@ -43,6 +43,10 @@ const UploadIcon = <CloudUploadOutlined />;
 const FileIcon = <FileProtectOutlined />;
 const UserIcon = <UserOutlined />;
 const TeamIcon = <TeamOutlined />;
+const WorkOrderIcon = <MessageOutlined />;
+const WorkOrderSubmittedIcon = <PlusOutlined />;
+const WorkOrderHandledIcon = <UserOutlined />;
+const WorkOrderConfigIcon = <SettingOutlined />;
 
 /**
  * MainLayout 内部组件
@@ -72,6 +76,13 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
       if (location.pathname === '/data/backup') return 'data-backup';
       return 'data-view';
     }
+    if (location.pathname.startsWith('/work-order')) {
+      if (collapsed) return 'work-order';
+      if (location.pathname === '/work-order/submitted') return 'work-order-submitted';
+      if (location.pathname === '/work-order/handled') return 'work-order-handled';
+      if (location.pathname === '/work-order/config') return 'work-order-config';
+      return 'work-order-submitted';
+    }
     if (location.pathname.startsWith('/permission')) {
       return collapsed ? 'permission' : (location.pathname.includes('user-management') ? 'user-management' : 'role-permission');
     }
@@ -91,6 +102,13 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
       if (location.pathname === '/data/import') return 'data-import';
       if (location.pathname === '/data/backup') return 'data-backup';
       return 'data-view';
+    }
+    if (location.pathname.startsWith('/work-order')) {
+      if (collapsed) return 'work-order';
+      if (location.pathname === '/work-order/submitted') return 'work-order-submitted';
+      if (location.pathname === '/work-order/handled') return 'work-order-handled';
+      if (location.pathname === '/work-order/config') return 'work-order-config';
+      return 'work-order-submitted';
     }
     if (location.pathname.startsWith('/permission')) {
       return collapsed ? 'permission' : (location.pathname.includes('user-management') ? 'user-management' : 'role-permission');
@@ -209,6 +227,31 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
           icon: FileIcon,
           label: '备份文件',
           path: '/data/backup',
+        },
+      ],
+    },
+    {
+      key: 'work-order',
+      icon: WorkOrderIcon,
+      label: '工单管理',
+      children: [
+        {
+          key: 'work-order-submitted',
+          icon: WorkOrderSubmittedIcon,
+          label: '我提交的',
+          path: '/work-order/submitted',
+        },
+        {
+          key: 'work-order-handled',
+          icon: WorkOrderHandledIcon,
+          label: '我处理的',
+          path: '/work-order/handled',
+        },
+        {
+          key: 'work-order-config',
+          icon: WorkOrderConfigIcon,
+          label: '工单配置',
+          path: '/work-order/config',
         },
       ],
     },

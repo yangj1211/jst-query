@@ -1,0 +1,54 @@
+.simple-rich-editor {
+  min-height: 100px;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #262626;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  outline: none;
+  overflow-y: auto;
+  word-break: break-word;
+}
+
+.simple-rich-editor:focus {
+  border-color: #4096ff;
+  box-shadow: 0 0 0 2px rgba(5, 145, 255, 0.1);
+}
+
+.simple-rich-editor:empty::before {
+  content: attr(data-placeholder);
+  color: #bfbfbf;
+}
+
+.simple-rich-editor p {
+  margin: 0 0 8px 0;
+}
+
+.simple-rich-editor p:last-child {
+  margin-bottom: 0;
+}
+
+/* 粘贴进来的图片 */
+.simple-rich-editor-pasted-img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+  border-radius: 4px;
+  display: block;
+  margin: 8px 0;
+  cursor: default;
+}
+
+/* 只读态：不可编辑、无焦点样式；图片可点击查看大图 */
+.simple-rich-editor-readonly {
+  cursor: default;
+}
+.simple-rich-editor-readonly:focus {
+  border-color: #d9d9d9;
+  box-shadow: none;
+}
+.simple-rich-editor-readonly .simple-rich-editor-pasted-img {
+  cursor: pointer;
+}

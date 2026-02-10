@@ -50,6 +50,20 @@
 
 .table-wrapper {
   padding: 18px;
+  background: #fff;
+}
+
+.chart-options-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.chart-options-label {
+  font-size: 13px;
+  color: #666;
 }
 
 .table-actions {
@@ -155,7 +169,7 @@
 
 .result-block {
   padding: 0;
-  background: linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%);
+  background: #fff;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   margin-top: 16px;
@@ -450,7 +464,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  background: #fff;
   border-bottom: 2px solid #e5e7eb;
 }
 
@@ -502,10 +516,11 @@
 
 .custom-result-table .ant-table {
   font-size: 13px;
+  background: #fff;
 }
 
 .custom-result-table .ant-table-thead > tr > th {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: #fff;
   color: #1e293b;
   font-weight: 600;
   font-size: 13px;
@@ -522,7 +537,7 @@
 }
 
 .custom-result-table .ant-table-tbody > tr:hover > td {
-  background: #f8fafc;
+  background: #fafafa;
 }
 
 .custom-result-table .ant-table-tbody > tr:last-child > td {
@@ -541,7 +556,7 @@
 
 .custom-result-table .ant-table-tbody > tr:hover .ant-table-cell-fix-left,
 .custom-result-table .ant-table-tbody > tr:hover .ant-table-cell-fix-right {
-  background: #f8fafc !important;
+  background: #fafafa !important;
 }
 
 .data-sources {
@@ -549,6 +564,7 @@
   padding-top: 16px;
   border-top: 2px dashed #e5e7eb;
   display: flex;
+  background: #fff;
   align-items: flex-start;
   gap: 12px;
 }

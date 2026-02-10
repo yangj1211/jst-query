@@ -10,6 +10,9 @@ import DocumentSearch from './pages/DocumentSearch';
 import DataImport from './pages/DataImport';
 import BackupFiles from './pages/BackupFiles';
 import Dashboard from './pages/Dashboard';
+import WorkOrderMySubmitted from './pages/WorkOrderMySubmitted';
+import WorkOrderMyHandled from './pages/WorkOrderMyHandled';
+import WorkOrderConfig from './pages/WorkOrderConfig';
 import './App.css';
 
 function App() {
@@ -24,6 +27,9 @@ function App() {
           <Route path="data/view" element={<DataCenter />} />
           <Route path="data/import" element={<DataImport />} />
           <Route path="data/backup" element={<BackupFiles />} />
+          <Route path="work-order/submitted" element={<WorkOrderMySubmitted />} />
+          <Route path="work-order/handled" element={<WorkOrderMyHandled />} />
+          <Route path="work-order/config" element={<WorkOrderConfig />} />
           <Route path="permission" element={<PermissionConfig />} />
           <Route path="permission/user-management" element={<UserManagement />} />
           <Route path="permission/role-permission" element={<RolePermission />} />
