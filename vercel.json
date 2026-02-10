@@ -1,0 +1,3 @@
+{
+  "installCommand": "CI=true pnpm install"
+}
