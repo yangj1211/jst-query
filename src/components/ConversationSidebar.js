@@ -28,6 +28,7 @@ const ConversationSidebar = ({
   const [editingConversationId, setEditingConversationId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [isSearchMode, setIsSearchMode] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState({});
 
   // 点击外部关闭菜单
@@ -323,22 +324,61 @@ const ConversationSidebar = ({
 
   return (
     <div className="conversation-sidebar">
-      {/* 搜索框 */}
-      <div className="conversation-search">
-        <input
-          type="text"
-          className="conversation-search-input"
-          placeholder="搜索对话..."
-          value={searchKeyword}
-          onChange={(e) => setSearchKeyword(e.target.value)}
-        />
-        {searchKeyword && (
-          <button 
-            className="search-clear-btn"
-            onClick={() => setSearchKeyword('')}
-          >
-            ×
-          </button>
+      {/* 顶部：创建新对话 + 搜索入口 / 搜索模式 */}
+      <div className="conversation-header">
+        {isSearchMode ? (
+          <div className="conversation-header-search-row">
+            <div className="conversation-header-search-input-wrap">
+              <span className="conversation-header-search-icon" aria-hidden="true">
+                {/* 放大镜图标 */}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="6" />
+                  <line x1="16" y1="16" x2="21" y2="21" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                className="conversation-header-search-input"
+                placeholder="搜索对话"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+              />
+            </div>
+            <button
+              type="button"
+              className="conversation-header-search-cancel"
+              onClick={() => {
+                setIsSearchMode(false);
+                setSearchKeyword('');
+              }}
+            >
+              取消
+            </button>
+          </div>
+        ) : (
+          <div className="conversation-header-main">
+            <button
+              type="button"
+              className="conversation-header-new-btn"
+              onClick={onNewConversation}
+            >
+              <span className="conversation-header-new-icon" aria-hidden="true">
+                +
+              </span>
+              <span>创建新对话</span>
+            </button>
+            <button
+              type="button"
+              className="conversation-header-search-btn"
+              aria-label="搜索对话"
+              onClick={() => setIsSearchMode(true)}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="6" />
+                <line x1="16" y1="16" x2="21" y2="21" />
+              </svg>
+            </button>
+          </div>
         )}
       </div>
       
