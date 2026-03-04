@@ -17,7 +17,6 @@ const DataImport = () => {
   const [conflictStrategy, setConflictStrategy] = useState('fail');
   const [tableName, setTableName] = useState('');
   const [tableDescription, setTableDescription] = useState('');
-  const [tableType, setTableType] = useState(''); // 新建表类型：'capacity' 产能表 或 'production' 产量表
   const [selectedTags, setSelectedTags] = useState([]); // 改为数组，支持多标签
   const [localTagSearchInput, setLocalTagSearchInput] = useState(''); // 本地上传标签搜索输入
   const [showLocalTagDropdown, setShowLocalTagDropdown] = useState(false); // 是否显示本地上传标签下拉列表
@@ -420,7 +419,7 @@ const DataImport = () => {
               name: String(header).trim(),
               type: 'varchar',
               length: 255,
-              precision: 10,
+              precision: 23,
               scale: 2,
               datetimePrecision: 0,
               unique: false,
@@ -451,7 +450,6 @@ const DataImport = () => {
     setConflictStrategy('fail');
     setTableName('');
     setTableDescription('');
-    setTableType('');
     setSelectedTags([]);
     setLocalTagSearchInput('');
     setShowLocalTagDropdown(false);
@@ -461,7 +459,7 @@ const DataImport = () => {
     setFields(fields.map(field => {
       if (field.id === id) {
         const updatedField = { ...field, [key]: value };
-        if (key === 'type' && (value === 'varchar' || value === 'datetime')) {
+        if (key === 'type' && (value === 'text' || value === 'datetime')) {
           updatedField.unique = false;
         }
         return updatedField;
@@ -475,17 +473,36 @@ const DataImport = () => {
       alert('请先上传文件');
       return;
     }
-    if (!tableType) {
-      alert('请选择新建表类型');
-      return;
-    }
     if (!tableName.trim()) {
       alert('请填写表名');
       return;
     }
-    const hasEmptyNames = fields.some(field => !field.name.trim());
+    if (tableDescription.trim().length > 200) {
+      alert('表描述不超过200字');
+      return;
+    }
+    const hasLongFieldDescription = fields.some(field => (field.description || '').trim().length > 200);
+    if (hasLongFieldDescription) {
+      alert('字段描述不超过200字');
+      return;
+    }
+    const trimmedNames = fields.map(field => field.name.trim());
+    const hasEmptyNames = trimmedNames.some(name => !name);
     if (hasEmptyNames) {
-      alert('请填写所有字段名称');
+      alert('字段名称不能为空');
+      return;
+    }
+    const nameSet = new Set();
+    const hasDuplicateNames = trimmedNames.some(name => {
+      const key = name.toLowerCase();
+      if (nameSet.has(key)) {
+        return true;
+      }
+      nameSet.add(key);
+      return false;
+    });
+    if (hasDuplicateNames) {
+      alert('字段名称不能重复');
       return;
     }
     alert('表结构保存成功！数据已导入到数据管理。');
@@ -515,7 +532,7 @@ const DataImport = () => {
       case 'int':
         return 'int';
       case 'decimal':
-        return `decimal(${field.precision || 10},${field.scale || 2})`;
+        return `decimal(${field.precision || 23},${field.scale || 2})`;
       case 'datetime':
         return 'datetime';
       case 'text':
@@ -907,7 +924,6 @@ const DataImport = () => {
     setImportStrategy(null);
     setTableName('');
     setTableDescription('');
-    setTableType('');
     setSelectedTags([]);
     setLocalTagSearchInput('');
     setShowLocalTagDropdown(false);
@@ -1614,35 +1630,6 @@ const DataImport = () => {
               <div className="table-config-section">
                 <div className="config-row">
                   <label className="config-label">
-                    <span className="required">*</span>新建表类型：
-                  </label>
-                  <div className="table-type-selector" style={{ display: 'flex', gap: '20px' }}>
-                    <label className="strategy-option" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        value="capacity"
-                        checked={tableType === 'capacity'}
-                        onChange={(e) => setTableType(e.target.value)}
-                        disabled={!uploadedFile}
-                        style={{ marginRight: '6px' }}
-                      />
-                      <span>产能表</span>
-                    </label>
-                    <label className="strategy-option" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        value="production"
-                        checked={tableType === 'production'}
-                        onChange={(e) => setTableType(e.target.value)}
-                        disabled={!uploadedFile}
-                        style={{ marginRight: '6px' }}
-                      />
-                      <span>产量表</span>
-                    </label>
-                  </div>
-                </div>
-                <div className="config-row">
-                  <label className="config-label">
                     <span className="required">*</span>表名：
                   </label>
                   <input
@@ -1836,6 +1823,7 @@ const DataImport = () => {
                     value={tableDescription}
                     onChange={(e) => setTableDescription(e.target.value)}
                     placeholder="请输入表描述（可选）"
+                    maxLength={200}
                     disabled={!uploadedFile}
                   />
                 </div>
@@ -1975,14 +1963,14 @@ const DataImport = () => {
                     <input
                       type="text"
                       value={field.name}
-                      readOnly={importMode === 'existing' || (importMode === 'new' && tableType !== '')}
+                      readOnly={importMode === 'existing'}
                       onChange={(e) => handleUpdateField(field.id, 'name', e.target.value)}
                       placeholder="请输入"
-                      disabled={importMode === 'existing' || (importMode === 'new' && tableType !== '')}
+                      disabled={importMode === 'existing'}
                     />
                   </div>
                   <div className="col-type-wrapper">
-                    {(importMode === 'existing' || (importMode === 'new' && tableType !== '')) ? (
+                    {importMode === 'existing' ? (
                       <div style={{ padding: '8px 12px', fontSize: '14px', color: '#333' }}>
                         {formatFieldType(field)}
                       </div>
@@ -1993,10 +1981,10 @@ const DataImport = () => {
                           value={field.type}
                           onChange={(e) => handleUpdateField(field.id, 'type', e.target.value)}
                         >
-                          <option value="varchar">文本</option>
-                          <option value="int">整数</option>
-                          <option value="decimal">小数</option>
-                          <option value="datetime">日期</option>
+                          <option value="varchar">文本（varchar(255)）</option>
+                          <option value="text">长文本（text）</option>
+                          <option value="decimal">小数（decimal(23,2)）</option>
+                          <option value="int">整数（int）</option>
                         </select>
                       </div>
                     )}
@@ -2004,9 +1992,9 @@ const DataImport = () => {
                   <div className="col-unique">
                     <input
                       type="checkbox"
-                      checked={(field.type !== 'varchar' && field.type !== 'datetime') && (field.unique || false)}
+                      checked={(field.type !== 'text' && field.type !== 'datetime') && (field.unique || false)}
                       onChange={(e) => handleUpdateField(field.id, 'unique', e.target.checked)}
-                      disabled={importMode === 'existing' || field.type === 'varchar' || field.type === 'datetime' || (importMode === 'new' && tableType !== '')}
+                      disabled={importMode === 'existing' || field.type === 'text' || field.type === 'datetime'}
                     />
                   </div>
                   <div className="col-description">
@@ -2015,7 +2003,8 @@ const DataImport = () => {
                       value={field.description || ''}
                       onChange={(e) => handleUpdateField(field.id, 'description', e.target.value)}
                       placeholder={importMode === 'existing' ? '' : '请输入'}
-                      disabled={importMode === 'existing' || (importMode === 'new' && tableType !== '')}
+                      maxLength={200}
+                      disabled={importMode === 'existing'}
                     />
                   </div>
                   <div className="col-sample-data">
@@ -2057,7 +2046,7 @@ const DataImport = () => {
             </div>
 
             {/* 操作按钮 */}
-            {((importMode === 'new' && uploadedFile && fields.length > 0 && tableType) || 
+            {((importMode === 'new' && uploadedFile && fields.length > 0) || 
               (importMode === 'existing' && selectedTableId && uploadedFile)) && (
               <div className="action-buttons">
                 {importMode === 'new' && (
