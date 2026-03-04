@@ -253,6 +253,7 @@ const RolePermission = () => {
   const [isCreateModeVisible, setIsCreateModeVisible] = useState(false);
   const [createMode, setCreateMode] = useState('new'); // 'new' | 'copy'
   const [copyFromRole, setCopyFromRole] = useState(undefined);
+  const [copySourceRole, setCopySourceRole] = useState(null); // 复制创建时传给 CreateRole 的源角色
 
   // 继承管理相关状态
   const [isInheritVisible, setIsInheritVisible] = useState(false);
@@ -349,6 +350,7 @@ const RolePermission = () => {
   const handleCreateModeNext = () => {
     if (createMode === 'new') {
       setIsCreateModeVisible(false);
+      setCopySourceRole(null);
       setIsCreateRoleVisible(true);
     } else if (createMode === 'copy') {
       if (!copyFromRole) {
@@ -361,23 +363,10 @@ const RolePermission = () => {
         : copyFromRole;
       const sourceRole = allRoles.find(r => r.roleId === actualRoleId);
       if (!sourceRole) return;
-      const newRoleId = String(Math.max(...allRoles.map(r => parseInt(r.roleId) || 0)) + 1);
-      const now = new Date();
-      const newRoleName = copyFromRole.endsWith('_copy') 
-        ? `${sourceRole.roleName}_copy` 
-        : sourceRole.roleName;
-      const newRole = {
-        key: String(Date.now()),
-        roleId: newRoleId,
-        roleName: newRoleName,
-        remark: `复制自: ${sourceRole.roleName}`,
-        createTime: `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`,
-      };
-      const updated = [...allRoles, newRole];
-      setAllRoles(updated);
-      applyFilters(searchFilters, createTimeRange, updated);
-      message.success(`角色 "${newRole.roleName}" 创建成功`);
+      // 打开 CreateRole 抽屉，传入源角色信息以预填权限
+      setCopySourceRole(sourceRole);
       setIsCreateModeVisible(false);
+      setIsCreateRoleVisible(true);
     }
   };
 
@@ -592,15 +581,18 @@ const RolePermission = () => {
         />
 
         <CreateRole
+          key={copySourceRole ? copySourceRole.roleId : 'new'}
           open={isCreateRoleVisible}
-          onClose={() => setIsCreateRoleVisible(false)}
-          onSaved={() => setIsCreateRoleVisible(false)}
+          onClose={() => { setIsCreateRoleVisible(false); setCopySourceRole(null); }}
+          onSaved={() => { setIsCreateRoleVisible(false); setCopySourceRole(null); }}
+          copyFromRole={copySourceRole}
         />
 
         {editingRole && (
           <DataPermissionConfig
             open={isEditRoleVisible}
             role={editingRole}
+            inheritedRoles={getInheritList(editingRole.roleId)}
             onClose={() => { setIsEditRoleVisible(false); setEditingRole(null); }}
             onSaved={() => { setIsEditRoleVisible(false); setEditingRole(null); }}
           />
@@ -610,6 +602,7 @@ const RolePermission = () => {
           <DataPermissionConfig
             open={isViewRoleVisible}
             role={viewingRole}
+            inheritedRoles={getInheritList(viewingRole.roleId)}
             readOnly
             onClose={() => { setIsViewRoleVisible(false); setViewingRole(null); }}
             onSaved={() => { setIsViewRoleVisible(false); setViewingRole(null); }}
