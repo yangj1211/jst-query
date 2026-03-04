@@ -142,7 +142,10 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
       return 'work-order-submitted';
     }
     if (location.pathname.startsWith('/permission')) {
-      return collapsed ? 'permission' : (location.pathname.includes('user-management') ? 'user-management' : 'role-permission');
+      if (collapsed) return 'permission';
+      if (location.pathname.includes('user-management')) return 'user-management';
+      if (location.pathname.includes('user-group')) return 'user-group';
+      return 'role-permission';
     }
     return 'question';
   }, [location.pathname, collapsed]);
@@ -169,7 +172,10 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
       return 'work-order-submitted';
     }
     if (location.pathname.startsWith('/permission')) {
-      return collapsed ? 'permission' : (location.pathname.includes('user-management') ? 'user-management' : 'role-permission');
+      if (collapsed) return 'permission';
+      if (location.pathname.includes('user-management')) return 'user-management';
+      if (location.pathname.includes('user-group')) return 'user-group';
+      return 'role-permission';
     }
     return 'question';
   });
@@ -324,7 +330,7 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
         {
           key: 'user-management',
           icon: UserIcon,
-          label: '用户信息',
+          label: '用户列表',
           path: '/permission/user-management',
         },
         {

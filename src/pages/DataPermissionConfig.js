@@ -1,16 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Button, Select, Checkbox, Modal, Input, Tabs } from 'antd';
+import { Button, Select, Checkbox, Modal, Input, Tabs, Drawer } from 'antd';
 import { SettingOutlined, ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons';
 import './PageStyle.css';
 
 const { Option } = Select;
 const { TextArea } = Input;
 
-const DataPermissionConfig = () => {
+// 菜单权限定义 - 菜单级别
+const menuPermissions = [
+  { key: 'question', label: '智能问数' },
+  { key: 'document', label: '单据检索' },
+  { key: 'data-view', label: '数据总览' },
+  { key: 'data-import', label: '数据导入' },
+  { key: 'data-backup', label: '备份文件' },
+  { key: 'user-management', label: '用户列表' },
+  { key: 'role-permission', label: '角色权限' },
+];
+
+const DataPermissionConfig = ({ open = true, onClose, onSaved, role, readOnly = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const currentRole = location.state?.role; // 从路由参数获取角色信息
+  const currentRole = role || location.state?.role; // 从路由参数获取角色信息
   
   console.log('DataPermissionConfig 组件加载');
   console.log('location.state:', location.state);
@@ -18,7 +29,7 @@ const DataPermissionConfig = () => {
 
   const [objectName, setObjectName] = useState([]); // 改为数组，支持多选
   const [selectedPermissions, setSelectedPermissions] = useState([]);
-  const [activeTab, setActiveTab] = useState('document'); // 当前激活的tab：'document'（单据）或 'table'（表）
+  const [activeTab, setActiveTab] = useState('table'); // 当前激活的tab：'document'（单据）或 'table'（表）
   const [selectedDocumentTypes, setSelectedDocumentTypes] = useState([]); // 选中的单据类型
   const [roleRemark, setRoleRemark] = useState('');
   
@@ -45,6 +56,11 @@ const DataPermissionConfig = () => {
   const [currentConfiguringColumn, setCurrentConfiguringColumn] = useState(null); // 当前正在配置的列
   const [rowPermissionExpressions, setRowPermissionExpressions] = useState([]); // 行权限表达式列表
   const [rowPermissionRelation, setRowPermissionRelation] = useState('且'); // 行权限表达式之间的关系：'且' 或 '或'
+  const [initializedRoleId, setInitializedRoleId] = useState(null);
+
+  // 全局权限（菜单权限）相关状态
+  const [selectedMenuPermissions, setSelectedMenuPermissions] = useState(new Set(menuPermissions.map(p => p.key)));
+  const [mainTab, setMainTab] = useState('global'); // 'global' | 'object'
 
   // 表权限选项（普通用户只能查询，不能写入）
   const tablePermissionOptions = [
@@ -138,6 +154,65 @@ const DataPermissionConfig = () => {
     return documentTypes.filter(type => !addedObjectNames.includes(type));
   };
 
+  const getDefaultObjectPermissions = (role) => {
+    const buildTablePermissions = (tableNames) => dataCenterObjects
+      .filter(item => tableNames.includes(item.name))
+      .map(item => ({
+        id: Date.now() + Math.random(),
+        objectType: '表',
+        objectName: item.name,
+        permissions: ['DT8'],
+        columnConfigs: [],
+      }));
+
+    const buildDocumentPermissions = (docNames) => documentTypes
+      .filter(name => docNames.includes(name))
+      .map(type => ({
+        id: Date.now() + Math.random(),
+        objectType: '单据',
+        objectName: type,
+        permissions: ['DT8'],
+        columnConfigs: [],
+      }));
+
+    const roleName = role?.roleName || '';
+    const roleId = role?.roleId || '';
+
+    if (roleName === '超级管理员' || roleName === 'admin' || roleId === '1' || roleId === '2') {
+      return [
+        ...buildTablePermissions(dataCenterObjects.map(item => item.name)),
+        ...buildDocumentPermissions(documentTypes),
+      ];
+    }
+
+    if (roleName === '财务角色') {
+      return [
+        ...buildTablePermissions(['测试表1', '测试表5', '测试表10']),
+        ...buildDocumentPermissions(['销售发票', '合同', '报价单']),
+      ];
+    }
+
+    if (roleName === '销售角色') {
+      return [
+        ...buildTablePermissions(['测试表2', '测试表5', '测试表7']),
+        ...buildDocumentPermissions(['报价单', '合同', '销售发票']),
+      ];
+    }
+
+    if (roleName === '财务总监角色') {
+      return [
+        ...buildTablePermissions(['测试表1', '测试表10']),
+        ...buildDocumentPermissions(['合同', '竣工验收单', '通电验收单']),
+      ];
+    }
+
+    // 默认：普通角色
+    return [
+      ...buildTablePermissions(['测试表1', '测试表2']),
+      ...buildDocumentPermissions(['运行证明', '销售发票']),
+    ];
+  };
+
   // 处理全选对象
   const handleSelectAllObjects = (checked) => {
     const availableOptions = getObjectNameOptions();
@@ -159,13 +234,21 @@ const DataPermissionConfig = () => {
     } else {
       console.log('当前角色:', currentRole);
       // TODO: 从后端加载该角色已配置的对象权限
-      setObjectPermissions([]); // 初始化为空，实际应该加载已有配置
+      if (currentRole?.roleId && initializedRoleId !== currentRole.roleId) {
+        const defaultPermissions = getDefaultObjectPermissions(currentRole);
+        setObjectPermissions(defaultPermissions);
+        setInitializedRoleId(currentRole.roleId);
+    }
       setRoleRemark(currentRole.remark || '');
     }
-  }, [currentRole, navigate]);
+  }, [currentRole, navigate, initializedRoleId]);
 
   // 返回到角色权限列表
   const handleBack = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
     navigate('/permission/role-permission');
   };
 
@@ -283,9 +366,32 @@ const DataPermissionConfig = () => {
       role: currentRole,
       remark: roleRemark || '',
       objectPermissions,
+      menuPermissions: Array.from(selectedMenuPermissions),
     });
     // TODO: 调用API保存所有权限配置
-    navigate('/permission/role-permission'); // 保存后返回列表
+    if (onSaved) {
+      onSaved();
+    } else {
+      navigate('/permission/role-permission'); // 保存后返回列表
+    }
+  };
+
+  // 菜单权限操作
+  const handleToggleMenuPermission = (permKey) => {
+    setSelectedMenuPermissions(prev => {
+      const next = new Set(prev);
+      if (next.has(permKey)) next.delete(permKey);
+      else next.add(permKey);
+      return next;
+    });
+  };
+
+  const handleSelectAllMenuPermissions = (checked) => {
+    if (checked) {
+      setSelectedMenuPermissions(new Set(menuPermissions.map(p => p.key)));
+    } else {
+      setSelectedMenuPermissions(new Set());
+    }
   };
 
   const renderObjectList = (type) => {
@@ -341,7 +447,7 @@ const DataPermissionConfig = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                {obj.objectType === '表' && (
+                {obj.objectType === '表' && !readOnly && (
                   <Button
                     size="small"
                     icon={<SettingOutlined />}
@@ -350,6 +456,7 @@ const DataPermissionConfig = () => {
                     配置行列权限
                   </Button>
                 )}
+                {!readOnly && (
                 <Button
                   danger
                   size="small"
@@ -357,6 +464,7 @@ const DataPermissionConfig = () => {
                 >
                   删除
                 </Button>
+                )}
               </div>
             </div>
           </div>
@@ -1110,7 +1218,7 @@ const DataPermissionConfig = () => {
     
     setCurrentConfiguringColumn(column);
     // 如果已有表达式，使用已有的，否则初始化一个空表达式
-      if (column.expressions && column.expressions.length > 0) {
+    if (column.expressions && column.expressions.length > 0) {
       // 确保"in"操作符有values数组
       const normalizedExpressions = column.expressions.map(exp => {
         if (exp.operator === 'in' && !exp.values) {
@@ -1522,38 +1630,86 @@ const DataPermissionConfig = () => {
   }
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <Button 
-            type="text" 
-            icon={<ArrowLeftOutlined />} 
-            onClick={handleBack}
-            style={{ fontSize: '16px' }}
-          >
-            返回
-          </Button>
-          <h2 style={{ margin: 0 }}>配置数据权限 - {currentRole.roleName}</h2>
+    <Drawer
+      title={readOnly ? "查看角色权限" : "修改角色"}
+      placement="right"
+      open={open}
+      onClose={handleBack}
+      width={720}
+      bodyStyle={{ padding: '16px' }}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+          <Button onClick={handleBack}>{readOnly ? '关 闭' : '取 消'}</Button>
+          {!readOnly && (
+            <Button type="primary" onClick={handleSaveAllPermissions}>
+              确 认
+            </Button>
+          )}
         </div>
-      </div>
-      <div className="page-content" style={{ padding: '16px' }}>
-        {/* 角色备注 */}
-        <div style={{ 
-          marginBottom: '16px',
-          padding: '16px',
-          backgroundColor: '#fafafa',
-          borderRadius: '4px'
-        }}>
-          <div style={{ fontWeight: 600, marginBottom: '12px' }}>角色备注</div>
-          <TextArea
-            value={roleRemark}
-            onChange={(e) => setRoleRemark(e.target.value)}
-            placeholder="请输入角色备注"
-            rows={3}
-            showCount
-            maxLength={200}
-          />
+      }
+    >
+        {/* 当前角色 */}
+        <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ color: '#333', whiteSpace: 'nowrap' }}>当前角色：</span>
+          <span style={{ fontWeight: 500 }}>{currentRole.roleName}</span>
         </div>
+
+        {/* 备注 */}
+        <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+          <span style={{ color: '#333', whiteSpace: 'nowrap', paddingTop: '4px' }}>备注：</span>
+          <div style={{ flex: 1 }}>
+            <TextArea
+              value={roleRemark}
+              onChange={(e) => setRoleRemark(e.target.value)}
+              placeholder="请输入备注信息"
+              rows={3}
+              showCount
+              maxLength={255}
+              disabled={readOnly}
+            />
+          </div>
+        </div>
+
+        {/* 主 Tab: 全局权限 / 对象权限 */}
+        <Tabs
+          activeKey={mainTab}
+          onChange={setMainTab}
+          items={[
+            {
+              key: 'global',
+              label: '菜单权限',
+              children: (
+                <div style={{ padding: '8px 0' }}>
+                  <div style={{ marginBottom: '16px' }}>
+                    <Checkbox
+                      checked={selectedMenuPermissions.size === menuPermissions.length && menuPermissions.length > 0}
+                      indeterminate={selectedMenuPermissions.size > 0 && selectedMenuPermissions.size < menuPermissions.length}
+                      onChange={(e) => handleSelectAllMenuPermissions(e.target.checked)}
+                      disabled={readOnly}
+                    >
+                      全选
+                    </Checkbox>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: '4px' }}>
+                    {menuPermissions.map(perm => (
+                      <Checkbox
+                        key={perm.key}
+                        checked={selectedMenuPermissions.has(perm.key)}
+                        onChange={() => handleToggleMenuPermission(perm.key)}
+                        disabled={readOnly}
+                      >
+                        {perm.label}
+                      </Checkbox>
+                    ))}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: 'object',
+              label: '对象权限',
+              children: (
+                <div>
         <Tabs 
           activeKey={activeTab}
           onChange={setActiveTab}
@@ -1564,55 +1720,57 @@ const DataPermissionConfig = () => {
               label: `表 (${objectPermissions.filter(obj => obj.objectType === '表').length})`,
               children: (
                 <div>
+                  {!readOnly && (<>
                   <div style={{ fontWeight: 600, marginBottom: '12px' }}>添加对象</div>
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '16px' }}>
-                    <div style={{ width: '300px' }}>
-                      <Select
-                        mode="multiple"
-                        value={objectName}
-                        onChange={(value) => {
-                          setObjectName(value);
-                          // 表类型默认选中"表查询"权限
-                          setSelectedPermissions(['DT8']);
-                        }}
-                        style={{ width: '100%' }}
-                        placeholder="请选择表对象"
-                        maxTagCount="responsive"
-                        dropdownRender={(menu) => {
-                          const availableOptions = getObjectNameOptions();
-                          const allSelected = availableOptions.length > 0 && 
-                            availableOptions.every(name => objectName.includes(name));
-                          const someSelected = objectName.length > 0 && !allSelected;
-                          
-                          return (
-                            <div>
-                              <div style={{ 
-                                padding: '8px 12px',
-                                borderBottom: '1px solid #e8e8e8',
-                                backgroundColor: '#fafafa'
-                              }}>
-                                <Checkbox
-                                  checked={allSelected}
-                                  indeterminate={someSelected}
-                                  onChange={(e) => handleSelectAllObjects(e.target.checked)}
-                                >
-                                  <span style={{ fontWeight: 500 }}>全选</span>
-                                </Checkbox>
-                              </div>
-                              {menu}
-                            </div>
-                          );
-                        }}
-                      >
-                        {getObjectNameOptions().map(name => (
-                          <Option key={name} value={name}>{name}</Option>
-                        ))}
-                      </Select>
-                    </div>
+              <div style={{ width: '300px' }}>
+                <Select
+                  mode="multiple"
+                  value={objectName}
+                  onChange={(value) => {
+                    setObjectName(value);
+                    // 表类型默认选中"表查询"权限
+                    setSelectedPermissions(['DT8']);
+                  }}
+                  style={{ width: '100%' }}
+                  placeholder="请选择表对象"
+                  maxTagCount="responsive"
+                  dropdownRender={(menu) => {
+                    const availableOptions = getObjectNameOptions();
+                    const allSelected = availableOptions.length > 0 && 
+                      availableOptions.every(name => objectName.includes(name));
+                    const someSelected = objectName.length > 0 && !allSelected;
+                    
+                    return (
+                      <div>
+                        <div style={{ 
+                          padding: '8px 12px',
+                          borderBottom: '1px solid #e8e8e8',
+                          backgroundColor: '#fafafa'
+                        }}>
+                          <Checkbox
+                            checked={allSelected}
+                            indeterminate={someSelected}
+                            onChange={(e) => handleSelectAllObjects(e.target.checked)}
+                          >
+                            <span style={{ fontWeight: 500 }}>全选</span>
+                          </Checkbox>
+                        </div>
+                        {menu}
+                      </div>
+                    );
+                  }}
+                >
+                  {getObjectNameOptions().map(name => (
+                    <Option key={name} value={name}>{name}</Option>
+                  ))}
+                </Select>
+              </div>
                     <Button type="primary" onClick={handleAddObjectPermission}>
                       添加
                     </Button>
                   </div>
+                  </>)}
 
                   <div style={{ 
                     fontWeight: 600, 
@@ -1635,96 +1793,91 @@ const DataPermissionConfig = () => {
               label: `单据 (${objectPermissions.filter(obj => obj.objectType === '单据').length})`,
               children: (
                 <div>
+                  {!readOnly && (<>
                   <div style={{ fontWeight: 600, marginBottom: '12px' }}>添加对象</div>
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '16px' }}>
-                    <div style={{ width: '300px' }}>
-                      <Select
-                        mode="multiple"
-                        value={selectedDocumentTypes}
-                        onChange={(value) => {
-                          setSelectedDocumentTypes(value);
-                          // 单据类型默认选中"表查询"权限
-                          setSelectedPermissions(['DT8']);
-                        }}
-                        style={{ width: '100%' }}
-                        placeholder="请选择单据类型"
-                        maxTagCount="responsive"
-                        dropdownRender={(menu) => {
+              <div style={{ width: '300px' }}>
+                <Select
+                  mode="multiple"
+                  value={selectedDocumentTypes}
+                  onChange={(value) => {
+                    setSelectedDocumentTypes(value);
+                    // 单据类型默认选中"表查询"权限
+                    setSelectedPermissions(['DT8']);
+                  }}
+                  style={{ width: '100%' }}
+                  placeholder="请选择单据类型"
+                  maxTagCount="responsive"
+                  dropdownRender={(menu) => {
                           const availableOptions = getDocumentTypeOptions();
                           const allSelected = availableOptions.length > 0 && 
                             availableOptions.every(type => selectedDocumentTypes.includes(type));
-                          const someSelected = selectedDocumentTypes.length > 0 && !allSelected;
-                          
-                          return (
-                            <div>
-                              <div style={{ 
-                                padding: '8px 12px',
-                                borderBottom: '1px solid #e8e8e8',
-                                backgroundColor: '#fafafa'
-                              }}>
-                                <Checkbox
-                                  checked={allSelected}
-                                  indeterminate={someSelected}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
+                    const someSelected = selectedDocumentTypes.length > 0 && !allSelected;
+                    
+                    return (
+                      <div>
+                        <div style={{ 
+                          padding: '8px 12px',
+                          borderBottom: '1px solid #e8e8e8',
+                          backgroundColor: '#fafafa'
+                        }}>
+                          <Checkbox
+                            checked={allSelected}
+                            indeterminate={someSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
                                       setSelectedDocumentTypes([...availableOptions]);
-                                      setSelectedPermissions(['DT8']);
-                                    } else {
-                                      setSelectedDocumentTypes([]);
-                                      setSelectedPermissions([]);
-                                    }
-                                  }}
-                                >
-                                  <span style={{ fontWeight: 500 }}>全选</span>
-                                </Checkbox>
-                              </div>
-                              {menu}
-                            </div>
-                          );
-                        }}
-                      >
+                                setSelectedPermissions(['DT8']);
+                              } else {
+                                setSelectedDocumentTypes([]);
+                                setSelectedPermissions([]);
+                              }
+                            }}
+                          >
+                            <span style={{ fontWeight: 500 }}>全选</span>
+                          </Checkbox>
+                        </div>
+                        {menu}
+                      </div>
+                    );
+                  }}
+                >
                         {getDocumentTypeOptions().map(type => (
-                          <Option key={type} value={type}>{type}</Option>
-                        ))}
-                      </Select>
-                    </div>
-                    <Button type="primary" onClick={handleAddObjectPermission}>
-                      添加
-                    </Button>
-                  </div>
+                    <Option key={type} value={type}>{type}</Option>
+                  ))}
+                </Select>
+              </div>
+            <Button type="primary" onClick={handleAddObjectPermission}>
+              添加
+            </Button>
+        </div>
+                  </>)}
 
-                  <div style={{ 
-                    fontWeight: 600, 
-                    marginBottom: '12px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
+          <div style={{ 
+            fontWeight: 600, 
+            marginBottom: '12px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
                     <span>已配置单据类型对象列表</span>
-                    <span style={{ fontSize: '14px', fontWeight: 400, color: '#666' }}>
+            <span style={{ fontSize: '14px', fontWeight: 400, color: '#666' }}>
                       共 {objectPermissions.filter(obj => obj.objectType === '单据').length} 个对象
-                    </span>
-                  </div>
+            </span>
+          </div>
                   {renderObjectList('单据')}
-                </div>
+            </div>
               )
             }
           ]}
         />
+                </div>
+              ),
+            },
+          ]}
+        />
 
-        {/* 底部操作按钮 */}
-        <div style={{ 
-          marginTop: '16px',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '12px'
-        }}>
-          <Button onClick={handleBack}>取消</Button>
-          <Button type="primary" onClick={handleSaveAllPermissions}>
-            保存
-          </Button>
-        </div>
-      </div>
+        
 
       {/* 编辑对象权限弹窗 */}
       <Modal
@@ -2238,7 +2391,7 @@ const DataPermissionConfig = () => {
           </div>
         </div>
       </Modal>
-    </div>
+    </Drawer>
   );
 };
 
