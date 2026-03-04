@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, Select, Checkbox, message, Tabs, Drawer } from 'antd';
-import { SettingOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import './PageStyle.css';
 
 const { Option } = Select;
