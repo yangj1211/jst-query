@@ -4,6 +4,28 @@ import { Tree } from 'antd';
 import './CombinedThinking.css';
 
 /**
+ * 将描述文本中的反引号包裹内容渲染为等宽样式（与截图中的代码高亮一致）
+ * @param {string} text - 原始描述文本
+ * @returns {React.ReactNode}
+ */
+function renderDescriptionWithCode(text) {
+  if (!text || typeof text !== 'string') return text;
+  const parts = [];
+  let lastIndex = 0;
+  const re = /`([^`]+)`/g;
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    parts.push(<code key={match.index} className="step-description-code">{match[1]}</code>);
+    lastIndex = re.lastIndex;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts.length > 0 ? parts : text;
+}
+
+/**
  * 合并的意图识别和思考过程组件
  * @param {Object} props
  * @param {Object} props.intentData - 意图数据 {description, status}
@@ -12,14 +34,15 @@ import './CombinedThinking.css';
  * @param {Array} props.steps - 思考步骤列表
  * @param {boolean} props.isComplete - 是否全部完成
  * @param {boolean} props.isStopped - 是否已停止
+ * @param {boolean} [props.defaultExpanded=true] - 是否默认展开思考过程
  */
-const CombinedThinking = ({ intentData = {}, config = {}, dataInfo = {}, steps = [], isComplete = false, isStopped = false }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+const CombinedThinking = ({ intentData = {}, config = {}, dataInfo = {}, steps = [], isComplete = false, isStopped = false, defaultExpanded = true }) => {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [visibleSteps, setVisibleSteps] = useState([]); // 当前可见的步骤数量
   const [expandedKeys, setExpandedKeys] = useState([]); // 树形结构展开的节点
   const prevFilteredTreeDataRef = useRef(null); // 用于跟踪数据变化
 
-  const { status = 'loading' } = intentData;
+  const { status = 'loading', description: intentDescription = '' } = intentData;
   const { time = '', metrics = [], dimensions = [] } = dataInfo;
   const {
     dataObject = '默认对象',
@@ -154,9 +177,8 @@ const CombinedThinking = ({ intentData = {}, config = {}, dataInfo = {}, steps =
       
       {isExpanded && (
         <div className="combined-content">
-          {/* 数据配置信息（白色区域） */}
-          <div className="intent-section">
-            {/* 数据配置信息 */}
+          {/* 配置信息：独立在最上方（问数配置） */}
+          <div className="config-section">
             <div className="config-info">
               <div className="config-item">
                 <span className="config-key">• 数据对象：</span>
@@ -196,7 +218,7 @@ const CombinedThinking = ({ intentData = {}, config = {}, dataInfo = {}, steps =
                         }}
                         showLine={false}
                         switcherIcon={({ expanded }) => expanded ? <DownOutlined /> : <RightOutlined />}
-                        style={{ 
+                        style={{
                           background: 'transparent',
                           fontSize: '14px',
                           lineHeight: '1.6'
@@ -211,26 +233,41 @@ const CombinedThinking = ({ intentData = {}, config = {}, dataInfo = {}, steps =
             </div>
           </div>
 
-          {/* 思考过程：执行步骤（流式输出） */}
-          {status === 'done' && (
-            <div className="thinking-section">
-              {steps.length > 0 && (
-                <div className="steps-list">
-                  {steps.map((step, index) => {
-                    // 只显示已经在 visibleSteps 中的步骤
-                    const isVisible = visibleSteps.includes(index);
-                    if (!isVisible) return null;
-                    
-                    return (
-                      <div key={index} className="step-wrapper">
-                        <div className={`step-item ${step.status === 'done' ? 'done' : 'loading'}`}>
-                          <div className="step-marker">
-                            {step.status === 'done' ? '✓' : '•'}
+          {/* 时间线容器：意图识别 + Agent 推理 */}
+          <div className="thinking-timeline">
+            {/* 阶段1：意图识别（问题判断、拆解和任务规划） */}
+            <div className="timeline-node timeline-node-intent">
+              <div className="timeline-icon timeline-icon-diamond" aria-hidden />
+              <div className="timeline-block">
+                <div className="timeline-block-title">意图识别</div>
+                {status === 'loading' ? (
+                  <div className="intent-loading">正在识别意图…</div>
+                ) : intentDescription ? (
+                  <div className="intent-content">{intentDescription}</div>
+                ) : null}
+              </div>
+            </div>
+
+            {/* 思考过程：执行步骤（流式输出），每步为时间线节点 */}
+            {status === 'done' && steps.length > 0 && (
+              <div className="timeline-steps">
+                {steps.map((step, index) => {
+                  const isVisible = visibleSteps.includes(index);
+                  if (!isVisible) return null;
+                  const isDone = step.status === 'done';
+                  return (
+                    <div key={index} className="timeline-node timeline-node-step">
+                      <div className={`timeline-icon timeline-icon-step ${isDone ? 'done' : 'loading'}`}>
+                        {isDone ? <CheckOutlined /> : <LoadingOutlined spin />}
+                      </div>
+                      <div className="timeline-block">
+                        <div className="timeline-block-title">Agent 推理</div>
+                        <div className="step-reason-box">
+                          <div className="step-description">
+                            {renderDescriptionWithCode(step.description)}
                           </div>
-                          <div className="step-description">{step.description}</div>
                         </div>
-                        {/* 在问题拆解步骤下显示详细的时间、指标和维度 */}
-                        {step.showDetails && step.status === 'done' && (time || metrics.length > 0 || dimensions.length > 0) && (
+                        {step.showDetails && isDone && (time || metrics.length > 0 || dimensions.length > 0) && (
                           <div className="step-sub-details">
                             {time && (
                               <div className="sub-detail-item">
@@ -253,17 +290,22 @@ const CombinedThinking = ({ intentData = {}, config = {}, dataInfo = {}, steps =
                           </div>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-          {/* 加载中提示 */}
-          {!isComplete && status === 'loading' && (
-            <div className="loading-hint">正在执行中</div>
-          )}
+            {/* 加载中提示 */}
+            {!isComplete && status === 'loading' && (
+              <div className="timeline-node timeline-node-hint">
+                <div className="timeline-icon timeline-icon-diamond" aria-hidden />
+                <div className="timeline-block">
+                  <div className="loading-hint">正在执行中</div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

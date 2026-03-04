@@ -9,83 +9,122 @@
 }
 
 .conversation-header {
-  padding: 12px;
-  border-bottom: 1px solid #e8e8e8;
+  padding: 12px 12px 8px;
 }
 
-.new-conversation-btn {
-  width: 100%;
-  padding: 8px 12px;
-  background: transparent;
-  color: #666;
-  border: 1px dashed #d9d9d9;
-  border-radius: 6px;
-  font-size: 12px;
+/* 默认模式：创建新对话 + 搜索图标 */
+.conversation-header-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.conversation-header-new-btn {
+  flex: 1;
+  padding: 10px 16px;
+  background: #fff;
+  color: #1677ff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  transition: all 0.3s;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 
-.new-conversation-btn:hover {
-  background: #f0f8ff;
-  border-color: #1890ff;
-  color: #1890ff;
+.conversation-header-new-btn:hover {
+  background: #e6f0ff;
+  color: #165dff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
-.new-conversation-btn .icon {
-  font-size: 14px;
-  font-weight: normal;
-}
-
-.conversation-search {
-  padding: 8px 8px 4px;
-  position: relative;
-}
-
-.conversation-search-input {
-  width: 100%;
-  padding: 6px 28px 6px 10px;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
-  font-size: 12px;
-  outline: none;
-  transition: all 0.3s;
-}
-
-.conversation-search-input:focus {
-  border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
-}
-
-.conversation-search-input::placeholder {
-  color: #bfbfbf;
-}
-
-.search-clear-btn {
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  color: #999;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 0;
+.conversation-header-new-icon {
   width: 18px;
   height: 18px;
+  border-radius: 999px;
+  background: rgba(22, 119, 255, 0.15);
+  color: #1677ff;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.conversation-header-search-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #595959;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   transition: all 0.2s;
 }
 
-.search-clear-btn:hover {
+.conversation-header-search-btn:hover {
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #1677ff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 搜索模式：整行变为搜索框 + 取消按钮 */
+.conversation-header-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.conversation-header-search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid #1677ff;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(22, 119, 255, 0.2);
+}
+
+.conversation-header-search-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1677ff;
+}
+
+.conversation-header-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 13px;
+}
+
+.conversation-header-search-input::placeholder {
+  color: #bfbfbf;
+}
+
+.conversation-header-search-cancel {
+  border: none;
   background: transparent;
-  color: #666;
+  color: #595959;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.conversation-header-search-cancel:hover {
+  color: #1677ff;
 }
 
 .conversation-items {

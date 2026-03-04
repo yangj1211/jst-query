@@ -1,0 +1,227 @@
+/* 评论富文本编辑器：紧凑工具栏 + 输入区 + 底部一行（左下附件区、右侧按钮） */
+.comment-rich-editor {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.comment-rich-editor .comment-rich-editor-quill {
+  background: #fff;
+}
+
+.comment-rich-editor .ql-container {
+  border: 1px solid #d9d9d9;
+  border-top: none;
+  font-size: 14px;
+  min-height: 100px;
+}
+
+.comment-rich-editor .ql-editor {
+  min-height: 100px;
+}
+
+.comment-rich-editor .ql-toolbar {
+  border: 1px solid #d9d9d9;
+  border-radius: 6px 6px 0 0;
+  background: #fafafa;
+}
+
+/* 回复框：仅包含 Quill 编辑器 */
+.comment-rich-editor-input-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-rich-editor-input-wrap .ql-container.ql-snow {
+  border-radius: 0 0 6px 6px;
+}
+
+/* 回复框外底部：左上「点击添加文件」+ 其下已上传列表，右侧操作按钮 */
+.comment-rich-editor-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+.comment-rich-editor-footer-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* 附件列表：挂在回复框外的芯片 */
+.comment-rich-editor-attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.comment-rich-editor-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 13px;
+  color: #1677ff;
+  background: #e6f4ff;
+  border-radius: 4px;
+  max-width: 200px;
+  min-width: 0;
+}
+
+.comment-rich-editor-attachment-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+.comment-rich-editor-attachment-chip .comment-rich-editor-file-icon {
+  font-size: 14px;
+}
+
+.comment-rich-editor-attachment-chip .comment-rich-editor-file-icon-pdf { color: #ff4d4f; }
+.comment-rich-editor-attachment-chip .comment-rich-editor-file-icon-excel { color: #52c41a; }
+.comment-rich-editor-attachment-chip .comment-rich-editor-file-icon-word { color: #1890ff; }
+.comment-rich-editor-attachment-chip .comment-rich-editor-file-icon-ppt { color: #fa8c16; }
+.comment-rich-editor-attachment-chip .comment-rich-editor-file-icon-image { color: #722ed1; }
+.comment-rich-editor-attachment-chip .comment-rich-editor-file-icon-zip { color: #13c2c2; }
+.comment-rich-editor-attachment-chip .comment-rich-editor-file-icon-text { color: #595959; }
+
+.comment-rich-editor-attachment-chip-name {
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  outline: none;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.comment-rich-editor-attachment-chip-name:hover {
+  text-decoration: underline;
+}
+
+.comment-rich-editor-attachment-chip-remove {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #8c8c8c;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comment-rich-editor-attachment-chip-remove:hover {
+  color: #ff4d4f;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* 左下角：粘贴、拖放或点击添加文件（无框无底色，仅图标+文字） */
+.comment-rich-editor-attachment-zone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  color: #8c8c8c;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.comment-rich-editor-attachment-zone:hover {
+  color: #595959;
+}
+
+.comment-rich-editor-attachment-zone:focus {
+  outline: none;
+  color: #1677ff;
+}
+
+.comment-rich-editor-attachment-zone-icon {
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+.comment-rich-editor-attachment-zone-text {
+  white-space: nowrap;
+}
+
+.comment-rich-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.comment-rich-editor-file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.comment-rich-editor .ql-editor.ql-blank::before {
+  color: #bfbfbf;
+  font-style: normal;
+}
+
+.comment-rich-editor .ql-snow .ql-toolbar button:hover,
+.comment-rich-editor .ql-snow .ql-toolbar button.ql-active {
+  color: #1677ff;
+}
+
+.comment-rich-editor .ql-snow .ql-editor img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+/* 评论区附件：内联展示为可下载链接，图标按文件类型着色 */
+.comment-rich-editor .ql-snow .ql-editor .comment-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  margin: 0 4px 2px 0;
+  font-size: 13px;
+  color: #1677ff;
+  background: #e6f4ff;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.comment-rich-editor .ql-snow .ql-editor .comment-attachment .comment-attachment-icon-pdf { color: #ff4d4f; }
+.comment-rich-editor .ql-snow .ql-editor .comment-attachment .comment-attachment-icon-excel { color: #52c41a; }
+.comment-rich-editor .ql-snow .ql-editor .comment-attachment .comment-attachment-icon-word { color: #1890ff; }
+.comment-rich-editor .ql-snow .ql-editor .comment-attachment .comment-attachment-icon-ppt { color: #fa8c16; }
+.comment-rich-editor .ql-snow .ql-editor .comment-attachment .comment-attachment-icon-image { color: #722ed1; }
+.comment-rich-editor .ql-snow .ql-editor .comment-attachment .comment-attachment-icon-zip { color: #13c2c2; }
+.comment-rich-editor .ql-snow .ql-editor .comment-attachment .comment-attachment-icon-text { color: #595959; }
+.comment-rich-editor .ql-snow .ql-editor .comment-attachment .comment-attachment-icon-default { color: #1677ff; }
+
+.comment-rich-editor .ql-snow .ql-editor .comment-attachment:hover {
+  color: #4096ff;
+  background: #bae0ff;
+}

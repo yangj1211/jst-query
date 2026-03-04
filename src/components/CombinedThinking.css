@@ -64,25 +64,113 @@
   background: #ffffff;
 }
 
-/* 意图识别部分 */
-.intent-section {
+/* 配置信息：独立在最上方（问数配置），不参与时间线 */
+.config-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* 时间线：左侧虚线贯穿各阶段（意图识别 + Agent 推理） */
+.thinking-timeline {
+  position: relative;
+  padding-left: 44px;
+}
+
+.thinking-timeline::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px dashed #d1d5db;
+}
+
+/* 时间线节点 */
+.timeline-node {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   margin-bottom: 16px;
 }
 
-.section-label {
-  font-size: 13px;
-  color: #6b7280;
+.timeline-node:last-child {
+  margin-bottom: 0;
+}
+
+/* 时间线图标：菱形（未完成/当前阶段） */
+.timeline-icon-diamond {
+  position: absolute;
+  left: -24px;
+  top: 6px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #d1d5db;
+  transform: rotate(45deg);
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+/* 时间线图标：步骤（已完成=绿色对勾，进行中=加载） */
+.timeline-icon-step {
+  position: absolute;
+  left: -28px;
+  top: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.timeline-icon-step.done {
+  background: #52c41a;
+  color: #ffffff;
+  border: none;
+}
+
+.timeline-icon-step.loading {
+  background: #f3f4f6;
+  color: #9ca3af;
+  border: 1px solid #e5e7eb;
+}
+
+/* 时间线内容块 */
+.timeline-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.timeline-block-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.timeline-steps .timeline-block-title {
   margin-bottom: 6px;
 }
 
-.section-text {
+/* 意图识别阶段：问题判断、拆解和任务规划 */
+.intent-loading {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.intent-content {
   font-size: 14px;
   line-height: 1.6;
   color: #1f2937;
-  margin-bottom: 12px;
 }
 
-/* 配置信息 */
+/* 配置信息（问数配置，保留原有文案与结构） */
 .config-info {
   display: flex;
   flex-direction: column;
@@ -148,93 +236,28 @@
   transform: none !important;
 }
 
-/* 思考过程部分（绿色背景区域） */
-.thinking-section {
-  margin-top: 16px;
-  padding: 12px;
-  background: #f0fdf4;
-  border-radius: 6px;
+/* Agent 推理内容：圆角浅灰背景框（与截图一致） */
+.step-reason-box {
+  padding: 12px 14px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  margin-bottom: 8px;
 }
 
-/* 思考过程内的数据信息 */
-.data-info {
-  margin-bottom: 12px;
-}
-
-.data-item {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 6px;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.data-item:last-child {
-  margin-bottom: 0;
-}
-
-.data-key {
-  color: #059669;
-  min-width: 60px;
-  flex-shrink: 0;
-  font-weight: 500;
-}
-
-.data-value {
-  color: #065f46;
-  flex: 1;
-}
-
-/* 执行步骤列表 */
-.steps-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.step-wrapper {
-  display: flex;
-  flex-direction: column;
-}
-
-.step-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 0;
-  background: transparent;
-  font-size: 13px;
-  line-height: 1.6;
-  transition: all 0.3s;
-}
-
-.step-item.loading {
-  opacity: 0.6;
-}
-
-.step-item.done {
-  opacity: 1;
-}
-
-.step-marker {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
+.step-reason-box .step-description {
   font-size: 14px;
-  color: #6ee7b7;
+  line-height: 1.6;
+  color: #1f2937;
+  margin: 0;
 }
 
-.step-item.done .step-marker {
-  color: #10b981;
-}
-
-.step-description {
-  flex: 1;
-  color: #065f46;
+/* 描述中的代码/反引号：等宽字体 */
+.step-description-code {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
+  padding: 0 4px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
 }
 
 /* 步骤子详情 */

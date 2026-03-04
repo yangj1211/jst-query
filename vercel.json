@@ -1,0 +1,4 @@
+{
+  "installCommand": "CI=true pnpm install",
+  "buildCommand": "CI=false pnpm run build"
+}

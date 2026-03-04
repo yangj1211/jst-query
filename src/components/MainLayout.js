@@ -44,6 +44,10 @@ const UploadIcon = <CloudUploadOutlined />;
 const FileIcon = <FileProtectOutlined />;
 const UserIcon = <UserOutlined />;
 const TeamIcon = <TeamOutlined />;
+const WorkOrderIcon = <MessageOutlined />;
+const WorkOrderSubmittedIcon = <PlusOutlined />;
+const WorkOrderHandledIcon = <UserOutlined />;
+const WorkOrderConfigIcon = <SettingOutlined />;
 
 /**
  * MainLayout 内部组件
@@ -54,9 +58,66 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
   const location = useLocation();
   const { previewFile, isPreviewVisible, closePreview } = useFilePreview();
   const isQuestionPage = location.pathname.startsWith('/question');
+  const isDocumentPage = location.pathname.startsWith('/document');
   
   // React Hooks 必须在组件顶层无条件调用
   const conversationState = useConversationState();
+
+  // 单据检索页面：独立的对话历史状态（与智能问数互不影响）
+  const formatDocDateTime = useCallback((date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours() + 8).padStart(2, '0'); // 简单处理时区偏移，保证与示例接近
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  }, []);
+
+  const [docConversations, setDocConversations] = useState([]);
+  const [docActiveConversationId, setDocActiveConversationId] = useState(null);
+
+  const docUpdateConversation = useCallback((id, updates) => {
+    setDocConversations((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
+  }, []);
+
+  const docDeleteConversation = useCallback((id) => {
+    setDocConversations((prev) => {
+      const filtered = prev.filter((c) => c.id !== id);
+      if (docActiveConversationId === id) {
+        setDocActiveConversationId(filtered.length > 0 ? filtered[0].id : null);
+      }
+      return filtered;
+    });
+  }, [docActiveConversationId]);
+
+  const docRenameConversation = useCallback((id, newTitle) => {
+    docUpdateConversation(id, { title: newTitle });
+  }, [docUpdateConversation]);
+
+  const docTogglePinConversation = useCallback((id) => {
+    setDocConversations((prev) => {
+      const conversation = prev.find((c) => c.id === id);
+      if (conversation) {
+        return prev.map((c) => (c.id === id ? { ...c, pinned: !c.pinned } : c));
+      }
+      return prev;
+    });
+  }, []);
+
+  const docCreateNewConversation = useCallback(() => {
+    const newId = Date.now();
+    const newConversation = {
+      id: newId,
+      title: '新对话',
+      time: formatDocDateTime(new Date()),
+      messages: [],
+      pinned: false,
+    };
+    setDocConversations((prev) => [newConversation, ...prev]);
+    setDocActiveConversationId(newId);
+    return newId;
+  }, [formatDocDateTime]);
 
   // 根据当前路径和折叠状态确定选中的菜单项
   const getSelectedKey = useCallback(() => {
@@ -72,6 +133,13 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
       if (location.pathname === '/data/import') return 'data-import';
       if (location.pathname === '/data/backup') return 'data-backup';
       return 'data-view';
+    }
+    if (location.pathname.startsWith('/work-order')) {
+      if (collapsed) return 'work-order';
+      if (location.pathname === '/work-order/submitted') return 'work-order-submitted';
+      if (location.pathname === '/work-order/handled') return 'work-order-handled';
+      if (location.pathname === '/work-order/config') return 'work-order-config';
+      return 'work-order-submitted';
     }
     if (location.pathname.startsWith('/permission')) {
       if (collapsed) return 'permission';
@@ -95,6 +163,13 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
       if (location.pathname === '/data/import') return 'data-import';
       if (location.pathname === '/data/backup') return 'data-backup';
       return 'data-view';
+    }
+    if (location.pathname.startsWith('/work-order')) {
+      if (collapsed) return 'work-order';
+      if (location.pathname === '/work-order/submitted') return 'work-order-submitted';
+      if (location.pathname === '/work-order/handled') return 'work-order-handled';
+      if (location.pathname === '/work-order/config') return 'work-order-config';
+      return 'work-order-submitted';
     }
     if (location.pathname.startsWith('/permission')) {
       if (collapsed) return 'permission';
@@ -223,6 +298,31 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
       ],
     },
     {
+      key: 'work-order',
+      icon: WorkOrderIcon,
+      label: '工单管理',
+      children: [
+        {
+          key: 'work-order-submitted',
+          icon: WorkOrderSubmittedIcon,
+          label: '我提交的',
+          path: '/work-order/submitted',
+        },
+        {
+          key: 'work-order-handled',
+          icon: WorkOrderHandledIcon,
+          label: '我处理的',
+          path: '/work-order/handled',
+        },
+        {
+          key: 'work-order-config',
+          icon: WorkOrderConfigIcon,
+          label: '工单配置',
+          path: '/work-order/config',
+        },
+      ],
+    },
+    {
       key: 'permission',
       icon: PermissionIcon, 
       label: '权限配置',
@@ -302,23 +402,6 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
               {!collapsed && '问数智能体'}
             </h1>
             <div className="header-actions">
-              {/* 新建对话按钮 - 只在问数助手页面显示（收缩时也显示） */}
-              {isQuestionPage && conversationState && (
-                <button
-                  onClick={conversationState.createNewConversation}
-                  className="new-conversation-icon-btn"
-                  aria-label="新建对话"
-                  title="新建对话"
-                >
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    {/* 圆角正方形 */}
-                    <rect x="2.5" y="2.5" width="15" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                    {/* 加号 - 居中 */}
-                    <line x1="10" y1="6.5" x2="10" y2="10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                    <line x1="8.5" y1="8.5" x2="11.5" y2="8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                </button>
-              )}
               <button
                 onClick={toggleCollapsed}
                 className="collapse-btn-header"
@@ -348,18 +431,31 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
             />
           </div>
 
-          {/* 对话列表 - 只在问数助手页面且未折叠时显示 */}
-          {isQuestionPage && !collapsed && conversationState && (
-            <ConversationSidebar
-              conversations={conversationState.conversations}
-              activeConversationId={conversationState.activeConversationId}
-              onSelectConversation={conversationState.setActiveConversationId}
-              onNewConversation={conversationState.createNewConversation}
-              onRename={conversationState.renameConversation}
-              onPin={conversationState.togglePinConversation}
-              onDelete={conversationState.deleteConversation}
-              formatDateTime={conversationState.formatDateTime}
-            />
+          {/* 对话列表 - 问数助手和单据检索各自独立的历史，对应左侧菜单下方区域 */}
+          {!collapsed && (
+            isQuestionPage && conversationState ? (
+              <ConversationSidebar
+                conversations={conversationState.conversations}
+                activeConversationId={conversationState.activeConversationId}
+                onSelectConversation={conversationState.setActiveConversationId}
+                onNewConversation={conversationState.createNewConversation}
+                onRename={conversationState.renameConversation}
+                onPin={conversationState.togglePinConversation}
+                onDelete={conversationState.deleteConversation}
+                formatDateTime={conversationState.formatDateTime}
+              />
+            ) : isDocumentPage ? (
+              <ConversationSidebar
+                conversations={docConversations}
+                activeConversationId={docActiveConversationId}
+                onSelectConversation={setDocActiveConversationId}
+                onNewConversation={docCreateNewConversation}
+                onRename={docRenameConversation}
+                onPin={docTogglePinConversation}
+                onDelete={docDeleteConversation}
+                formatDateTime={formatDocDateTime}
+              />
+            ) : null
           )}
         </div>
       </Sider>

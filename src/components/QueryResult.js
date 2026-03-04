@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Button, Tooltip, Tag, Dropdown, message, Modal } from 'antd';
-import { DownloadOutlined, DatabaseOutlined, TableOutlined, BarChartOutlined, FileOutlined, DatabaseOutlined as DbIcon, LineChartOutlined, PieChartOutlined } from '@ant-design/icons';
+import { Table, Button, Tooltip, Tag, Dropdown, message, Modal, Select } from 'antd';
+import { DownloadOutlined, DatabaseOutlined, TableOutlined, BarChartOutlined, FileOutlined, DatabaseOutlined as DbIcon, LineChartOutlined, PieChartOutlined, SwapOutlined } from '@ant-design/icons';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useFilePreview } from '../contexts/FilePreviewContext';
 import './QueryResult.css';
@@ -145,7 +145,11 @@ const StreamingParagraphs = ({
   );
 };
 
-const QueryResult = ({ data }) => {
+/**
+ * @param {Object} props.data - 查询结果数据
+ * @param {boolean} [props.hideChartAndExport] - 为 true 时隐藏图表切换与导出/下载按钮（如工单详情只读展示）
+ */
+const QueryResult = ({ data, hideChartAndExport = false }) => {
   const { summary } = data;
   const { openPreview, isPreviewVisible } = useFilePreview();
   
@@ -162,6 +166,21 @@ const QueryResult = ({ data }) => {
   // 为每个 block 维护独立的图表类型状态
   const [chartTypes, setChartTypes] = useState(
     blocks.map(() => 'bar')
+  );
+
+  // 为每个 block 维护独立的横坐标列索引（默认 0 = 第一列）
+  const [chartXColumnIndex, setChartXColumnIndex] = useState(
+    blocks.map(() => 0)
+  );
+
+  // 为每个 block 维护独立的横纵坐标转置状态
+  const [chartTranspose, setChartTranspose] = useState(
+    blocks.map(() => false)
+  );
+
+  // 转置时按系列筛选：'all' 表示全部，否则为某一行值（原行→列后的系列名）
+  const [chartSeriesFilter, setChartSeriesFilter] = useState(
+    blocks.map(() => 'all')
   );
   
   // 分析部分的维度表格视图状态
@@ -200,6 +219,33 @@ const QueryResult = ({ data }) => {
       }
       return next.slice(0, blocks.length);
     });
+
+    setChartXColumnIndex(prev => {
+      if (prev.length === blocks.length) return prev;
+      const next = [...prev];
+      while (next.length < blocks.length) {
+        next.push(0);
+      }
+      return next.slice(0, blocks.length);
+    });
+
+    setChartTranspose(prev => {
+      if (prev.length === blocks.length) return prev;
+      const next = [...prev];
+      while (next.length < blocks.length) {
+        next.push(false);
+      }
+      return next.slice(0, blocks.length);
+    });
+
+    setChartSeriesFilter(prev => {
+      if (prev.length === blocks.length) return prev;
+      const next = [...prev];
+      while (next.length < blocks.length) {
+        next.push('all');
+      }
+      return next.slice(0, blocks.length);
+    });
   }, [blocks.length]);
 
   const handleViewChange = (blockIdx, view) => {
@@ -215,6 +261,35 @@ const QueryResult = ({ data }) => {
       const newTypes = [...prev];
       newTypes[blockIdx] = chartType;
       return newTypes;
+    });
+  };
+
+  const handleChartXColumnChange = (blockIdx, xColumnIndex) => {
+    setChartXColumnIndex(prev => {
+      const next = [...prev];
+      next[blockIdx] = Number(xColumnIndex);
+      return next;
+    });
+  };
+
+  const handleChartTransposeToggle = (blockIdx) => {
+    setChartTranspose(prev => {
+      const next = [...prev];
+      next[blockIdx] = !next[blockIdx];
+      return next;
+    });
+    setChartSeriesFilter(prev => {
+      const next = [...prev];
+      next[blockIdx] = 'all';
+      return next;
+    });
+  };
+
+  const handleChartSeriesFilterChange = (blockIdx, value) => {
+    setChartSeriesFilter(prev => {
+      const next = [...prev];
+      next[blockIdx] = value;
+      return next;
     });
   };
 
@@ -384,51 +459,88 @@ const QueryResult = ({ data }) => {
     });
   };
 
+  const numVal = (val) => {
+    if (val == null) return 0;
+    if (typeof val === 'number' && !Number.isNaN(val)) return val;
+    if (typeof val === 'string') {
+      const numMatch = val.replace(/[^\d.-]/g, '');
+      return numMatch ? parseFloat(numMatch) : 0;
+    }
+    return 0;
+  };
+
   /**
    * 将表格数据转换为图表数据格式
+   * @param {Object} tableData - 表格数据
+   * @param {Object} options - { xColumnIndex, transpose, seriesFilter }
+   * - 默认第一列为横坐标，其他列为系列
+   * - 可指定任意列作为横坐标，其余列作为系列
+   * - 转置后：原系列变为横坐标，原横坐标（行值）变为系列；seriesFilter 可筛掉部分系列
    */
-  const convertTableDataToChartData = (tableData) => {
+  const convertTableDataToChartData = (tableData, options = {}) => {
     if (!tableData || !tableData.columns || !tableData.dataSource) {
-      return { chartData: [], xField: '', yFields: [] };
+      return { chartData: [], xField: '', yFields: [], rowValues: [] };
     }
 
+    const { xColumnIndex = 0, transpose = false, seriesFilter = 'all' } = options;
     const { columns, dataSource } = tableData;
-    
-    // 第一列作为 X 轴（通常是名称、日期等）
-    const xField = columns[0]?.dataIndex || 'name';
-    
-    // 其他数值列作为 Y 轴数据
-    const yFields = columns.slice(1)
-      .filter(col => col.dataIndex !== 'key')
-      .map(col => ({
-        dataIndex: col.dataIndex,
-        title: col.title
-      }));
+    const cols = columns.filter(c => c.dataIndex !== 'key');
+    if (!cols.length) return { chartData: [], xField: '', yFields: [], rowValues: [] };
 
-    // 转换数据格式
-    const chartData = dataSource.map(row => {
+    const xi = Math.max(0, Math.min(xColumnIndex, cols.length - 1));
+    const xCol = cols[xi];
+    const xField = xCol.dataIndex || 'name';
+
+    const yCols = cols.filter((_, i) => i !== xi).map(c => ({
+      dataIndex: c.dataIndex,
+      title: c.title || c.dataIndex
+    }));
+
+    if (!yCols.length) return { chartData: [], xField, yFields: [], rowValues: [] };
+
+    const rowValues = dataSource.map(r => String(r[xField] ?? ''));
+    let rows = dataSource;
+    if (transpose && seriesFilter !== 'all') {
+      rows = dataSource.filter(r => String(r[xField] ?? '') === seriesFilter);
+    }
+
+    let chartData = rows.map(row => {
       const item = { name: row[xField] };
-      yFields.forEach(field => {
-        const value = row[field.dataIndex];
-        // 尝试转换为数字，去除单位和百分号
-        if (typeof value === 'string') {
-          const numMatch = value.replace(/[^\d.-]/g, '');
-          item[field.dataIndex] = numMatch ? parseFloat(numMatch) : 0;
-        } else {
-          item[field.dataIndex] = value || 0;
-        }
+      yCols.forEach(f => {
+        item[f.dataIndex] = numVal(row[f.dataIndex]);
       });
       return item;
     });
 
-    return { chartData, xField, yFields };
+    let yFields = yCols;
+
+    if (transpose) {
+      const names = rows.map(r => String(r[xField] ?? ''));
+      const uniqueKeys = names.map((n, i) => (`_k${i}`));
+      chartData = yCols.map(f => {
+        const item = { name: f.title };
+        rows.forEach((row, i) => {
+          item[uniqueKeys[i]] = numVal(row[f.dataIndex]);
+        });
+        return item;
+      });
+      yFields = uniqueKeys.map((dataIndex, i) => ({
+        dataIndex,
+        title: names[i]
+      }));
+    }
+
+    return { chartData, xField, yFields, rowValues };
   };
 
   /**
    * 渲染图表
    */
-  const renderChart = (tableData, chartType) => {
-    const { chartData, yFields } = convertTableDataToChartData(tableData); // xField is returned but not used in render
+  const renderChart = (tableData, chartType, blockIdx) => {
+    const xColumnIndex = chartXColumnIndex[blockIdx] ?? 0;
+    const transpose = chartTranspose[blockIdx] ?? false;
+    const seriesFilter = chartSeriesFilter[blockIdx] ?? 'all';
+    const { chartData, yFields } = convertTableDataToChartData(tableData, { xColumnIndex, transpose, seriesFilter });
 
     if (!chartData.length || !yFields.length) {
       return (
@@ -646,51 +758,53 @@ const QueryResult = ({ data }) => {
                       onClick={() => handleViewChange(idx, 'table')}
                     />
                   </Tooltip>
-                  <Dropdown
-                    menu={{
-                      items: [
-                        {
-                          key: 'bar',
-                          icon: <BarChartOutlined />,
-                          label: '柱状图',
-                          onClick: () => {
-                            handleViewChange(idx, 'chart');
-                            handleChartTypeChange(idx, 'bar');
+                  {!hideChartAndExport && (
+                    <Dropdown
+                      menu={{
+                        items: [
+                          {
+                            key: 'bar',
+                            icon: <BarChartOutlined />,
+                            label: '柱状图',
+                            onClick: () => {
+                              handleViewChange(idx, 'chart');
+                              handleChartTypeChange(idx, 'bar');
+                            }
+                          },
+                          {
+                            key: 'line',
+                            icon: <LineChartOutlined />,
+                            label: '折线图',
+                            onClick: () => {
+                              handleViewChange(idx, 'chart');
+                              handleChartTypeChange(idx, 'line');
+                            }
+                          },
+                          {
+                            key: 'pie',
+                            icon: <PieChartOutlined />,
+                            label: '饼状图',
+                            onClick: () => {
+                              handleViewChange(idx, 'chart');
+                              handleChartTypeChange(idx, 'pie');
+                            }
                           }
-                        },
-                        {
-                          key: 'line',
-                          icon: <LineChartOutlined />,
-                          label: '折线图',
-                          onClick: () => {
-                            handleViewChange(idx, 'chart');
-                            handleChartTypeChange(idx, 'line');
-                          }
-                        },
-                        {
-                          key: 'pie',
-                          icon: <PieChartOutlined />,
-                          label: '饼状图',
-                          onClick: () => {
-                            handleViewChange(idx, 'chart');
-                            handleChartTypeChange(idx, 'pie');
-                          }
-                        }
-                      ],
-                      selectable: true,
-                      selectedKeys: [chartTypes[idx]]
-                    }}
-                    trigger={['click']}
-                  >
-                    <Tooltip title="图表">
-                      <Button 
-                        icon={<BarChartOutlined />} 
-                        type={activeViews[idx] === 'chart' ? 'primary' : 'default'} 
-                        size="small" 
-                        className="table-action-btn"
-                      />
-                    </Tooltip>
-                  </Dropdown>
+                        ],
+                        selectable: true,
+                        selectedKeys: [chartTypes[idx]]
+                      }}
+                      trigger={['click']}
+                    >
+                      <Tooltip title="图表">
+                        <Button 
+                          icon={<BarChartOutlined />} 
+                          type={activeViews[idx] === 'chart' ? 'primary' : 'default'} 
+                          size="small" 
+                          className="table-action-btn"
+                        />
+                      </Tooltip>
+                    </Dropdown>
+                  )}
                   <Tooltip title="查看SQL">
                     <Button 
                       icon={<DatabaseOutlined />} 
@@ -699,14 +813,16 @@ const QueryResult = ({ data }) => {
                       onClick={() => handleViewSql(block)}
                     />
                   </Tooltip>
-                  <Tooltip title="导出">
-                    <Button 
-                      icon={<DownloadOutlined />} 
-                      onClick={() => handleExport(block)} 
-                      size="small" 
-                      className="table-action-btn" 
-                    />
-                  </Tooltip>
+                  {!hideChartAndExport && (
+                    <Tooltip title="导出">
+                      <Button 
+                        icon={<DownloadOutlined />} 
+                        onClick={() => handleExport(block)} 
+                        size="small" 
+                        className="table-action-btn" 
+                      />
+                    </Tooltip>
+                  )}
                   {/* 添加到仪表盘按钮已隐藏（代码保留，取消注释即可恢复） */}
                   {/* <Tooltip title="添加到仪表盘">
                     <Button 
@@ -721,6 +837,7 @@ const QueryResult = ({ data }) => {
               <div className="table-wrapper">
               {activeViews[idx] === 'table' && (
                 <Table
+                  rowKey={(record, index) => record.key ?? record.id ?? index}
                   columns={block.tableData?.columns || []}
                   dataSource={block.tableData?.dataSource || []}
                   pagination={false}
@@ -730,7 +847,70 @@ const QueryResult = ({ data }) => {
                   scroll={block.tableData?.scroll}
                 />
               )}
-              {activeViews[idx] === 'chart' && renderChart(block.tableData, chartTypes[idx])}
+              {activeViews[idx] === 'chart' && (
+                <>
+                  <div className="chart-options-bar">
+                    {!chartTranspose[idx] ? (
+                      <>
+                        <span className="chart-options-label">横坐标：</span>
+                        <Select
+                          value={(() => {
+                            const cols = (block.tableData?.columns || []).filter(c => c.dataIndex !== 'key');
+                            const maxIdx = Math.max(0, cols.length - 1);
+                            return Math.min(chartXColumnIndex[idx] ?? 0, maxIdx);
+                          })()}
+                          onChange={(v) => handleChartXColumnChange(idx, v)}
+                          options={(() => {
+                            const cols = (block.tableData?.columns || []).filter(c => c.dataIndex !== 'key');
+                            return cols.map((c, i) => ({
+                              value: i,
+                              label: c.title || c.dataIndex || ''
+                            }));
+                          })()}
+                          style={{ width: 160 }}
+                          size="small"
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <span className="chart-options-label">系列：</span>
+                        <Select
+                          value={chartSeriesFilter[idx] ?? 'all'}
+                          onChange={(v) => handleChartSeriesFilterChange(idx, v)}
+                          options={(() => {
+                            const cols = (block.tableData?.columns || []).filter(c => c.dataIndex !== 'key');
+                            const ds = block.tableData?.dataSource || [];
+                            const xi = Math.max(0, Math.min(chartXColumnIndex[idx] ?? 0, cols.length - 1));
+                            const xField = cols[xi]?.dataIndex || 'name';
+                            const seen = new Set();
+                            const rowValues = [];
+                            ds.forEach(r => {
+                              const v = String(r[xField] ?? '');
+                              if (!seen.has(v)) { seen.add(v); rowValues.push(v); }
+                            });
+                            const opts = [{ value: 'all', label: '全部' }];
+                            rowValues.forEach(v => opts.push({ value: v, label: v }));
+                            return opts;
+                          })()}
+                          style={{ width: 160 }}
+                          size="small"
+                        />
+                      </>
+                    )}
+                    <Tooltip title="横纵坐标转置">
+                      <Button
+                        type={chartTranspose[idx] ? 'primary' : 'default'}
+                        size="small"
+                        icon={<SwapOutlined />}
+                        onClick={() => handleChartTransposeToggle(idx)}
+                      >
+                        转置
+                      </Button>
+                    </Tooltip>
+                  </div>
+                  {renderChart(block.tableData, chartTypes[idx], idx)}
+                </>
+              )}
             </div>
             {/* 数据来源区域（每个块独立） */}
             <div className="data-sources">
@@ -776,51 +956,53 @@ const QueryResult = ({ data }) => {
                             onClick={() => setDimensionView('table')}
                           />
                         </Tooltip>
-                        <Dropdown
-                          menu={{
-                            items: [
-                              {
-                                key: 'bar',
-                                icon: <BarChartOutlined />,
-                                label: '柱状图',
-                                onClick: () => {
-                                  setDimensionView('chart');
-                                  setDimensionChartType('bar');
+                        {!hideChartAndExport && (
+                          <Dropdown
+                            menu={{
+                              items: [
+                                {
+                                  key: 'bar',
+                                  icon: <BarChartOutlined />,
+                                  label: '柱状图',
+                                  onClick: () => {
+                                    setDimensionView('chart');
+                                    setDimensionChartType('bar');
+                                  }
+                                },
+                                {
+                                  key: 'line',
+                                  icon: <LineChartOutlined />,
+                                  label: '折线图',
+                                  onClick: () => {
+                                    setDimensionView('chart');
+                                    setDimensionChartType('line');
+                                  }
+                                },
+                                {
+                                  key: 'pie',
+                                  icon: <PieChartOutlined />,
+                                  label: '饼状图',
+                                  onClick: () => {
+                                    setDimensionView('chart');
+                                    setDimensionChartType('pie');
+                                  }
                                 }
-                              },
-                              {
-                                key: 'line',
-                                icon: <LineChartOutlined />,
-                                label: '折线图',
-                                onClick: () => {
-                                  setDimensionView('chart');
-                                  setDimensionChartType('line');
-                                }
-                              },
-                              {
-                                key: 'pie',
-                                icon: <PieChartOutlined />,
-                                label: '饼状图',
-                                onClick: () => {
-                                  setDimensionView('chart');
-                                  setDimensionChartType('pie');
-                                }
-                              }
-                            ],
-                            selectable: true,
-                            selectedKeys: [dimensionChartType]
-                          }}
-                          trigger={['click']}
-                        >
-                          <Tooltip title="图表">
-                            <Button 
-                              icon={<BarChartOutlined />} 
-                              type={dimensionView === 'chart' ? 'primary' : 'default'} 
-                              size="small" 
-                              className="table-action-btn"
-                            />
-                          </Tooltip>
-                        </Dropdown>
+                              ],
+                              selectable: true,
+                              selectedKeys: [dimensionChartType]
+                            }}
+                            trigger={['click']}
+                          >
+                            <Tooltip title="图表">
+                              <Button 
+                                icon={<BarChartOutlined />} 
+                                type={dimensionView === 'chart' ? 'primary' : 'default'} 
+                                size="small" 
+                                className="table-action-btn"
+                              />
+                            </Tooltip>
+                          </Dropdown>
+                        )}
                         <Tooltip title="查看SQL">
                           <Button 
                             icon={<DatabaseOutlined />} 
@@ -829,14 +1011,16 @@ const QueryResult = ({ data }) => {
                             onClick={() => handleViewSql({ sql: data.analysis?.dimensionTableData?.sql, tableData: data.analysis.dimensionTableData })}
                           />
                         </Tooltip>
-                        <Tooltip title="导出">
-                          <Button 
-                            icon={<DownloadOutlined />} 
-                            onClick={() => handleExport({ tableData: data.analysis.dimensionTableData })} 
-                            size="small" 
-                            className="table-action-btn" 
-                          />
-                        </Tooltip>
+                        {!hideChartAndExport && (
+                          <Tooltip title="导出">
+                            <Button 
+                              icon={<DownloadOutlined />} 
+                              onClick={() => handleExport({ tableData: data.analysis.dimensionTableData })} 
+                              size="small" 
+                              className="table-action-btn" 
+                            />
+                          </Tooltip>
+                        )}
                         {/* 添加到仪表盘按钮已隐藏（代码保留，取消注释即可恢复） */}
                         {/* <Tooltip title="添加到仪表盘">
                           <Button 
