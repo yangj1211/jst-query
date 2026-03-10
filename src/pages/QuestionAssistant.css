@@ -733,43 +733,48 @@
 }
 
 .send-button-round {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   padding: 0;
-  background: #667eea;
-  color: white;
+  background: #1677ff;
+  color: #fff;
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(22, 119, 255, 0.35);
 }
 
 .send-button-round:hover {
-  background: #5568d3;
-  transform: scale(1.05);
+  background: #165dff;
+  box-shadow: 0 6px 16px rgba(22, 119, 255, 0.4);
+  transform: translateY(-1px);
 }
 
 .send-button-round:active {
-  transform: scale(0.95);
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(22, 119, 255, 0.3);
 }
 
 .send-button-round svg {
-  margin-left: 2px;
+  margin: 0;
 }
 
 .send-button-round:disabled {
   background: #d9d9d9;
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.7;
+  box-shadow: none;
 }
 
 .send-button-round:disabled:hover {
   background: #d9d9d9;
   transform: none;
+  box-shadow: none;
 }
 
 .stop-button {
