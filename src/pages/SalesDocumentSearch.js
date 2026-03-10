@@ -404,6 +404,7 @@ const SalesDocumentSearch = () => {
             { label: '销售代表描述', value: item.salesRepDesc },
             { label: '销售地区描述', value: item.salesRegionDesc },
             { label: '订单不含税金额合计', value: item.amountExclTax },
+            { label: '订单不含税金额(CNY)', value: item.amountExclTax },
             { label: '合同总金额(CNY)', value: item.totalAmountCNY },
             { label: '合同总金额(订单货币)', value: item.totalAmountOrder },
             { label: '货币', value: item.currency },
@@ -413,28 +414,27 @@ const SalesDocumentSearch = () => {
             { label: '用户行业(披露口径)描述', value: item.industryDesc },
             { label: '税率', value: item.taxRate },
             { label: '报价单编号', value: item.quotationNo },
+            { label: '付款条件备注', value: item.paymentTerms },
           ],
         },
         {
           title: '发票相关信息',
-          fields: [
-            { label: 'VAT发票号', value: item.vatInvoiceNo },
-            { label: 'VAT发票时间', value: item.vatInvoiceDate },
-            { label: 'VAT发票税率', value: item.vatInvoiceRate },
-            { label: 'VAT发票金额', value: item.vatInvoiceAmount },
-          ],
+          isTable: true,
+          tableType: 'invoice',
         },
         {
           title: '付款相关信息',
-          fields: [
-            { label: '回款时间', value: item.paymentDate },
-            { label: '回款金额', value: item.paymentAmount },
-            { label: '交易货币', value: item.paymentCurrency },
-            { label: '欠款金额', value: item.outstandingAmount },
-            { label: '合同欠款金额', value: item.contractDebt },
-            { label: '付款条件备注', value: item.paymentTerms },
-          ],
+          isTable: true,
         },
+      ],
+      invoiceList: [
+        { key: '1', vatInvoiceNo: item.vatInvoiceNo || '-', vatInvoiceDate: item.vatInvoiceDate || '-', vatInvoiceRate: item.vatInvoiceRate || '-', vatInvoiceAmount: item.vatInvoiceAmount ? String(Math.round(Number(item.vatInvoiceAmount.replace(/,/g, '')) * 0.4)) + '.00' : '-' },
+        { key: '2', vatInvoiceNo: item.vatInvoiceNo ? item.vatInvoiceNo.replace(/1$/, '2') : '-', vatInvoiceDate: item.vatInvoiceDate ? item.vatInvoiceDate.replace(/\d{2}$/, '18') : '-', vatInvoiceRate: item.vatInvoiceRate || '-', vatInvoiceAmount: item.vatInvoiceAmount ? String(Math.round(Number(item.vatInvoiceAmount.replace(/,/g, '')) * 0.35)) + '.00' : '-' },
+        { key: '3', vatInvoiceNo: item.vatInvoiceNo ? item.vatInvoiceNo.replace(/1$/, '3') : '-', vatInvoiceDate: item.vatInvoiceDate ? item.vatInvoiceDate.replace(/\d{2}$/, '25') : '-', vatInvoiceRate: item.vatInvoiceRate || '-', vatInvoiceAmount: item.vatInvoiceAmount ? String(Math.round(Number(item.vatInvoiceAmount.replace(/,/g, '')) * 0.25)) + '.00' : '-' },
+      ],
+      paymentList: [
+        { key: '1', receiptNo: 'RC-' + item.orderNo + '-001', paymentDate: item.paymentDate || '-', paymentAmount: item.paymentAmount || '-', paymentCurrency: item.paymentCurrency || '-', outstandingAmount: item.outstandingAmount || '-', contractDebt: item.contractDebt || '-' },
+        { key: '2', receiptNo: 'RC-' + item.orderNo + '-002', paymentDate: item.paymentDate ? '2025-01-15' : '-', paymentAmount: item.paymentAmount ? String(Math.round(Number(item.paymentAmount.replace(/,/g, '')) * 0.3)) : '-', paymentCurrency: item.paymentCurrency || '-', outstandingAmount: '-', contractDebt: '-' },
       ],
       materialList: [
         { key: '1', productGroup: 'T01', productGroupDesc: '变压器', model: 'SCBH15-1250/10.5', spec: '1250.00', desc: '干变 SCBH15-1250/10.5 ZB.011786.5001', goodsIssueDate: '2020-12-28', profitCenter: '1617', profitCenterDesc: '干变事业部' },
@@ -442,6 +442,22 @@ const SalesDocumentSearch = () => {
       ],
     };
   };
+
+  const invoiceColumns = [
+    { title: 'VAT发票号', dataIndex: 'vatInvoiceNo', key: 'vatInvoiceNo', width: 180 },
+    { title: 'VAT发票时间', dataIndex: 'vatInvoiceDate', key: 'vatInvoiceDate', width: 120 },
+    { title: 'VAT发票税率', dataIndex: 'vatInvoiceRate', key: 'vatInvoiceRate', width: 100 },
+    { title: 'VAT发票金额', dataIndex: 'vatInvoiceAmount', key: 'vatInvoiceAmount', width: 140 },
+  ];
+
+  const paymentColumns = [
+    { title: '回款凭证号', dataIndex: 'receiptNo', key: 'receiptNo', width: 180 },
+    { title: '回款时间', dataIndex: 'paymentDate', key: 'paymentDate', width: 120 },
+    { title: '回款金额', dataIndex: 'paymentAmount', key: 'paymentAmount', width: 140 },
+    { title: '欠款金额', dataIndex: 'outstandingAmount', key: 'outstandingAmount', width: 140 },
+    { title: '合同欠款金额', dataIndex: 'contractDebt', key: 'contractDebt', width: 140 },
+    { title: '交易货币', dataIndex: 'paymentCurrency', key: 'paymentCurrency', width: 100 },
+  ];
 
   const materialColumns = [
     { title: '产品组', dataIndex: 'productGroup', key: 'productGroup', width: 80 },
@@ -1028,14 +1044,26 @@ const SalesDocumentSearch = () => {
                 )}
                 <div className="detail-block">
                   <div className="detail-block-title">{group.title}</div>
-                  <div className="detail-block-content">
-                    {group.fields.map((f, idx) => (
-                      <div className="detail-field-item" key={idx}>
-                        <span className="detail-field-label">{f.label}</span>
-                        <span className="detail-field-value">{f.value || '-'}</span>
-                      </div>
-                    ))}
-                  </div>
+                  {group.isTable ? (
+                    <div className="detail-block-content detail-material-table">
+                      <Table
+                        columns={group.tableType === 'invoice' ? invoiceColumns : paymentColumns}
+                        dataSource={group.tableType === 'invoice' ? getDetailData(detailItem).invoiceList : getDetailData(detailItem).paymentList}
+                        pagination={false}
+                        size="small"
+                        scroll={{ x: true }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="detail-block-content">
+                      {group.fields.map((f, idx) => (
+                        <div className="detail-field-item" key={idx}>
+                          <span className="detail-field-label">{f.label}</span>
+                          <span className="detail-field-value">{f.value || '-'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </React.Fragment>
             ))}

@@ -5,3 +5,24 @@
 .order-relations-panel .ant-tabs-nav {
   margin-bottom: 12px;
 }
+
+.order-relations-panel .ant-table {
+  background: transparent !important;
+}
+
+.order-relations-panel .ant-table-thead > tr > th {
+  background: #f0f5ff !important;
+  font-weight: 600;
+  color: #333;
+  font-size: 13px;
+  border-bottom: 2px solid #d6e4ff;
+}
+
+.order-relations-panel .ant-table-tbody > tr > td {
+  font-size: 13px;
+  padding: 10px 12px;
+}
+
+.order-relations-panel .ant-table-tbody > tr:hover > td {
+  background: #f5f8ff;
+}
