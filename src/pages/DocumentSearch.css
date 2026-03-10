@@ -3,9 +3,11 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: #fff;
-  border-radius: 8px;
-  overflow: hidden;
+  /* 与外层页面背景融合，不再显示一圈灰色边框 */
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
 }
 
 .document-tabs {
@@ -40,10 +42,11 @@
 
 .document-content {
   flex: 1;
+  height: 100%;
+  min-height: 0;
   padding: 0;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  min-height: 0;
   overflow: hidden;
 }

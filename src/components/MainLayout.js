@@ -28,6 +28,7 @@ import BackupFiles from '../pages/BackupFiles';
 import Dashboard from '../pages/Dashboard';
 import { FilePreviewProvider, useFilePreview } from '../contexts/FilePreviewContext';
 import { ConversationStateProvider, useConversationState } from '../contexts/ConversationStateContext';
+import { DocumentConversationProvider, useDocumentConversation } from '../contexts/DocumentConversationContext';
 import FilePreviewer from './FilePreviewer';
 import ConversationSidebar from './ConversationSidebar';
 import './MainLayout.css';
@@ -62,62 +63,7 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
   
   // React Hooks 必须在组件顶层无条件调用
   const conversationState = useConversationState();
-
-  // 单据检索页面：独立的对话历史状态（与智能问数互不影响）
-  const formatDocDateTime = useCallback((date) => {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hours = String(d.getHours() + 8).padStart(2, '0'); // 简单处理时区偏移，保证与示例接近
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
-  }, []);
-
-  const [docConversations, setDocConversations] = useState([]);
-  const [docActiveConversationId, setDocActiveConversationId] = useState(null);
-
-  const docUpdateConversation = useCallback((id, updates) => {
-    setDocConversations((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
-  }, []);
-
-  const docDeleteConversation = useCallback((id) => {
-    setDocConversations((prev) => {
-      const filtered = prev.filter((c) => c.id !== id);
-      if (docActiveConversationId === id) {
-        setDocActiveConversationId(filtered.length > 0 ? filtered[0].id : null);
-      }
-      return filtered;
-    });
-  }, [docActiveConversationId]);
-
-  const docRenameConversation = useCallback((id, newTitle) => {
-    docUpdateConversation(id, { title: newTitle });
-  }, [docUpdateConversation]);
-
-  const docTogglePinConversation = useCallback((id) => {
-    setDocConversations((prev) => {
-      const conversation = prev.find((c) => c.id === id);
-      if (conversation) {
-        return prev.map((c) => (c.id === id ? { ...c, pinned: !c.pinned } : c));
-      }
-      return prev;
-    });
-  }, []);
-
-  const docCreateNewConversation = useCallback(() => {
-    const newId = Date.now();
-    const newConversation = {
-      id: newId,
-      title: '新对话',
-      time: formatDocDateTime(new Date()),
-      messages: [],
-      pinned: false,
-    };
-    setDocConversations((prev) => [newConversation, ...prev]);
-    setDocActiveConversationId(newId);
-    return newId;
-  }, [formatDocDateTime]);
+  const docConversationState = useDocumentConversation();
 
   // 根据当前路径和折叠状态确定选中的菜单项
   const getSelectedKey = useCallback(() => {
@@ -438,16 +384,16 @@ const MainLayoutContent = ({ collapsed, setCollapsed }) => {
                 onDelete={conversationState.deleteConversation}
                 formatDateTime={conversationState.formatDateTime}
               />
-            ) : isDocumentPage ? (
+            ) : isDocumentPage && docConversationState ? (
               <ConversationSidebar
-                conversations={docConversations}
-                activeConversationId={docActiveConversationId}
-                onSelectConversation={setDocActiveConversationId}
-                onNewConversation={docCreateNewConversation}
-                onRename={docRenameConversation}
-                onPin={docTogglePinConversation}
-                onDelete={docDeleteConversation}
-                formatDateTime={formatDocDateTime}
+                conversations={docConversationState.conversations}
+                activeConversationId={docConversationState.activeConversationId}
+                onSelectConversation={docConversationState.setActiveConversationId}
+                onNewConversation={docConversationState.createNewConversation}
+                onRename={docConversationState.renameConversation}
+                onPin={docConversationState.togglePinConversation}
+                onDelete={docConversationState.deleteConversation}
+                formatDateTime={docConversationState.formatDateTime}
               />
             ) : null
           )}
@@ -488,7 +434,9 @@ const MainLayout = () => {
   return (
     <FilePreviewProvider onSidebarCollapse={(shouldCollapse) => setCollapsed(shouldCollapse)}>
       <ConversationStateProvider>
-        <MainLayoutContent collapsed={collapsed} setCollapsed={setCollapsed} />
+        <DocumentConversationProvider>
+          <MainLayoutContent collapsed={collapsed} setCollapsed={setCollapsed} />
+        </DocumentConversationProvider>
       </ConversationStateProvider>
     </FilePreviewProvider>
   );

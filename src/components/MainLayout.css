@@ -425,12 +425,12 @@
 
 .main-tab-content {
   height: calc(100vh - 80px); /* 调整高度以适应新的布局 */
-  background: #fff;
-  margin: 0 8px;
+  /* 去掉外层卡片的灰色边框和圆角，让页面内容与背景自然衔接 */
+  background: transparent;
+  margin: 0;
   padding: 0;
-  border: 1px solid #e8e8e8;
-  border-top: none;
-  border-radius: 0 0 8px 8px;
+  border: none;
+  border-radius: 0;
 }
 
 @media (max-width: 1920px) {
