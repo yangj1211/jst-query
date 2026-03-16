@@ -405,9 +405,9 @@ const SalesDocumentSearch = () => {
             { label: '销售地区描述', value: item.salesRegionDesc },
             { label: '订单不含税金额合计', value: item.amountExclTax },
             { label: '订单不含税金额(CNY)', value: item.amountExclTax },
-            { label: '合同总金额(CNY)', value: item.totalAmountCNY },
-            { label: '合同总金额(订单货币)', value: item.totalAmountOrder },
-            { label: '货币', value: item.currency },
+            { label: '订单金额合计(订单货币)', value: item.totalAmountOrder },
+            { label: '订单金额合计(CNY)', value: item.totalAmountCNY },
+            { label: '交易货币', value: item.currency },
             { label: '分销渠道描述', value: item.channelDesc },
             { label: '控股方', value: item.holdingCompany },
             { label: '用户行业(披露口径)', value: item.industryCode },
@@ -428,9 +428,9 @@ const SalesDocumentSearch = () => {
         },
       ],
       invoiceList: [
-        { key: '1', vatInvoiceNo: item.vatInvoiceNo || '-', vatInvoiceDate: item.vatInvoiceDate || '-', vatInvoiceRate: item.vatInvoiceRate || '-', vatInvoiceAmount: item.vatInvoiceAmount ? String(Math.round(Number(item.vatInvoiceAmount.replace(/,/g, '')) * 0.4)) + '.00' : '-' },
-        { key: '2', vatInvoiceNo: item.vatInvoiceNo ? item.vatInvoiceNo.replace(/1$/, '2') : '-', vatInvoiceDate: item.vatInvoiceDate ? item.vatInvoiceDate.replace(/\d{2}$/, '18') : '-', vatInvoiceRate: item.vatInvoiceRate || '-', vatInvoiceAmount: item.vatInvoiceAmount ? String(Math.round(Number(item.vatInvoiceAmount.replace(/,/g, '')) * 0.35)) + '.00' : '-' },
-        { key: '3', vatInvoiceNo: item.vatInvoiceNo ? item.vatInvoiceNo.replace(/1$/, '3') : '-', vatInvoiceDate: item.vatInvoiceDate ? item.vatInvoiceDate.replace(/\d{2}$/, '25') : '-', vatInvoiceRate: item.vatInvoiceRate || '-', vatInvoiceAmount: item.vatInvoiceAmount ? String(Math.round(Number(item.vatInvoiceAmount.replace(/,/g, '')) * 0.25)) + '.00' : '-' },
+        { key: '1', vatInvoiceCode: 'VIC-' + item.orderNo + '-01', vatInvoiceNo: item.vatInvoiceNo || '-', vatInvoiceDate: item.vatInvoiceDate || '-', vatInvoiceRate: item.vatInvoiceRate || '-', vatInvoiceAmount: item.vatInvoiceAmount ? String(Math.round(Number(item.vatInvoiceAmount.replace(/,/g, '')) * 0.4)) + '.00' : '-' },
+        { key: '2', vatInvoiceCode: 'VIC-' + item.orderNo + '-02', vatInvoiceNo: item.vatInvoiceNo ? item.vatInvoiceNo.replace(/1$/, '2') : '-', vatInvoiceDate: item.vatInvoiceDate ? item.vatInvoiceDate.replace(/\d{2}$/, '18') : '-', vatInvoiceRate: item.vatInvoiceRate || '-', vatInvoiceAmount: item.vatInvoiceAmount ? String(Math.round(Number(item.vatInvoiceAmount.replace(/,/g, '')) * 0.35)) + '.00' : '-' },
+        { key: '3', vatInvoiceCode: 'VIC-' + item.orderNo + '-03', vatInvoiceNo: item.vatInvoiceNo ? item.vatInvoiceNo.replace(/1$/, '3') : '-', vatInvoiceDate: item.vatInvoiceDate ? item.vatInvoiceDate.replace(/\d{2}$/, '25') : '-', vatInvoiceRate: item.vatInvoiceRate || '-', vatInvoiceAmount: item.vatInvoiceAmount ? String(Math.round(Number(item.vatInvoiceAmount.replace(/,/g, '')) * 0.25)) + '.00' : '-' },
       ],
       paymentList: [
         { key: '1', receiptNo: 'RC-' + item.orderNo + '-001', paymentDate: item.paymentDate || '-', paymentAmount: item.paymentAmount || '-', paymentCurrency: item.paymentCurrency || '-', outstandingAmount: item.outstandingAmount || '-', contractDebt: item.contractDebt || '-' },
@@ -444,6 +444,7 @@ const SalesDocumentSearch = () => {
   };
 
   const invoiceColumns = [
+    { title: 'VAT发票代码', dataIndex: 'vatInvoiceCode', key: 'vatInvoiceCode', width: 150 },
     { title: 'VAT发票号', dataIndex: 'vatInvoiceNo', key: 'vatInvoiceNo', width: 180 },
     { title: 'VAT发票时间', dataIndex: 'vatInvoiceDate', key: 'vatInvoiceDate', width: 120 },
     { title: 'VAT发票税率', dataIndex: 'vatInvoiceRate', key: 'vatInvoiceRate', width: 100 },
@@ -973,7 +974,7 @@ const SalesDocumentSearch = () => {
                   <Tooltip title="采购订单日期">
                     <Tag className="meta-tag">{item.poDate}</Tag>
                   </Tooltip>
-                  <Tooltip title="合同总金额(订单货币) / 货币单位">
+                  <Tooltip title="订单金额合计(订单货币) / 货币单位">
                     <Tag className="meta-tag">{item.amount} {item.currency}</Tag>
                   </Tooltip>
                 </div>
