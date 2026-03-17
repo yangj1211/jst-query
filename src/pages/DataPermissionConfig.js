@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button, Select, Checkbox, Modal, Input, Tabs, Drawer } from 'antd';
 import { SettingOutlined, ArrowLeftOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { useTagContext } from '../contexts/TagContext';
 import './PageStyle.css';
 
 const { Option } = Select;
@@ -43,6 +44,7 @@ const DataPermissionConfig = ({ open = true, onClose, onSaved, role, readOnly = 
   const navigate = useNavigate();
   const location = useLocation();
   const currentRole = role || location.state?.role; // 从路由参数获取角色信息
+  const { allTags: contextTags } = useTagContext() || { allTags: [] };
   
   console.log('DataPermissionConfig 组件加载');
   console.log('location.state:', location.state);
@@ -79,6 +81,10 @@ const DataPermissionConfig = ({ open = true, onClose, onSaved, role, readOnly = 
   const [rowPermissionExpressions, setRowPermissionExpressions] = useState([]); // 行权限表达式列表
   const [rowPermissionRelation, setRowPermissionRelation] = useState('且'); // 行权限表达式之间的关系：'且' 或 '或'
   const [initializedRoleId, setInitializedRoleId] = useState(null);
+
+  // 动态标签相关状态
+  const dynamicTags = contextTags || [];
+  const [mentionState, setMentionState] = useState({ visible: false, expId: null, filterText: '', caretPos: null, inValueIndex: null });
 
   // 全局权限（菜单权限）相关状态
   const allMenuKeys = menuPermissions.flatMap(p => p.children ? p.children.map(c => c.key) : [p.key]);
@@ -1391,6 +1397,191 @@ const DataPermissionConfig = ({ open = true, onClose, onSaved, role, readOnly = 
     }));
   };
 
+  // @ 提及相关处理
+  // 解析值字符串，将 @标签名 拆分为 segments
+  const parseValueSegments = (value) => {
+    if (!value) return [];
+    const segments = [];
+    const regex = /@(\S+)/g;
+    let lastIndex = 0;
+    let match;
+    while ((match = regex.exec(value)) !== null) {
+      if (match.index > lastIndex) {
+        segments.push({ type: 'text', text: value.slice(lastIndex, match.index) });
+      }
+      const tagName = match[1];
+      if (dynamicTags.includes(tagName)) {
+        segments.push({ type: 'tag', text: tagName });
+      } else {
+        segments.push({ type: 'text', text: match[0] });
+      }
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < value.length) {
+      segments.push({ type: 'text', text: value.slice(lastIndex) });
+    }
+    return segments;
+  };
+
+  const handleValueInputChange = (expId, newValue, e, inValueIndex) => {
+    if (inValueIndex != null) {
+      const newExps = rowPermissionExpressions.map(ex => {
+        if (ex.id === expId) { const nv = [...(ex.values || [])]; nv[inValueIndex] = newValue; return { ...ex, values: nv }; }
+        return ex;
+      });
+      setRowPermissionExpressions(newExps);
+    } else {
+      handleUpdateRowPermissionExpression(expId, 'value', newValue);
+    }
+    const cursorPos = e?.target?.selectionStart ?? newValue.length;
+    const textBeforeCursor = newValue.slice(0, cursorPos);
+    const atIndex = textBeforeCursor.lastIndexOf('@');
+    if (atIndex !== -1) {
+      const textAfterAt = textBeforeCursor.slice(atIndex + 1);
+      if (dynamicTags.includes(textAfterAt)) {
+        setMentionState({ visible: false, expId: null, filterText: '', caretPos: null, inValueIndex: null });
+        return;
+      }
+      if (!/\s/.test(textAfterAt)) {
+        setMentionState({ visible: true, expId, filterText: textAfterAt, caretPos: atIndex, inValueIndex });
+        return;
+      }
+    }
+    setMentionState({ visible: false, expId: null, filterText: '', caretPos: null, inValueIndex: null });
+  };
+
+  const handleSelectTag = (expId, tagName) => {
+    const exp = rowPermissionExpressions.find(e => e.id === expId);
+    if (!exp) return;
+    const atIndex = mentionState.caretPos;
+    if (atIndex == null) return;
+
+    if (mentionState.inValueIndex != null) {
+      const currentValue = (exp.values || [])[mentionState.inValueIndex] || '';
+      const before = currentValue.slice(0, atIndex);
+      const afterAtText = currentValue.slice(atIndex + 1);
+      const after = afterAtText.slice(mentionState.filterText.length);
+      const newValue = before + '@' + tagName + ' ' + after;
+      const newExps = rowPermissionExpressions.map(ex => {
+        if (ex.id === expId) { const nv = [...(ex.values || [])]; nv[mentionState.inValueIndex] = newValue; return { ...ex, values: nv }; }
+        return ex;
+      });
+      setRowPermissionExpressions(newExps);
+    } else {
+      const currentValue = exp.value || '';
+      const before = currentValue.slice(0, atIndex);
+      const afterAtText = currentValue.slice(atIndex + 1);
+      const after = afterAtText.slice(mentionState.filterText.length);
+      const newValue = before + '@' + tagName + ' ' + after;
+      handleUpdateRowPermissionExpression(expId, 'value', newValue);
+    }
+    setMentionState({ visible: false, expId: null, filterText: '', caretPos: null, inValueIndex: null });
+  };
+
+  const handleRemoveTag = (expId, tagName, inValueIndex) => {
+    if (inValueIndex != null) {
+      const newExps = rowPermissionExpressions.map(ex => {
+        if (ex.id === expId) {
+          const nv = [...(ex.values || [])];
+          nv[inValueIndex] = (nv[inValueIndex] || '').replace(new RegExp('@' + tagName + '\\s?'), '');
+          return { ...ex, values: nv };
+        }
+        return ex;
+      });
+      setRowPermissionExpressions(newExps);
+    } else {
+      const exp = rowPermissionExpressions.find(e => e.id === expId);
+      if (!exp) return;
+      const newValue = (exp.value || '').replace(new RegExp('@' + tagName + '\\s?'), '');
+      handleUpdateRowPermissionExpression(expId, 'value', newValue);
+    }
+  };
+
+  const getFilteredTags = () => {
+    const keyword = mentionState.filterText.toLowerCase();
+    return dynamicTags.filter(tag => tag.toLowerCase().includes(keyword));
+  };
+
+  // 渲染带标签的混合输入框
+  const renderTagValueInput = (expId, value, inValueIndex) => {
+    const segments = parseValueSegments(value);
+    const hasTags = segments.some(s => s.type === 'tag');
+    const isThisInput = mentionState.expId === expId && (inValueIndex == null ? mentionState.inValueIndex == null : mentionState.inValueIndex === inValueIndex);
+
+    return (
+      <div style={{ flex: 1, position: 'relative' }}>
+        <Input
+          value={value || ''}
+          onChange={(e) => handleValueInputChange(expId, e.target.value, e, inValueIndex)}
+          onBlur={() => setTimeout(() => {
+            setMentionState(prev => {
+              const match = prev.expId === expId && (inValueIndex == null ? prev.inValueIndex == null : prev.inValueIndex === inValueIndex);
+              return match ? { visible: false, expId: null, filterText: '', caretPos: null, inValueIndex: null } : prev;
+            });
+          }, 200)}
+          placeholder="输入值，输入@选择动态标签..."
+          style={{
+            width: '100%',
+            color: hasTags ? 'transparent' : undefined,
+            caretColor: '#333',
+          }}
+        />
+        {/* 渲染层：覆盖在 Input 上，标签+文本混排 */}
+        {hasTags && (
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            padding: '4px 11px',
+            display: 'flex', alignItems: 'center',
+            pointerEvents: 'none',
+            overflow: 'hidden', whiteSpace: 'nowrap',
+            fontSize: '14px', lineHeight: '24px', fontFamily: 'inherit',
+          }}>
+            {segments.map((seg, i) => seg.type === 'tag' ? (
+              <span key={i} style={{
+                display: 'inline-flex', alignItems: 'center', gap: '4px', pointerEvents: 'auto',
+                fontSize: '12px', color: '#1677ff', background: '#e6f4ff', border: '1px solid #91caff',
+                borderRadius: '4px', padding: '0 8px', lineHeight: '22px', whiteSpace: 'nowrap',
+                marginLeft: '2px', marginRight: '2px',
+              }}>
+                {seg.text}
+                <span
+                  style={{ cursor: 'pointer', fontSize: '10px', color: '#1677ff', marginLeft: '2px', lineHeight: 1 }}
+                  onClick={(e) => { e.stopPropagation(); handleRemoveTag(expId, seg.text, inValueIndex); }}
+                >✕</span>
+              </span>
+            ) : (
+              <span key={i} style={{ color: '#333' }}>{seg.text}</span>
+            ))}
+          </div>
+        )}
+        {/* 下拉菜单 */}
+        {mentionState.visible && isThisInput && (
+          <div style={{
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999,
+            background: '#fff', border: '1px solid #d9d9d9', borderRadius: '6px',
+            boxShadow: '0 6px 16px rgba(0,0,0,0.12)', maxHeight: '200px', overflowY: 'auto', marginTop: '4px'
+          }}>
+            {getFilteredTags().length > 0 ? getFilteredTags().map(tag => (
+              <div key={tag} style={{ padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f7ff'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fff'}
+                onMouseDown={(e) => { e.preventDefault(); handleSelectTag(expId, tag); }}
+              >
+                <span style={{ color: '#1677ff', fontWeight: 500 }}>@</span>
+                <span>{tag}</span>
+              </div>
+            )) : (
+              <div style={{ padding: '12px', textAlign: 'center', color: '#999', fontSize: '13px' }}>
+                暂无标签，请先在数据管理中添加标签
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+
   // 切换单个列的选中状态
   const handleToggleColumn = (columnName) => {
     setColumnConfigs(columnConfigs.map(col => 
@@ -2209,18 +2400,12 @@ const DataPermissionConfig = ({ open = true, onClose, onSaved, role, readOnly = 
                       ))}
                     </Select>
                     {exp.operator !== 'in' ? (
-                      <Input value={exp.value || ''} onChange={(e) => handleUpdateRowPermissionExpression(exp.id, 'value', e.target.value)} placeholder="输入值..." style={{ flex: 1 }} />
+                      renderTagValueInput(exp.id, exp.value, null)
                     ) : (
                       <div style={{ flex: 1 }}>
                         {(exp.values || []).map((val, vi) => (
-                          <div key={vi} style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
-                            <Input value={val} onChange={(e) => {
-                              const newExps = rowPermissionExpressions.map(ex => {
-                                if (ex.id === exp.id) { const nv = [...(ex.values || [])]; nv[vi] = e.target.value; return { ...ex, values: nv }; }
-                                return ex;
-                              });
-                              setRowPermissionExpressions(newExps);
-                            }} placeholder="输入值..." style={{ flex: 1 }} />
+                          <div key={vi} style={{ display: 'flex', gap: '8px', marginBottom: '6px', position: 'relative' }}>
+                            {renderTagValueInput(exp.id, val, vi)}
                             <Button type="text" danger icon={<DeleteOutlined />} onClick={() => {
                               const newExps = rowPermissionExpressions.map(ex => {
                                 if (ex.id === exp.id) { return { ...ex, values: (ex.values || []).filter((_, i) => i !== vi) }; }

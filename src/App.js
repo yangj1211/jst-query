@@ -14,10 +14,12 @@ import Dashboard from './pages/Dashboard';
 import WorkOrderMySubmitted from './pages/WorkOrderMySubmitted';
 import WorkOrderMyHandled from './pages/WorkOrderMyHandled';
 import WorkOrderConfig from './pages/WorkOrderConfig';
+import { TagProvider } from './contexts/TagContext';
 import './App.css';
 
 function App() {
   return (
+    <TagProvider>
     <Router>
       <Routes>
         <Route path="/" element={<MainLayout />}>
@@ -39,6 +41,7 @@ function App() {
         </Route>
       </Routes>
     </Router>
+    </TagProvider>
   );
 }
 
