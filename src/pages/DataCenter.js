@@ -4,14 +4,15 @@ import { EditOutlined, DownloadOutlined, DeleteOutlined, EyeOutlined, ReloadOutl
 import './PageStyle.css';
 import './DataCenter.css';
 import TagManagementModal from '../components/TagManagementModal';
+import { useTagContext } from '../contexts/TagContext';
 
 const { RangePicker } = DatePicker;
 
 // 模拟数据
 const generateMockData = () => {
   const files = [
-    { id: 1, name: 'revenue_cost', objectType: 'table', tags: [], source: '', description: '收入成本表', fileSize: '182.7MB', createTime: '2035-02-26 15:55:51', updateTime: '2026-02-26 15:55:51', creator: '系统' },
-    { id: 2, name: '许继电气_关于减额2026年度日常关联交...', objectType: 'file', tags: [], source: '许继电气及控股公司', description: 'test-1626', fileSize: '179.28KB', createTime: '2028-02-26 18:26:04', updateTime: '2026-02-28 18:52:40', creator: '张三' },
+    { id: 1, name: 'revenue_cost', objectType: 'table', tags: ['部门'], source: '', description: '收入成本表', fileSize: '182.7MB', createTime: '2035-02-26 15:55:51', updateTime: '2026-02-26 15:55:51', creator: '系统' },
+    { id: 2, name: '许继电气_关于减额2026年度日常关联交...', objectType: 'file', tags: ['职级'], source: '许继电气及控股公司', description: 'test-1626', fileSize: '179.28KB', createTime: '2028-02-26 18:26:04', updateTime: '2026-02-28 18:52:40', creator: '张三' },
     { id: 3, name: '金晶科技_2024年半年报告.pdf', objectType: 'file', tags: [], source: '金晶玻璃集体', description: '-', fileSize: '4.86MB', createTime: '2026-02-26 17:14:02', updateTime: '2026-02-28 18:16:15', creator: '张三' },
     { id: 4, name: '许继电气_关于预计2026年度日常关联交...', objectType: 'file', tags: [], source: '许继电气/交流输配电', description: '测试文件名', fileSize: '188.04KB', createTime: '2028-01-26 18:14:56', updateTime: '2026-02-28 18:18:31', creator: '张三' },
     { id: 5, name: '金晶科技_2024年年度报告.pdf', objectType: 'file', tags: [], source: '金晶玻璃集体', description: '金晶公告', fileSize: '6.39MB', createTime: '2029-02-26 19:47:48', updateTime: '2026-02-28 16:37:06', creator: '张三' },
@@ -74,6 +75,7 @@ const generateMockData = () => {
 };
 
 const DataCenter = () => {
+  const { updateTags } = useTagContext();
   const [savedTables, setSavedTables] = useState(() => generateMockData());
   const [dataSource, setDataSource] = useState(() => generateMockData());
   const [viewingTableId, setViewingTableId] = useState(null);
@@ -342,7 +344,9 @@ const DataCenter = () => {
         item.tags.forEach(tag => { if (tag) tags.add(tag); });
       }
     });
-    setAllTags(Array.from(tags));
+    const tagArray = Array.from(tags);
+    setAllTags(tagArray);
+    updateTags(tagArray);
   }, [savedTables]);
 
   const checkTagInUse = (tag) => savedTables.some(item => item.tags?.includes(tag));
@@ -369,6 +373,7 @@ const DataCenter = () => {
       }));
     }
     setAllTags(newTags);
+    updateTags(newTags);
   };
 
   // 过滤逻辑
