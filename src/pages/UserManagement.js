@@ -39,7 +39,7 @@ const generateMockData = () => {
     });
   }
 
-  return [...roles, ...extraData].map((item, index) => ({ ...item, key: String(index + 1) }));
+  return [...roles, ...extraData].map((item) => ({ ...item, key: item.userId }));
 };
 
 // 角色颜色映射
@@ -91,6 +91,7 @@ const UserManagement = () => {
     userId: '',
     username: '',
     account: '',
+    department: '',
     role: undefined,
     tagName: undefined,
     tagValue: '',
@@ -105,6 +106,10 @@ const UserManagement = () => {
   const [dataSource, setDataSource] = useState(mockData);
   const [allUsers, setAllUsers] = useState(mockData);
 
+  // 批量赋角色相关状态
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [isBatchRoleModalVisible, setIsBatchRoleModalVisible] = useState(false);
+  const [batchSelectedRoles, setBatchSelectedRoles] = useState([]);
   // 标签管理相关状态
   const [isTagModalVisible, setIsTagModalVisible] = useState(false);
   const [userTags, setUserTags] = useState([{ key: '1', name: '部门' }, { key: '2', name: '职级' }]);
@@ -142,6 +147,30 @@ const UserManagement = () => {
     setEditingUserTags(editingUserTags.map((t, i) => i === index ? { ...t, [field]: value } : t));
   };
 
+  // 批量赋角色
+  const handleBatchRoleOpen = () => {
+    setBatchSelectedRoles([]);
+    setIsBatchRoleModalVisible(true);
+  };
+
+  const handleBatchRoleSave = () => {
+    if (batchSelectedRoles.length === 0) {
+      message.warning('请选择至少一个角色');
+      return;
+    }
+    const selectedUserIds = new Set(selectedRowKeys);
+    const updatedData = allUsers.map(item => {
+      if (!selectedUserIds.has(item.userId)) return item;
+      const newRoles = [...new Set([...item.roles, ...batchSelectedRoles])];
+      return { ...item, roles: newRoles };
+    });
+    setAllUsers(updatedData);
+    applyFilters(searchFilters, createTimeRange, updatedData);
+    message.success(`已为 ${selectedUserIds.size} 个用户追加角色`);
+    setIsBatchRoleModalVisible(false);
+    setSelectedRowKeys([]);
+  };
+
   const handleSaveRoles = () => {
     if (!editingUser) return;
     const updatedData = allUsers.map(item => {
@@ -160,7 +189,7 @@ const UserManagement = () => {
   const applyFilters = useCallback((filters, timeRange, data) => {
     const source = data || allUsers;
     const hasAnyFilter = filters.userId || filters.username || filters.account || 
-      filters.role || filters.tagName || filters.tagValue || timeRange;
+      filters.department || filters.role || filters.tagName || filters.tagValue || timeRange;
     
     if (!hasAnyFilter) {
       setDataSource(source);
@@ -171,6 +200,7 @@ const UserManagement = () => {
       const matchUserId = !filters.userId || item.userId.includes(filters.userId);
       const matchUsername = !filters.username || item.username.includes(filters.username);
       const matchAccount = !filters.account || item.account.includes(filters.account);
+      const matchDepartment = !filters.department || (item.tags && item.tags.some(t => t.tagName === '部门' && t.tagValue.includes(filters.department)));
       const matchRole = !filters.role || item.roles.includes(filters.role);
       const matchTag = (!filters.tagName && !filters.tagValue) || (item.tags && item.tags.some(t => 
         (!filters.tagName || t.tagName === filters.tagName) && 
@@ -184,7 +214,7 @@ const UserManagement = () => {
         if (timeRange[1] && matchTime) matchTime = itemDate <= timeRange[1].toDate();
       }
 
-      return matchUserId && matchUsername && matchAccount && matchRole && matchTag && matchTime;
+      return matchUserId && matchUsername && matchAccount && matchDepartment && matchRole && matchTag && matchTime;
     });
     setDataSource(filtered);
   }, [allUsers]);
@@ -201,7 +231,7 @@ const UserManagement = () => {
   };
 
   const handleResetSearch = () => {
-    setSearchFilters({ userId: '', username: '', account: '', role: undefined, tagName: undefined, tagValue: '' });
+    setSearchFilters({ userId: '', username: '', account: '', department: '', role: undefined, tagName: undefined, tagValue: '' });
     setCreateTimeRange(null);
     setDataSource(allUsers);
   };
@@ -268,6 +298,15 @@ const UserManagement = () => {
     { title: '用户 ID', dataIndex: 'userId', key: 'userId', width: 120 },
     { title: '用户名', dataIndex: 'username', key: 'username', width: 150 },
     { title: '账号', dataIndex: 'account', key: 'account', width: 180 },
+    {
+      title: '部门',
+      key: 'department',
+      width: 120,
+      render: (_, record) => {
+        const dept = record.tags && record.tags.find(t => t.tagName === '部门');
+        return dept ? dept.tagValue : '-';
+      },
+    },
     {
       title: '角色',
       dataIndex: 'roles',
@@ -362,6 +401,13 @@ const UserManagement = () => {
             allowClear
             style={{ width: 160 }}
           />
+          <Input
+            placeholder="部门"
+            value={searchFilters.department}
+            onChange={(e) => handleSearch('department', e.target.value)}
+            allowClear
+            style={{ width: 160 }}
+          />
           <Select
             placeholder="角色"
             value={searchFilters.role}
@@ -403,6 +449,24 @@ const UserManagement = () => {
 
         {/* 用户表格 */}
         <Table
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (keys, selectedRows, info) => {
+              if (info.type === 'all') {
+                // 判断当前页是否全选
+                const currentPageKeys = dataSource.slice(0, 10).map(item => item.key);
+                const isSelectAll = currentPageKeys.every(key => keys.includes(key));
+                if (isSelectAll) {
+                  setSelectedRowKeys(dataSource.map(item => item.key));
+                } else {
+                  setSelectedRowKeys([]);
+                }
+              } else {
+                setSelectedRowKeys(keys);
+              }
+            },
+            preserveSelectedRowKeys: true,
+          }}
           dataSource={dataSource}
           columns={columns}
           pagination={{
@@ -548,6 +612,75 @@ const UserManagement = () => {
             />
           </div>
         </Modal>
+
+        {/* 批量赋角色弹窗 */}
+        <Modal
+          title={null}
+          open={isBatchRoleModalVisible}
+          onOk={handleBatchRoleSave}
+          onCancel={() => setIsBatchRoleModalVisible(false)}
+          okText="确认分配"
+          cancelText="取消"
+          width={480}
+          centered
+        >
+          <div style={{ textAlign: 'center', padding: '16px 0 24px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>批量赋角色</div>
+            <div style={{ color: '#666' }}>已选择 <span style={{ color: '#1890ff', fontWeight: 600 }}>{selectedRowKeys.length}</span> 个用户</div>
+          </div>
+          <div>
+            <div style={{ marginBottom: '8px', color: '#333' }}>选择要追加的角色：</div>
+            <Select
+              mode="multiple"
+              value={batchSelectedRoles}
+              onChange={setBatchSelectedRoles}
+              placeholder="点击选择角色"
+              style={{ width: '100%' }}
+              showSearch
+              optionFilterProp="label"
+              options={roleOptions.map(role => ({ label: role, value: role }))}
+              maxTagCount={3}
+              maxTagPlaceholder={(omitted) => `+${omitted.length} 个角色`}
+            />
+            {batchSelectedRoles.length > 0 && (
+              <div style={{ marginTop: '12px', padding: '12px', background: '#f5f5f5', borderRadius: '6px' }}>
+                <div style={{ fontSize: '12px', color: '#999', marginBottom: '8px' }}>将追加以下角色：</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {batchSelectedRoles.map(role => (
+                    <Tag key={role} color="blue">{role}</Tag>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
+
+        {/* 底部浮动操作栏 */}
+        {selectedRowKeys.length > 0 && (
+          <div style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: '#fff',
+            boxShadow: '0 -2px 8px rgba(0,0,0,0.1)',
+            padding: '12px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            zIndex: 100,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: '#666' }}>已选择</span>
+              <span style={{ fontSize: '20px', fontWeight: 600, color: '#1890ff' }}>{selectedRowKeys.length}</span>
+              <span style={{ color: '#666' }}>个用户</span>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <Button onClick={() => setSelectedRowKeys([])}>取消选择</Button>
+              <Button type="primary" onClick={handleBatchRoleOpen}>批量赋角色</Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
