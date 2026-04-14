@@ -32,6 +32,7 @@ import orderTable from '../data/orderTable';
 import documentTable from '../data/documentTable';
 import purchaseOrderTable from '../data/purchaseOrderTable';
 import purchaseDocumentTable from '../data/purchaseDocumentTable';
+import { purchaseOrderDetails, purchaseReceiptData, purchaseInvoiceData, purchasePaymentData } from '../data/purchaseDetailData';
 import standaloneDocumentTable from '../data/standaloneDocumentTable';
 import docCategoryMeta from '../data/docCategoryMeta';
 import { parseQuery } from '../utils/queryParser';
@@ -1140,7 +1141,7 @@ const SalesDocumentSearch = () => {
                                 {item.purchaseOrderNo && (
                                   <span className="result-order-no">{item.purchaseOrderNo}</span>
                                 )}
-                                <span className="result-item-title">{item.description}</span>
+                                <span className="result-item-title">{item.supplier}</span>
                               </div>
                               <div className="result-item-actions">
                                 <Tooltip title="查看详情">
@@ -1156,14 +1157,14 @@ const SalesDocumentSearch = () => {
                               </div>
                             </div>
                             <div className="result-item-meta result-item-meta-tags">
-                              <Tooltip title="供应商名称">
-                                <Tag className="meta-tag">{item.supplier}</Tag>
-                              </Tooltip>
                               <Tooltip title="采购日期">
                                 <Tag className="meta-tag">{item.purchaseDate}</Tag>
                               </Tooltip>
-                              <Tooltip title="采购金额 / 币种">
-                                <Tag className="meta-tag">{item.purchaseAmount} {item.currency}</Tag>
+                              <Tooltip title="订单含税金额 / 币种">
+                                <Tag className="meta-tag">{item.orderAmountWithTax} {item.currency}</Tag>
+                              </Tooltip>
+                              <Tooltip title="采购类型">
+                                <Tag className="meta-tag">{item.purchaseType}</Tag>
                               </Tooltip>
                             </div>
                             {filters.expandedItems.includes(item.purchaseOrderNo) && (
@@ -1289,7 +1290,7 @@ const SalesDocumentSearch = () => {
                             '担保协议': '#ff4d4f', '授信协议': '#40a9ff', '借款协议': '#ffc53d',
                             '凭证入账支持文件': '#bae637', '银行回单': '#389e0d', '承兑汇票收付回单': '#d48806',
                             '报销发票': '#c41d7f', '应付账款函证相关单据-对账单': '#531dab',
-                            '应付账款函证相关单据-应收询证函': '#08979c', '采购框架协议、质量协议': '#cf1322',
+                            '应付账款函证相关单据-应收询证函': '#08979c', '采购协议': '#cf1322',
                           };
                           const categoryColor = DOC_CATEGORY_COLORS[doc.docCategory] || '#8c8c8c';
 
@@ -1439,55 +1440,218 @@ const SalesDocumentSearch = () => {
       <Drawer
         open={purchaseDetailVisible}
         title={purchaseDetailItem ? `采购单详情 - ${purchaseDetailItem.purchaseOrderNo}` : '采购单详情'}
-        width="60%"
+        width="70%"
         placement="right"
         onClose={() => setPurchaseDetailVisible(false)}
         bodyStyle={{ padding: 0, overflowY: 'auto', background: '#f7f8fa' }}
         headerStyle={{ borderBottom: '1px solid #f0f0f0', padding: '12px 16px' }}
         className="detail-drawer"
       >
-        {purchaseDetailItem && (
+        {purchaseDetailItem && (() => {
+          const poNo = purchaseDetailItem.purchaseOrderNo;
+          const details = purchaseOrderDetails[poNo] || [];
+          const receipts = purchaseReceiptData[poNo] || [];
+          const invoices = purchaseInvoiceData[poNo] || [];
+          const payments = purchasePaymentData[poNo] || [];
+          // 欠款计算
+          const totalPayment = payments.reduce((s, p) => s + Number(p.amount.replace(/,/g, '')), 0);
+          const totalInvoice = invoices.reduce((s, i) => s + Number(i.invoiceAmount.replace(/,/g, '')), 0);
+          const orderTax = Number((purchaseDetailItem.orderAmountWithTax || '0').replace(/,/g, ''));
+          const contractPaymentDebt = orderTax - totalPayment;
+          const accountsPayable = totalInvoice - totalPayment;
+
+          return (
           <div className="detail-modal detail-drawer-content">
+            {/* 1. 采购订单基本信息 */}
             <div className="detail-block">
-              <div className="detail-block-title">采购订单基础信息</div>
+              <div className="detail-block-title">采购订单基本信息</div>
               <div className="detail-block-content">
                 <div className="detail-field-item">
-                  <span className="detail-field-label">采购订单号</span>
+                  <span className="detail-field-label">采购凭证</span>
                   <span className="detail-field-value">{purchaseDetailItem.purchaseOrderNo}</span>
+                </div>
+                <div className="detail-field-item">
+                  <span className="detail-field-label">供应商代码</span>
+                  <span className="detail-field-value">{purchaseDetailItem.supplierCode || '-'}</span>
                 </div>
                 <div className="detail-field-item">
                   <span className="detail-field-label">供应商名称</span>
                   <span className="detail-field-value">{purchaseDetailItem.supplier}</span>
                 </div>
                 <div className="detail-field-item">
-                  <span className="detail-field-label">采购日期</span>
+                  <span className="detail-field-label">业务实体</span>
+                  <span className="detail-field-value">{purchaseDetailItem.companyName || '-'}</span>
+                </div>
+                <div className="detail-field-item">
+                  <span className="detail-field-label">订单含税金额</span>
+                  <span className="detail-field-value">{purchaseDetailItem.orderAmountWithTax || '-'} {purchaseDetailItem.currency}</span>
+                </div>
+                <div className="detail-field-item">
+                  <span className="detail-field-label">订单净值</span>
+                  <span className="detail-field-value">{purchaseDetailItem.orderNetValue || '-'} {purchaseDetailItem.currency}</span>
+                </div>
+                <div className="detail-field-item">
+                  <span className="detail-field-label">采购组</span>
+                  <span className="detail-field-value">{purchaseDetailItem.purchaseGroup || '-'}</span>
+                </div>
+                <div className="detail-field-item">
+                  <span className="detail-field-label">采购组描述</span>
+                  <span className="detail-field-value">{purchaseDetailItem.purchaseGroupDesc || '-'}</span>
+                </div>
+                <div className="detail-field-item">
+                  <span className="detail-field-label">采购员</span>
+                  <span className="detail-field-value">{purchaseDetailItem.purchaser || '-'}</span>
+                </div>
+                <div className="detail-field-item">
+                  <span className="detail-field-label">付款条件</span>
+                  <span className="detail-field-value">{purchaseDetailItem.paymentTerms || '-'}</span>
+                </div>
+                <div className="detail-field-item">
+                  <span className="detail-field-label">凭证日期</span>
                   <span className="detail-field-value">{purchaseDetailItem.purchaseDate}</span>
                 </div>
                 <div className="detail-field-item">
-                  <span className="detail-field-label">采购金额</span>
-                  <span className="detail-field-value">{purchaseDetailItem.purchaseAmount} {purchaseDetailItem.currency}</span>
+                  <span className="detail-field-label">税率</span>
+                  <span className="detail-field-value">{purchaseDetailItem.taxRate || '-'}</span>
                 </div>
                 <div className="detail-field-item">
-                  <span className="detail-field-label">采购类型</span>
-                  <span className="detail-field-value">{purchaseDetailItem.purchaseType}</span>
+                  <span className="detail-field-label">币种</span>
+                  <span className="detail-field-value">{purchaseDetailItem.currency}</span>
                 </div>
                 <div className="detail-field-item">
-                  <span className="detail-field-label">关联销售订单</span>
-                  <span className="detail-field-value">{purchaseDetailItem.relatedSalesOrder || '-'}</span>
+                  <span className="detail-field-label">工厂</span>
+                  <span className="detail-field-value">{purchaseDetailItem.plant || '-'}</span>
                 </div>
                 <div className="detail-field-item">
-                  <span className="detail-field-label">状态</span>
-                  <span className="detail-field-value">{purchaseDetailItem.status}</span>
-                </div>
-                <div className="detail-field-item">
-                  <span className="detail-field-label">描述</span>
-                  <span className="detail-field-value">{purchaseDetailItem.description}</span>
+                  <span className="detail-field-label">工厂描述</span>
+                  <span className="detail-field-value">{purchaseDetailItem.plantDesc || '-'}</span>
                 </div>
               </div>
             </div>
 
+            {/* 2. 订单明细 */}
+            <div className="detail-block">
+              <div className="detail-block-title">订单明细</div>
+              <div className="detail-block-content detail-material-table">
+                <Table
+                  columns={[
+                    { title: '行号', dataIndex: 'lineNo', key: 'lineNo', width: 60 },
+                    { title: '物料代码', dataIndex: 'materialCode', key: 'materialCode', width: 120 },
+                    { title: '物料描述', dataIndex: 'materialDesc', key: 'materialDesc', ellipsis: true, width: 160 },
+                    { title: '订单数量', dataIndex: 'quantity', key: 'quantity', width: 80 },
+                    { title: '单位', dataIndex: 'unit', key: 'unit', width: 60 },
+                    { title: '净价', dataIndex: 'netPrice', key: 'netPrice', width: 120 },
+                    { title: '价格单位', dataIndex: 'priceUnit', key: 'priceUnit', width: 80 },
+                    { title: '不含税行金额', dataIndex: 'lineAmountExclTax', key: 'lineAmountExclTax', width: 130 },
+                    { title: '税率', dataIndex: 'taxRate', key: 'taxRate', width: 60 },
+                    { title: '仍要交货数量', dataIndex: 'openDeliveryQty', key: 'openDeliveryQty', width: 110 },
+                    { title: '物料组', dataIndex: 'materialGroup', key: 'materialGroup', width: 80 },
+                    { title: '物料组名称', dataIndex: 'materialGroupName', key: 'materialGroupName', width: 100 },
+                    { title: '仍要开票金额', dataIndex: 'openInvoiceAmount', key: 'openInvoiceAmount', width: 120 },
+                    { title: '项目文本', dataIndex: 'itemText', key: 'itemText', ellipsis: true, width: 150 },
+                    { title: '资产编号', dataIndex: 'assetNo', key: 'assetNo', width: 100, render: v => v || '-' },
+                    { title: '总账科目', dataIndex: 'glAccount', key: 'glAccount', width: 90 },
+                    { title: '订单', dataIndex: 'internalOrder', key: 'internalOrder', width: 120 },
+                    { title: '利润中心', dataIndex: 'profitCenter', key: 'profitCenter', width: 90 },
+                    { title: '销售订单', dataIndex: 'salesOrder', key: 'salesOrder', width: 110 },
+                    { title: '销售订单行项目', dataIndex: 'salesOrderItem', key: 'salesOrderItem', width: 120 },
+                  ]}
+                  dataSource={details}
+                  pagination={false}
+                  size="small"
+                  scroll={{ x: 2000 }}
+                />
+              </div>
+            </div>
+
+            {/* 3. 入库收货数据 */}
+            <div className="detail-block">
+              <div className="detail-block-title">入库收货数据</div>
+              <div className="detail-block-content detail-material-table">
+                <Table
+                  columns={[
+                    { title: '收货过账日期', dataIndex: 'receiptDate', key: 'receiptDate', width: 130 },
+                    { title: '交货数量', dataIndex: 'deliveryQty', key: 'deliveryQty', width: 100 },
+                    { title: '以本币计的金额', dataIndex: 'amountLocal', key: 'amountLocal', width: 150 },
+                    { title: '物料凭证', dataIndex: 'materialDoc', key: 'materialDoc' },
+                  ]}
+                  dataSource={receipts}
+                  pagination={false}
+                  size="small"
+                  locale={{ emptyText: '暂无入库收货记录' }}
+                />
+              </div>
+            </div>
+
+            {/* 4. 发票明细数据 */}
+            <div className="detail-block">
+              <div className="detail-block-title">发票明细数据</div>
+              <div className="detail-block-content detail-material-table">
+                <Table
+                  columns={[
+                    { title: '系统来源', dataIndex: 'systemSource', key: 'systemSource', width: 80 },
+                    { title: '会计凭证', dataIndex: 'accountingDoc', key: 'accountingDoc', width: 120 },
+                    { title: '校验原始凭证', dataIndex: 'verifyOrigDoc', key: 'verifyOrigDoc', width: 130 },
+                    { title: '会计年度', dataIndex: 'fiscalYear', key: 'fiscalYear', width: 80 },
+                    { title: '过账日期', dataIndex: 'postingDate', key: 'postingDate', width: 100 },
+                    { title: '发票金额', dataIndex: 'invoiceAmount', key: 'invoiceAmount', width: 130 },
+                    { title: '单据号', dataIndex: 'docNo', key: 'docNo', width: 150 },
+                    { title: '发票时间', dataIndex: 'invoiceDate', key: 'invoiceDate', width: 100 },
+                    { title: '发票类型', dataIndex: 'invoiceType', key: 'invoiceType', width: 130 },
+                    { title: '发票号码', dataIndex: 'invoiceNo', key: 'invoiceNo', width: 130 },
+                    { title: '税率', dataIndex: 'taxRate', key: 'taxRate', width: 60 },
+                    { title: '税额', dataIndex: 'taxAmount', key: 'taxAmount', width: 120 },
+                  ]}
+                  dataSource={invoices}
+                  pagination={false}
+                  size="small"
+                  scroll={{ x: 1300 }}
+                  locale={{ emptyText: '暂无发票记录' }}
+                />
+              </div>
+            </div>
+
+            {/* 5. 付款明细数据 */}
+            <div className="detail-block">
+              <div className="detail-block-title">付款明细数据</div>
+              <div className="detail-block-content detail-material-table">
+                <Table
+                  columns={[
+                    { title: '凭证日期', dataIndex: 'docDate', key: 'docDate', width: 100 },
+                    { title: '过账日期', dataIndex: 'postingDate', key: 'postingDate', width: 100 },
+                    { title: '金额', dataIndex: 'amount', key: 'amount', width: 140 },
+                    { title: '交易货币金额(总账金额)', dataIndex: 'tradeCurrencyAmount', key: 'tradeCurrencyAmount', width: 160 },
+                    { title: '交易货币', dataIndex: 'tradeCurrency', key: 'tradeCurrency', width: 90 },
+                    { title: '凭证号', dataIndex: 'voucherNo', key: 'voucherNo', width: 180 },
+                    { title: '单据号', dataIndex: 'docNo', key: 'docNo', width: 160 },
+                    { title: '回单编号', dataIndex: 'receiptNo', key: 'receiptNo', width: 160 },
+                  ]}
+                  dataSource={payments}
+                  pagination={false}
+                  size="small"
+                  scroll={{ x: 1000 }}
+                  locale={{ emptyText: '暂无付款记录' }}
+                />
+              </div>
+            </div>
+
+            {/* 6. 欠款数据 */}
+            <div className="detail-block">
+              <div className="detail-block-title">欠款数据</div>
+              <div className="detail-block-content">
+                <div className="detail-field-item">
+                  <span className="detail-field-label">合同-付款</span>
+                  <span className="detail-field-value">{contractPaymentDebt > 0 ? contractPaymentDebt.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'} {purchaseDetailItem.currency}</span>
+                </div>
+                <div className="detail-field-item">
+                  <span className="detail-field-label">应付余额</span>
+                  <span className="detail-field-value">{accountsPayable > 0 ? accountsPayable.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'} {purchaseDetailItem.currency}</span>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+          );
+        })()}
       </Drawer>
 
       {/* 单据预览弹窗 */}
