@@ -28,6 +28,7 @@ import {
 import { useDocumentConversation } from '../contexts/DocumentConversationContext';
 import CombinedThinking from '../components/CombinedThinking';
 import OrderRelationsPanel from '../components/OrderRelationsPanel';
+import PurchaseRelationsPanel from '../components/PurchaseRelationsPanel';
 import orderTable from '../data/orderTable';
 import documentTable from '../data/documentTable';
 import purchaseOrderTable from '../data/purchaseOrderTable';
@@ -1314,6 +1315,9 @@ const SalesDocumentSearch = () => {
                                       onClick={() => { setDocPreviewItem(doc); setDocPreviewVisible(true); }}
                                     />
                                   </Tooltip>
+                                  <Tooltip title={doc.kassPath || '暂无存储路径'}>
+                                    <Button type="text" icon={<InfoCircleOutlined />} />
+                                  </Tooltip>
                                 </div>
                               </div>
                               {/* Structured fields display - always show based on docCategory */}
@@ -1647,6 +1651,14 @@ const SalesDocumentSearch = () => {
                   <span className="detail-field-label">应付余额</span>
                   <span className="detail-field-value">{accountsPayable > 0 ? accountsPayable.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'} {purchaseDetailItem.currency}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* 7. 关联单号 */}
+            <div className="detail-block">
+              <div className="detail-block-title">关联单号</div>
+              <div className="detail-block-content" style={{ display: 'block', padding: '16px' }}>
+                <PurchaseRelationsPanel purchaseOrderNo={purchaseDetailItem.purchaseOrderNo} />
               </div>
             </div>
           </div>
