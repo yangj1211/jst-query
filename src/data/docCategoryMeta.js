@@ -85,12 +85,11 @@ const docCategoryMeta = {
       { key: 'collectionPeriod', label: '征期时间', type: 'string' },
     ],
   },
-  // 12. 完税凭证：公司代码 → 属期年月 → 税种名 → 征期时间
+  // 12. 完税凭证：公司代码 → 属期年月 → 征期时间
   '完税凭证': {
     fields: [
       { key: 'companyCode', label: '公司代码', type: 'string' },
       { key: 'taxPeriod', label: '属期年月', type: 'string' },
-      { key: 'taxName', label: '税种名', type: 'string' },
       { key: 'collectionPeriod', label: '征期时间', type: 'string' },
     ],
   },

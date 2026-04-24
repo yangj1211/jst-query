@@ -64,20 +64,20 @@ const purchaseInvoiceData = {
 // ===== 付款明细数据表 (3.3.5) =====
 const purchasePaymentData = {
   'PO2018-0001': [
-    { key: '1', docDate: '2018-09-01', postingDate: '2018-09-01', amount: '2,055,000.00', tradeCurrencyAmount: '2,055,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2018-0001-P1', docNo: 'PAY-2018-0001-01', receiptNo: 'RC-2018-0001-01' },
-    { key: '2', docDate: '2018-11-15', postingDate: '2018-11-15', amount: '2,740,000.00', tradeCurrencyAmount: '2,740,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2018-0001-P2', docNo: 'PAY-2018-0001-02', receiptNo: 'RC-2018-0001-02' },
-    { key: '3', docDate: '2019-01-20', postingDate: '2019-01-20', amount: '2,055,000.00', tradeCurrencyAmount: '2,055,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2018-0001-P3', docNo: 'PAY-2018-0001-03', receiptNo: 'RC-2018-0001-03' },
+    { key: '1', paymentType: '电汇', docDate: '2018-09-01', postingDate: '2018-09-01', amount: '2,055,000.00', tradeCurrencyAmount: '2,055,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2018-0001-P1', docNo: 'PAY-2018-0001-01', receiptNo: 'RC-2018-0001-01' },
+    { key: '2', paymentType: '承兑汇票', docDate: '2018-11-15', postingDate: '2018-11-15', amount: '2,740,000.00', tradeCurrencyAmount: '2,740,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2018-0001-P2', docNo: 'PAY-2018-0001-02', receiptNo: 'RC-2018-0001-02' },
+    { key: '3', paymentType: '电汇', docDate: '2019-01-20', postingDate: '2019-01-20', amount: '2,055,000.00', tradeCurrencyAmount: '2,055,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2018-0001-P3', docNo: 'PAY-2018-0001-03', receiptNo: 'RC-2018-0001-03' },
   ],
   'PO2018-0002': [
-    { key: '1', docDate: '2018-10-01', postingDate: '2018-10-01', amount: '960,000.00', tradeCurrencyAmount: '960,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2018-0002-P1', docNo: 'PAY-2018-0002-01', receiptNo: 'RC-2018-0002-01' },
-    { key: '2', docDate: '2019-01-10', postingDate: '2019-01-10', amount: '2,240,000.00', tradeCurrencyAmount: '2,240,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2018-0002-P2', docNo: 'PAY-2018-0002-02', receiptNo: 'RC-2018-0002-02' },
+    { key: '1', paymentType: '电汇', docDate: '2018-10-01', postingDate: '2018-10-01', amount: '960,000.00', tradeCurrencyAmount: '960,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2018-0002-P1', docNo: 'PAY-2018-0002-01', receiptNo: 'RC-2018-0002-01' },
+    { key: '2', paymentType: '电汇', docDate: '2019-01-10', postingDate: '2019-01-10', amount: '2,240,000.00', tradeCurrencyAmount: '2,240,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2018-0002-P2', docNo: 'PAY-2018-0002-02', receiptNo: 'RC-2018-0002-02' },
   ],
   'PO2019-0003': [
-    { key: '1', docDate: '2019-08-15', postingDate: '2019-08-15', amount: '1,680,000.00', tradeCurrencyAmount: '1,680,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2019-0003-P1', docNo: 'PAY-2019-0003-01', receiptNo: 'RC-2019-0003-01' },
-    { key: '2', docDate: '2019-12-20', postingDate: '2019-12-20', amount: '3,920,000.00', tradeCurrencyAmount: '3,920,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2019-0003-P2', docNo: 'PAY-2019-0003-02', receiptNo: 'RC-2019-0003-02' },
+    { key: '1', paymentType: '承兑汇票', docDate: '2019-08-15', postingDate: '2019-08-15', amount: '1,680,000.00', tradeCurrencyAmount: '1,680,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2019-0003-P1', docNo: 'PAY-2019-0003-01', receiptNo: 'RC-2019-0003-01' },
+    { key: '2', paymentType: '电汇', docDate: '2019-12-20', postingDate: '2019-12-20', amount: '3,920,000.00', tradeCurrencyAmount: '3,920,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2019-0003-P2', docNo: 'PAY-2019-0003-02', receiptNo: 'RC-2019-0003-02' },
   ],
   'PO2023-0009': [
-    { key: '1', docDate: '2023-10-20', postingDate: '2023-10-20', amount: '1,560,000.00', tradeCurrencyAmount: '1,560,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2023-0009-P1', docNo: 'PAY-2023-0009-01', receiptNo: 'RC-2023-0009-01' },
+    { key: '1', paymentType: '电汇', docDate: '2023-10-20', postingDate: '2023-10-20', amount: '1,560,000.00', tradeCurrencyAmount: '1,560,000.00', tradeCurrency: 'RMB', voucherNo: 'BELNR-2023-0009-P1', docNo: 'PAY-2023-0009-01', receiptNo: 'RC-2023-0009-01' },
   ],
 };
 

@@ -241,7 +241,7 @@ const standaloneDocumentTable = [
     docCategory: '完税凭证',
     fileFormat: 'pdf',
     kassPath: '/kass/财务档案/税务文件/完税凭证/金石特电气2023年度企业所得税完税凭证.pdf',
-    structuredFields: { taxPeriod: '2023年度', companyCode: '1000', taxName: '企业所得税', collectionPeriod: '2024-05-30' },
+    structuredFields: { taxPeriod: '2023年度', companyCode: '1000', collectionPeriod: '2024-05-30' },
   },
   {
     id: 'sdoc28',
@@ -249,7 +249,7 @@ const standaloneDocumentTable = [
     docCategory: '完税凭证',
     fileFormat: 'pdf',
     kassPath: '/kass/财务档案/税务文件/完税凭证/金石特电气2023年12月增值税完税凭证.pdf',
-    structuredFields: { taxPeriod: '2023年12月', companyCode: '1000', taxName: '增值税', collectionPeriod: '2024-01-15' },
+    structuredFields: { taxPeriod: '2023年12月', companyCode: '1000', collectionPeriod: '2024-01-15' },
   },
 
   // ========== 13. 纳税信用等级证明 ==========

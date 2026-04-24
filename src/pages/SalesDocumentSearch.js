@@ -1619,6 +1619,7 @@ const SalesDocumentSearch = () => {
               <div className="detail-block-content detail-material-table">
                 <Table
                   columns={[
+                    { title: '付款类型', dataIndex: 'paymentType', key: 'paymentType', width: 100 },
                     { title: '凭证日期', dataIndex: 'docDate', key: 'docDate', width: 100 },
                     { title: '过账日期', dataIndex: 'postingDate', key: 'postingDate', width: 100 },
                     { title: '金额', dataIndex: 'amount', key: 'amount', width: 140 },
