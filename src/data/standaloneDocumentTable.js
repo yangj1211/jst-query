@@ -241,7 +241,7 @@ const standaloneDocumentTable = [
     docCategory: '完税凭证',
     fileFormat: 'pdf',
     kassPath: '/kass/财务档案/税务文件/完税凭证/金石特电气2023年度企业所得税完税凭证.pdf',
-    structuredFields: { taxPeriod: '2023年度', companyCode: '1000', taxName: '企业所得税', collectionPeriod: '2024-05-30' },
+    structuredFields: { taxPeriod: '2023年度', companyCode: '1000', collectionPeriod: '2024-05-30' },
   },
   {
     id: 'sdoc28',
@@ -249,7 +249,7 @@ const standaloneDocumentTable = [
     docCategory: '完税凭证',
     fileFormat: 'pdf',
     kassPath: '/kass/财务档案/税务文件/完税凭证/金石特电气2023年12月增值税完税凭证.pdf',
-    structuredFields: { taxPeriod: '2023年12月', companyCode: '1000', taxName: '增值税', collectionPeriod: '2024-01-15' },
+    structuredFields: { taxPeriod: '2023年12月', companyCode: '1000', collectionPeriod: '2024-01-15' },
   },
 
   // ========== 13. 纳税信用等级证明 ==========
@@ -270,141 +270,25 @@ const standaloneDocumentTable = [
     structuredFields: { year: '2022', companyCode: '1000' },
   },
 
-  // ========== 14. 无欠税证明 ==========
+  // ========== 14. 无违规证明 ==========
   {
     id: 'sdoc31',
-    fileName: '金石特电气2024年度无欠税证明.pdf',
-    docCategory: '无欠税证明',
+    fileName: '金石特电气2024年度无违规证明.pdf',
+    docCategory: '无违规证明',
     fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/税务文件/无欠税证明/金石特电气2024年度无欠税证明.pdf',
+    kassPath: '/kass/财务档案/税务文件/无违规证明/金石特电气2024年度无违规证明.pdf',
     structuredFields: { date: '2024-03-01', companyCode: '1000' },
   },
   {
     id: 'sdoc32',
-    fileName: '金石特电气2023年度无欠税证明.pdf',
-    docCategory: '无欠税证明',
+    fileName: '金石特电气2023年度无违规证明.pdf',
+    docCategory: '无违规证明',
     fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/税务文件/无欠税证明/金石特电气2023年度无欠税证明.pdf',
+    kassPath: '/kass/财务档案/税务文件/无违规证明/金石特电气2023年度无违规证明.pdf',
     structuredFields: { date: '2023-03-10', companyCode: '1000' },
   },
 
-  // ========== 15. 研发加计扣除报告 ==========
-  {
-    id: 'sdoc33',
-    fileName: '金石特电气2023年度研发费用加计扣除鉴证报告.pdf',
-    docCategory: '研发加计扣除报告',
-    fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/税务文件/研发加计/金石特电气2023年度研发费用加计扣除鉴证报告.pdf',
-    structuredFields: { year: '2023', companyCode: '1000', other: '研发费用总额3200万' },
-  },
-  {
-    id: 'sdoc34',
-    fileName: '金石特电气2022年度研发费用加计扣除鉴证报告.pdf',
-    docCategory: '研发加计扣除报告',
-    fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/税务文件/研发加计/金石特电气2022年度研发费用加计扣除鉴证报告.pdf',
-    structuredFields: { year: '2022', companyCode: '1000', other: '研发费用总额2800万' },
-  },
-
-  // ========== 16. 同期资料鉴定报告 ==========
-  {
-    id: 'sdoc35',
-    fileName: '金石特电气2023年度关联交易同期资料鉴定报告.pdf',
-    docCategory: '同期资料鉴定报告',
-    fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/税务文件/同期资料/金石特电气2023年度关联交易同期资料鉴定报告.pdf',
-    structuredFields: { year: '2023', companyCode: '1000', other: '关联交易金额4500万' },
-  },
-  {
-    id: 'sdoc36',
-    fileName: '金石特电气2022年度关联交易同期资料鉴定报告.pdf',
-    docCategory: '同期资料鉴定报告',
-    fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/税务文件/同期资料/金石特电气2022年度关联交易同期资料鉴定报告.pdf',
-    structuredFields: { year: '2022', companyCode: '1000', other: '关联交易金额3800万' },
-  },
-
-  // ========== 17. 高新审计报告 ==========
-  {
-    id: 'sdoc37',
-    fileName: '金石特电气高新技术企业认定专项审计报告-2023.pdf',
-    docCategory: '高新审计报告',
-    fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/审计报告/高新审计/金石特电气高新技术企业认定专项审计报告-2023.pdf',
-    structuredFields: { year: '2023', companyCode: '1000', subject: '研发费用及高新技术收入' },
-  },
-  {
-    id: 'sdoc38',
-    fileName: '金石特电气高新技术企业认定专项审计报告-2020.pdf',
-    docCategory: '高新审计报告',
-    fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/审计报告/高新审计/金石特电气高新技术企业认定专项审计报告-2020.pdf',
-    structuredFields: { year: '2020', companyCode: '1000', subject: '研发费用及高新技术收入' },
-  },
-
-  // ========== 18. 担保协议 ==========
-  {
-    id: 'sdoc39',
-    fileName: '金石特电气与工商银行担保协议-2023.pdf',
-    docCategory: '担保协议',
-    fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/金融协议/担保/金石特电气与工商银行担保协议-2023.pdf',
-    structuredFields: { startDate: '2023-06-01', endDate: '2024-05-31', bank: '中国工商银行', companyCode: '1000', amount: '50,000,000.00' },
-  },
-  {
-    id: 'sdoc40',
-    fileName: '金石特电气与建设银行担保协议-2024.pdf',
-    docCategory: '担保协议',
-    fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/金融协议/担保/金石特电气与建设银行担保协议-2024.pdf',
-    structuredFields: { startDate: '2024-01-15', endDate: '2025-01-14', bank: '中国建设银行', companyCode: '1000', amount: '30,000,000.00' },
-  },
-  {
-    id: 'sdoc41',
-    fileName: '金石特电气与中国银行担保协议-2022.pdf',
-    docCategory: '担保协议',
-    fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/金融协议/担保/金石特电气与中国银行担保协议-2022.pdf',
-    structuredFields: { startDate: '2022-03-01', endDate: '2023-02-28', bank: '中国银行', companyCode: '1000', amount: '40,000,000.00' },
-  },
-
-  // ========== 19. 授信协议 ==========
-  {
-    id: 'sdoc42',
-    fileName: '金石特电气与工商银行综合授信协议-2024.pdf',
-    docCategory: '授信协议',
-    fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/金融协议/授信/金石特电气与工商银行综合授信协议-2024.pdf',
-    structuredFields: { startDate: '2024-01-01', endDate: '2024-12-31', bank: '中国工商银行济南分行', companyCode: '1000', amount: '100,000,000.00' },
-  },
-  {
-    id: 'sdoc43',
-    fileName: '金石特电气与建设银行综合授信协议-2023.pdf',
-    docCategory: '授信协议',
-    fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/金融协议/授信/金石特电气与建设银行综合授信协议-2023.pdf',
-    structuredFields: { startDate: '2023-04-01', endDate: '2024-03-31', bank: '中国建设银行济南分行', companyCode: '1000', amount: '80,000,000.00' },
-  },
-
-  // ========== 20. 借款协议 ==========
-  {
-    id: 'sdoc44',
-    fileName: '金石特电气与工商银行流动资金借款合同-2024.pdf',
-    docCategory: '借款协议',
-    fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/金融协议/借款/金石特电气与工商银行流动资金借款合同-2024.pdf',
-    structuredFields: { interestStartDate: '2024-03-15', interestEndDate: '2025-03-15', bank: '中国工商银行济南分行', companyCode: '1000', amount: '30,000,000.00' },
-  },
-  {
-    id: 'sdoc45',
-    fileName: '金石特电气与农业银行项目贷款合同-2023.pdf',
-    docCategory: '借款协议',
-    fileFormat: 'pdf',
-    kassPath: '/kass/财务档案/金融协议/借款/金石特电气与农业银行项目贷款合同-2023.pdf',
-    structuredFields: { interestStartDate: '2023-06-30', interestEndDate: '2026-06-30', bank: '中国农业银行济南分行', companyCode: '1000', amount: '50,000,000.00' },
-  },
-
-  // ========== 21. 凭证入账支持文件 ==========
+  // ========== 15. 凭证入账支持文件 ==========
   {
     id: 'sdoc46',
     fileName: '2024年3月固定资产折旧计提凭证支持文件.pdf',
@@ -508,11 +392,11 @@ const standaloneDocumentTable = [
     structuredFields: { companyCode: '1000', voucherNo: 'BELNR-2023-1112', receiptNo: 'BX-2023-0678', issueDate: '2023-11-12', amount: '5,680.00' },
   },
 
-  // ========== 25. 应付账款函证相关单据-对账单 ==========
+  // ========== 25. 应付账款函证相关单据 ==========
   {
     id: 'sdoc58',
     fileName: '应付账款对账单-上海电气集团-2023Q4.pdf',
-    docCategory: '应付账款函证相关单据-对账单',
+    docCategory: '应付账款函证相关单据',
     fileFormat: 'pdf',
     kassPath: '/kass/财务档案/应付管理/对账单/应付账款对账单-上海电气集团-2023Q4.pdf',
     structuredFields: { date: '2023-12-31', supplierCode: '100234' },
@@ -520,17 +404,15 @@ const standaloneDocumentTable = [
   {
     id: 'sdoc59',
     fileName: '应付账款对账单-特变电工-2023Q4.pdf',
-    docCategory: '应付账款函证相关单据-对账单',
+    docCategory: '应付账款函证相关单据',
     fileFormat: 'pdf',
     kassPath: '/kass/财务档案/应付管理/对账单/应付账款对账单-特变电工-2023Q4.pdf',
     structuredFields: { date: '2023-12-31', supplierCode: '100789' },
   },
-
-  // ========== 26. 应付账款函证相关单据-应收询证函 ==========
   {
     id: 'sdoc60',
     fileName: '应收账款询证函-济南轨道交通-2023年末.pdf',
-    docCategory: '应付账款函证相关单据-应收询证函',
+    docCategory: '应付账款函证相关单据',
     fileFormat: 'pdf',
     kassPath: '/kass/财务档案/应付管理/询证函/应收账款询证函-济南轨道交通-2023年末.pdf',
     structuredFields: { date: '2023-12-31', supplierCode: '200100' },
@@ -538,7 +420,7 @@ const standaloneDocumentTable = [
   {
     id: 'sdoc61',
     fileName: '应收账款询证函-广州地铁集团-2023年末.pdf',
-    docCategory: '应付账款函证相关单据-应收询证函',
+    docCategory: '应付账款函证相关单据',
     fileFormat: 'pdf',
     kassPath: '/kass/财务档案/应付管理/询证函/应收账款询证函-广州地铁集团-2023年末.pdf',
     structuredFields: { date: '2023-12-31', supplierCode: '200200' },
@@ -546,7 +428,7 @@ const standaloneDocumentTable = [
   {
     id: 'sdoc62',
     fileName: '应收账款询证函-深圳地铁集团-2023年末.pdf',
-    docCategory: '应付账款函证相关单据-应收询证函',
+    docCategory: '应付账款函证相关单据',
     fileFormat: 'pdf',
     kassPath: '/kass/财务档案/应付管理/询证函/应收账款询证函-深圳地铁集团-2023年末.pdf',
     structuredFields: { date: '2023-12-31', supplierCode: '200300' },
