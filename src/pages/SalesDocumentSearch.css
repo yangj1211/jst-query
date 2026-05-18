@@ -254,7 +254,13 @@
   border-radius: 4px;
 }
 
+.voucher-year-tag {
+  min-width: 52px;
+  text-align: center;
+}
+
 .result-item-title {
+  color: #262626;
   font-weight: 500;
   font-size: 15px;
   white-space: nowrap;
@@ -425,16 +431,16 @@
     color: #1890ff;
 }
 
-.document-actions .ant-btn:nth-child(1) { /* Eye Icon */
-    color: #52c41a; 
+.document-actions .document-action-preview:not(:disabled) {
+  color: #52c41a;
 }
 
-.document-actions .ant-btn:nth-child(2) { /* Info Icon */
-    color: #faad14;
+.document-actions .document-action-address:not(:disabled) {
+  color: #faad14;
 }
 
-.document-actions .ant-btn:nth-child(3) { /* Download Icon */
-    color: #1890ff;
+.document-actions .document-action-download:not(:disabled) {
+  color: #1890ff;
 }
 
 .results-pagination {
@@ -583,6 +589,10 @@
 
 .detail-drawer .ant-drawer-close:hover {
   color: #1890ff;
+}
+
+.voucher-main-info {
+  grid-template-columns: 1fr 1fr;
 }
 
 /* 文件类型选择器下拉菜单样式 */

@@ -35,6 +35,7 @@ import purchaseOrderTable from '../data/purchaseOrderTable';
 import purchaseDocumentTable from '../data/purchaseDocumentTable';
 import { purchaseOrderDetails, purchaseReceiptData, purchaseInvoiceData, purchasePaymentData } from '../data/purchaseDetailData';
 import standaloneDocumentTable from '../data/standaloneDocumentTable';
+import { voucherDetails, voucherList, voucherAttachmentTypes } from '../data/voucherData';
 import docCategoryMeta from '../data/docCategoryMeta';
 import { parseQuery } from '../utils/queryParser';
 import { executeSearch, executeMultiDimensionSearch } from '../utils/searchService';
@@ -45,11 +46,173 @@ import '../components/QueryResult.css';
 const { TextArea } = Input;
 const { Option, OptGroup } = Select;
 
+const EMPTY_VOUCHER_RESULT = { vouchers: [], total: 0, summary: '暂无凭证类数据' };
+
+const VOUCHER_ATTACHMENT_TYPES = [
+  '凭证入账支持文件-合同',
+  '凭证入账支持文件-附件',
+  '凭证入账支持文件-审批文件',
+  '银行回单',
+  '承兑汇票收付回单',
+];
+
+const getVoucherAttachmentTypeOptions = () => (
+  Array.isArray(voucherAttachmentTypes) && voucherAttachmentTypes.length > 0
+    ? voucherAttachmentTypes
+    : VOUCHER_ATTACHMENT_TYPES
+);
+
+const AUTHORIZED_VOUCHER_ATTACHMENT_TYPES = [
+  '银行回单',
+  '承兑汇票收付回单',
+  '凭证入账支持文件-附件',
+];
+
+const getVoucherDetail = (voucher) => {
+  if (!voucher) return null;
+  return voucherDetails?.[voucher.voucher_key] || voucher.detail || null;
+};
+
+const getVoucherAttachmentType = (attachment) => (
+  attachment?.doc_type || attachment?.doc_sub_type || attachment?.attachment_type || '其他'
+);
+
+const isVoucherAttachmentTypeMatch = (sourceType, selectedType) => {
+  const source = String(sourceType || '');
+  const selected = String(selectedType || '');
+  if (!source || !selected) return false;
+  return source === selected || source.includes(selected) || selected.includes(source);
+};
+
+const getVoucherAttachmentTagColor = (type) => {
+  if (type === '银行回单') return 'green';
+  if (type === '承兑汇票收付回单' || type === '承兑汇票') return 'gold';
+  if (type === '凭证入账支持文件-审批文件') return 'purple';
+  if (type === '凭证入账支持文件-附件') return 'blue';
+  if (type === '凭证入账支持文件-合同') return 'cyan';
+  return 'default';
+};
+
+const getFileFormatFromName = (fileName = '') => {
+  const match = String(fileName).toLowerCase().match(/\.([a-z0-9]+)$/);
+  return match ? match[1] : 'file';
+};
+
+const normalizeVoucherLine = (line, direction) => ({
+  ...line,
+  drcrk: line.drcrk || direction,
+  docln: line.docln || line.line_no,
+  racct: line.racct || line.account_code,
+  account_name: line.account_name || line.account_desc,
+  tsl: line.tsl || line.amount,
+  rtcur: line.rtcur || line.currency,
+  wsl: line.wsl || line.amount,
+  rwcur: line.rwcur || line.currency,
+  sgtxt: line.sgtxt || line.text,
+  bktxt: line.bktxt || line.header_text,
+  zuonr: line.zuonr || line.payment_no || line.bill_no,
+});
+
+const normalizeVoucherInvoice = (invoice) => ({
+  ...invoice,
+  invoice_amount: invoice.invoice_amount || invoice.amount,
+  tax_amount: invoice.tax_amount || invoice.taxAmount,
+});
+
+const normalizeVoucherPayment = (payment) => ({
+  ...payment,
+  payment_date: payment.payment_date || payment.paymentDate,
+  receipt_no: payment.receipt_no || payment.receiptNo || payment.payment_no || payment.bill_no,
+  payment_type: payment.payment_type || payment.paymentType || (payment.bill_no ? '承兑' : '电汇'),
+});
+
+const VOUCHER_MAIN_FIELDS = [
+  ['gjahr', '会计年度'],
+  ['poper', '过账期间'],
+  ['bukrs', '公司代码'],
+  ['company_name', '公司名称'],
+  ['belnr', '凭证编号'],
+  ['blart', '凭证类型'],
+  ['bldat', '凭证日期'],
+  ['budat', '过账日期'],
+  ['waers', '币种'],
+  ['header_text', '凭证抬头文本'],
+  ['ai_summary', 'AI事由概述'],
+  ['related_apply_doc_no', '关联申请单据号'],
+  ['related_other_doc_no', '关联其他单据号'],
+  ['payee_name', '收款人户名'],
+  ['payee_code', '收款人代码'],
+  ['reimburser_name', '报销人名称'],
+  ['xref2_hd', '参考代码2'],
+];
+
+const voucherLineColumns = [
+  { title: '借贷方向', dataIndex: 'drcrk', key: 'drcrk', width: 90, fixed: 'left' },
+  { title: '行项目', dataIndex: 'docln', key: 'docln', width: 90, fixed: 'left' },
+  { title: '科目', dataIndex: 'racct', key: 'racct', width: 110, fixed: 'left' },
+  { title: '科目名称', dataIndex: 'account_name', key: 'account_name', width: 150, ellipsis: true },
+  { title: '利润中心代码', dataIndex: 'prctr', key: 'prctr', width: 120 },
+  { title: '利润中心名称', dataIndex: 'profit_center_name', key: 'profit_center_name', width: 140, ellipsis: true },
+  { title: '功能范围', dataIndex: 'rfarea', key: 'rfarea', width: 100 },
+  { title: '成本中心代码', dataIndex: 'rcntr', key: 'rcntr', width: 120 },
+  { title: '成本中心名称', dataIndex: 'cost_center_name', key: 'cost_center_name', width: 140, ellipsis: true },
+  { title: '部门名称', dataIndex: 'department_name', key: 'department_name', width: 140, ellipsis: true },
+  { title: '部门编号', dataIndex: 'department_code', key: 'department_code', width: 110 },
+  { title: '凭证日期', dataIndex: 'bldat', key: 'bldat', width: 110 },
+  { title: '过账日期', dataIndex: 'budat', key: 'budat', width: 110 },
+  { title: '本币金额', dataIndex: 'tsl', key: 'tsl', width: 120, align: 'right' },
+  { title: '本币货币', dataIndex: 'rtcur', key: 'rtcur', width: 90 },
+  { title: '总账金额', dataIndex: 'wsl', key: 'wsl', width: 120, align: 'right' },
+  { title: '总账货币', dataIndex: 'rwcur', key: 'rwcur', width: 90 },
+  { title: '文本', dataIndex: 'sgtxt', key: 'sgtxt', width: 180, ellipsis: true },
+  { title: '凭证抬头文本', dataIndex: 'bktxt', key: 'bktxt', width: 180, ellipsis: true },
+  { title: '采购订单文本', dataIndex: 'txz01', key: 'txz01', width: 180, ellipsis: true },
+  { title: '参考代码1', dataIndex: 'xref1_hd', key: 'xref1_hd', width: 140 },
+  { title: '参照', dataIndex: 'xblnr', key: 'xblnr', width: 140 },
+  { title: '现金流量码', dataIndex: 'rstgr', key: 'rstgr', width: 120 },
+  { title: '内部订单号', dataIndex: 'aufnr', key: 'aufnr', width: 130 },
+  { title: '内部订单描述', dataIndex: 'internal_order_desc', key: 'internal_order_desc', width: 160, ellipsis: true },
+  { title: 'WBS要素', dataIndex: 'ps_posid', key: 'ps_posid', width: 120 },
+  { title: 'WBS要素描述', dataIndex: 'wbs_desc', key: 'wbs_desc', width: 160, ellipsis: true },
+  { title: '售后个案编号', dataIndex: 'after_sales_case_no', key: 'after_sales_case_no', width: 130 },
+  { title: '分配', dataIndex: 'zuonr', key: 'zuonr', width: 130 },
+  { title: '申请事由', dataIndex: 'apply_reason', key: 'apply_reason', width: 180, ellipsis: true },
+  { title: '客户代码', dataIndex: 'kunnr', key: 'kunnr', width: 120 },
+  { title: '客户名称描述', dataIndex: 'customer_name', key: 'customer_name', width: 160, ellipsis: true },
+  { title: '销售凭证', dataIndex: 'kdauf', key: 'kdauf', width: 120 },
+  { title: '物料', dataIndex: 'matnr', key: 'matnr', width: 120 },
+  { title: '物料描述', dataIndex: 'maktx', key: 'maktx', width: 160, ellipsis: true },
+  { title: '采购凭证', dataIndex: 'ebeln', key: 'ebeln', width: 120 },
+  { title: '采购凭证行项目', dataIndex: 'ebelp', key: 'ebelp', width: 140 },
+  { title: '供应商代码', dataIndex: 'lifnr', key: 'lifnr', width: 120 },
+  { title: '供应商名称描述', dataIndex: 'supplier_name', key: 'supplier_name', width: 160, ellipsis: true },
+  { title: '删除标识', dataIndex: 'xreversal', key: 'xreversal', width: 100 },
+  { title: '贸易伙伴', dataIndex: 'rassc', key: 'rassc', width: 110 },
+  { title: '预算科目', dataIndex: 'budget_subject', key: 'budget_subject', width: 150, ellipsis: true },
+];
+
+const voucherInvoiceColumns = [
+  { title: '发票号码', dataIndex: 'invoice_no', key: 'invoice_no', width: 150 },
+  { title: '发票类型', dataIndex: 'invoice_type', key: 'invoice_type', width: 140 },
+  { title: '发票金额', dataIndex: 'invoice_amount', key: 'invoice_amount', width: 120, align: 'right' },
+  { title: '税率', dataIndex: 'tax_rate', key: 'tax_rate', width: 80 },
+  { title: '税额', dataIndex: 'tax_amount', key: 'tax_amount', width: 120, align: 'right' },
+  { title: '发票时间', dataIndex: 'invoice_date', key: 'invoice_date', width: 120 },
+];
+
+const voucherPaymentColumns = [
+  { title: '收付款日期', dataIndex: 'payment_date', key: 'payment_date', width: 120 },
+  { title: '金额', dataIndex: 'amount', key: 'amount', width: 120, align: 'right' },
+  { title: '回单编号', dataIndex: 'receipt_no', key: 'receipt_no', width: 160 },
+  { title: '收付款类型', dataIndex: 'payment_type', key: 'payment_type', width: 130 },
+];
+
 // 有权限的文件类型列表（按维度区分）
 const authorizedDocumentTypes = {
   sales: ['合同', '发票', '通电验收单'],
   purchase: ['采购合同', '采购发票', '入库单', '到货验收单', '通电验收单'],
-  document: [],  // 凭证维度不区分权限
+  document: [],
+  voucher: AUTHORIZED_VOUCHER_ATTACHMENT_TYPES,
 };
 
 // 初始结果集：全量订单（含关联文件）- 保留用于对话区兼容
@@ -62,7 +225,7 @@ const initialResults = executeSearch(
 // 初始多维度结果集
 const initialMultiResults = executeMultiDimensionSearch(
   { conditions: [], queryType: 'list', aggregation: null, description: '' },
-  orderTable, documentTable, purchaseOrderTable, purchaseDocumentTable, standaloneDocumentTable
+  orderTable, documentTable, purchaseOrderTable, purchaseDocumentTable, standaloneDocumentTable, voucherList
 );
 
 const SalesDocumentSearch = () => {
@@ -116,16 +279,22 @@ const SalesDocumentSearch = () => {
     sales: initialMultiResults.sales,
     purchase: initialMultiResults.purchase,
     document: initialMultiResults.document,
+    voucher: initialMultiResults.voucher || EMPTY_VOUCHER_RESULT,
   });
   const [dimensionFilters, setDimensionFilters] = useState({
     sales: { selectedDocTypes: ['__ALL__'], currentPage: 1, pageSize: 10, selectedItems: [], expandedItems: [] },
     purchase: { selectedDocTypes: ['__ALL__'], currentPage: 1, pageSize: 10, selectedItems: [], expandedItems: [] },
     document: { selectedDocTypes: ['__ALL__'], currentPage: 1, pageSize: 10, selectedItems: [], expandedItems: [] },
+    voucher: { selectedDocTypes: ['__ALL__'], currentPage: 1, pageSize: 10, selectedItems: [], expandedItems: [] },
   });
 
-  // 采购单详情抽屉状态
+  // 采购订单详情抽屉状态
   const [purchaseDetailVisible, setPurchaseDetailVisible] = useState(false);
   const [purchaseDetailItem, setPurchaseDetailItem] = useState(null);
+
+  // 凭证详情抽屉状态
+  const [voucherDetailVisible, setVoucherDetailVisible] = useState(false);
+  const [voucherDetailItem, setVoucherDetailItem] = useState(null);
 
   // 单据预览弹窗状态
   const [docPreviewVisible, setDocPreviewVisible] = useState(false);
@@ -146,6 +315,14 @@ const SalesDocumentSearch = () => {
       (dimensionResults.document.documents || []).forEach(doc => {
         if (doc.docCategory) typesSet.add(doc.docCategory);
       });
+    } else if (dimension === 'voucher') {
+      getVoucherAttachmentTypeOptions().forEach(type => typesSet.add(type));
+      (dimensionResults.voucher?.vouchers || []).forEach(voucher => {
+        const detail = getVoucherDetail(voucher);
+        (detail?.voucher_attachments || []).forEach(attachment => {
+          typesSet.add(getVoucherAttachmentType(attachment));
+        });
+      });
     } else {
       const orders = dimensionResults[dimension].orders || [];
       orders.forEach(item => {
@@ -164,6 +341,43 @@ const SalesDocumentSearch = () => {
   // 当前维度的筛选状态
   const currentFilters = dimensionFilters[activeDimension];
 
+  const getDimensionItemId = (dimension, item) => {
+    if (!item) return undefined;
+    if (dimension === 'voucher') return item.voucher_key;
+    if (dimension === 'document') return item.id;
+    if (dimension === 'purchase') return item.purchaseOrderNo;
+    return item.orderNo;
+  };
+
+  const getFilteredVouchers = () => {
+    const vouchers = dimensionResults.voucher?.vouchers || [];
+    const filters = dimensionFilters.voucher;
+    const selectedTypes = filters.selectedDocTypes || ['__ALL__'];
+    if (selectedTypes.length === 0 || selectedTypes.includes('__ALL__')) {
+      return vouchers;
+    }
+    return vouchers.filter(voucher => {
+      const detail = getVoucherDetail(voucher);
+      const attachmentTypes = (detail?.voucher_attachments || []).map(getVoucherAttachmentType);
+      return selectedTypes.some(type =>
+        attachmentTypes.some(attachmentType => isVoucherAttachmentTypeMatch(attachmentType, type))
+      );
+    });
+  };
+
+  const getFilteredVoucherAttachments = (voucher) => {
+    const detail = getVoucherDetail(voucher);
+    const attachments = detail?.voucher_attachments || [];
+    const filters = dimensionFilters.voucher;
+    const selectedTypes = filters.selectedDocTypes || ['__ALL__'];
+    if (selectedTypes.length === 0 || selectedTypes.includes('__ALL__')) {
+      return attachments;
+    }
+    return attachments.filter(attachment =>
+      selectedTypes.some(type => isVoucherAttachmentTypeMatch(getVoucherAttachmentType(attachment), type))
+    );
+  };
+
   // 计算当前维度分页后的数据
   const getPaginatedData = (dimension) => {
     const filters = dimensionFilters[dimension];
@@ -171,6 +385,9 @@ const SalesDocumentSearch = () => {
     const end = start + filters.pageSize;
     if (dimension === 'document') {
       return (dimensionResults.document.documents || []).slice(start, end);
+    }
+    if (dimension === 'voucher') {
+      return getFilteredVouchers().slice(start, end);
     }
     return (dimensionResults[dimension].orders || []).slice(start, end);
   };
@@ -180,16 +397,14 @@ const SalesDocumentSearch = () => {
     const filters = dimensionFilters[dimension];
     const paginated = getPaginatedData(dimension);
     if (paginated.length === 0) return false;
-    const idField = dimension === 'document' ? 'id' : (dimension === 'purchase' ? 'purchaseOrderNo' : 'orderNo');
-    return paginated.every(item => filters.selectedItems.includes(item[idField]));
+    return paginated.every(item => filters.selectedItems.includes(getDimensionItemId(dimension, item)));
   };
 
   // 部分选中
   const isDimensionIndeterminate = (dimension) => {
     const filters = dimensionFilters[dimension];
     const paginated = getPaginatedData(dimension);
-    const idField = dimension === 'document' ? 'id' : (dimension === 'purchase' ? 'purchaseOrderNo' : 'orderNo');
-    const selectedInPage = paginated.filter(item => filters.selectedItems.includes(item[idField])).length;
+    const selectedInPage = paginated.filter(item => filters.selectedItems.includes(getDimensionItemId(dimension, item))).length;
     return selectedInPage > 0 && selectedInPage < paginated.length;
   };
 
@@ -205,8 +420,7 @@ const SalesDocumentSearch = () => {
   // 处理全选/取消全选（维度感知）
   const handleDimensionSelectAll = (dimension, checked) => {
     const paginated = getPaginatedData(dimension);
-    const idField = dimension === 'document' ? 'id' : (dimension === 'purchase' ? 'purchaseOrderNo' : 'orderNo');
-    const currentPageIds = paginated.map(item => item[idField]);
+    const currentPageIds = paginated.map(item => getDimensionItemId(dimension, item)).filter(Boolean);
     if (checked) {
       updateDimensionFilter(dimension, {
         selectedItems: [...new Set([...dimensionFilters[dimension].selectedItems, ...currentPageIds])],
@@ -314,8 +528,9 @@ const SalesDocumentSearch = () => {
     const steps = [
       { title: '理解问题', description: `识别查询意图：${parsed.description || '全量检索'}`, status: 'loading' },
       { title: '在销售单据中检索', description: '检索销售订单维度数据', status: 'loading' },
-      { title: '在采购单据中检索', description: '检索采购单维度数据', status: 'loading' },
-      { title: '在独立单据中检索', description: '检索独立单据维度数据', status: 'loading' },
+      { title: '在采购订单中检索', description: '检索采购订单维度数据', status: 'loading' },
+      { title: '在财务类单据中检索', description: '检索财务类文件维度数据', status: 'loading' },
+      { title: '在凭证类单据中检索', description: '检索凭证号聚合维度数据', status: 'loading' },
     ];
     const combinedMessage = {
       id: combinedId,
@@ -375,10 +590,20 @@ const SalesDocumentSearch = () => {
           if (m.id !== combinedId) return m;
           const newSteps = [...m.steps];
           newSteps[3] = { ...newSteps[3], status: 'done' };
-          return { ...m, steps: newSteps, isComplete: true };
+          return { ...m, steps: newSteps };
         })
       );
     }, 2200);
+    setTimeout(() => {
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== combinedId) return m;
+          const newSteps = [...m.steps];
+          newSteps[4] = { ...newSteps[4], status: 'done' };
+          return { ...m, steps: newSteps, isComplete: true };
+        })
+      );
+    }, 2400);
     setTimeout(() => {
       const resultId = `result_${Date.now()}`;
       const resultMessage = {
@@ -397,7 +622,7 @@ const SalesDocumentSearch = () => {
     setTimeout(() => {
       // 执行多维度检索作为主要检索
       const multiResult = executeMultiDimensionSearch(
-        parsed, orderTable, documentTable, purchaseOrderTable, purchaseDocumentTable, standaloneDocumentTable
+        parsed, orderTable, documentTable, purchaseOrderTable, purchaseDocumentTable, standaloneDocumentTable, voucherList
       );
       // Use sales dimension for backward compatibility with chat panel
       const salesResult = multiResult.sales;
@@ -437,6 +662,7 @@ const SalesDocumentSearch = () => {
         sales: multiResult.sales,
         purchase: multiResult.purchase,
         document: multiResult.document,
+        voucher: multiResult.voucher || EMPTY_VOUCHER_RESULT,
       });
       // 重置各维度筛选状态，如果有文件类型焦点则自动设置筛选
       const queryFocus = parsed.queryFocus;
@@ -446,12 +672,18 @@ const SalesDocumentSearch = () => {
         sales: { selectedDocTypes: autoFilter, currentPage: 1, pageSize: 10, selectedItems: [], expandedItems: [] },
         purchase: { selectedDocTypes: autoFilter, currentPage: 1, pageSize: 10, selectedItems: [], expandedItems: [] },
         document: { selectedDocTypes: autoFilter, currentPage: 1, pageSize: 10, selectedItems: [], expandedItems: [] },
+        voucher: { selectedDocTypes: autoFilter, currentPage: 1, pageSize: 10, selectedItems: [], expandedItems: [] },
       });
       // 默认激活第一个有结果的维度
-      if (multiResult.sales.total > 0) {
+      const hasVoucherCondition = (parsed.conditions || []).some(condition => condition.table === 'voucher');
+      if (hasVoucherCondition && (multiResult.voucher?.total || 0) > 0) {
+        setActiveDimension('voucher');
+      } else if (multiResult.sales.total > 0) {
         setActiveDimension('sales');
       } else if (multiResult.purchase.total > 0) {
         setActiveDimension('purchase');
+      } else if ((multiResult.voucher?.total || 0) > 0) {
+        setActiveDimension('voucher');
       } else if (multiResult.document.total > 0) {
         setActiveDimension('document');
       } else {
@@ -487,17 +719,72 @@ const SalesDocumentSearch = () => {
       <div className="document-actions">
         <Tag color={doc.tagColor} className={doc.tag ? `doc-tag doc-tag-${doc.tag}` : 'doc-tag'}>{doc.tag}</Tag>
         <Tooltip title="预览">
-          <Button type="text" icon={<EyeOutlined />} />
+          <Button type="text" className="document-action-preview" icon={<EyeOutlined />} />
         </Tooltip>
         <Tooltip title={doc.path}>
-          <Button type="text" icon={<InfoCircleOutlined />} />
+          <Button type="text" className="document-action-address" icon={<InfoCircleOutlined />} />
         </Tooltip>
         <Tooltip title="下载">
-          <Button type="text" icon={<DownloadOutlined />} />
+          <Button type="text" className="document-action-download" icon={<DownloadOutlined />} />
         </Tooltip>
       </div>
     </div>
   );
+
+  const renderVoucherAttachmentItem = (attachment, voucher) => {
+    const attachmentType = getVoucherAttachmentType(attachment);
+    const fileName = attachment.original_file_name || attachment.file_name || `${voucher.belnr || '凭证'}-${attachmentType}`;
+    const fileFormat = attachment.file_format || getFileFormatFromName(fileName);
+    const kassPath = attachment.s3_path || attachment.kass_path || attachment.source_path || '-';
+    const doc = {
+      id: attachment.attachment_id || `${voucher.voucher_key}-${fileName}`,
+      name: fileName,
+      type: fileFormat,
+      path: kassPath,
+      tag: attachmentType,
+    };
+    const previewItem = {
+      fileName,
+      docCategory: attachmentType,
+      fileFormat,
+      kassPath,
+      structuredFields: {
+        sourceSystem: attachment.source_system || '-',
+        sourceProcessType: attachment.source_process_type || '-',
+        sourceDocNo: attachment.source_doc_no || '-',
+        sourceFieldName: attachment.source_field_name || '-',
+      },
+    };
+
+    return (
+      <div key={doc.id} className="document-item">
+        <div className="document-info">
+          {getFileFormatIcon(doc)}
+          <span className="doc-name">{fileName}</span>
+        </div>
+        <div className="document-actions">
+          <Tag color={getVoucherAttachmentTagColor(attachmentType)} className={attachmentType ? `doc-tag doc-tag-${attachmentType}` : 'doc-tag'}>
+            {attachmentType}
+          </Tag>
+          <Tooltip title="预览">
+            <Button
+              type="text"
+              className="document-action-preview"
+              icon={<EyeOutlined />}
+              disabled={attachment.status === 'failed'}
+              onClick={() => { setDocPreviewItem(previewItem); setDocPreviewVisible(true); }}
+            />
+          </Tooltip>
+          <Tooltip title={kassPath}>
+            <Button type="text" className="document-action-address" icon={<InfoCircleOutlined />} />
+          </Tooltip>
+          <Tooltip title="下载">
+            <Button type="text" className="document-action-download" icon={<DownloadOutlined />} disabled={attachment.status === 'failed'} />
+          </Tooltip>
+        </div>
+      </div>
+    );
+  };
 
   /**
    * 详情数据：按图2的5组字段结构
@@ -650,7 +937,9 @@ const SalesDocumentSearch = () => {
                                 const purchaseTotal = multiResults?.purchase?.total || 0;
                                 const documents = multiResults?.document?.documents || [];
                                 const documentTotal = multiResults?.document?.total || 0;
-                                const hasAnyResult = salesTotal > 0 || purchaseTotal > 0 || documentTotal > 0;
+                                const vouchers = multiResults?.voucher?.vouchers || [];
+                                const voucherTotal = multiResults?.voucher?.total || 0;
+                                const hasAnyResult = salesTotal > 0 || purchaseTotal > 0 || documentTotal > 0 || voucherTotal > 0;
                                 const hasContent = hasSummary || hasAnyResult || hasAggregation;
 
                                 // 跳转到指定维度
@@ -661,6 +950,7 @@ const SalesDocumentSearch = () => {
                                       sales: multiResults.sales,
                                       purchase: multiResults.purchase,
                                       document: multiResults.document,
+                                      voucher: multiResults.voucher || EMPTY_VOUCHER_RESULT,
                                     });
                                   }
                                   setActiveDimension(dimension);
@@ -724,11 +1014,11 @@ const SalesDocumentSearch = () => {
                                             </div>
                                           )}
 
-                                          {/* 采购单维度 */}
+                                          {/* 采购订单维度 */}
                                           {purchaseTotal > 0 && (
                                             <div className="result-block">
                                               <div className="block-header">
-                                                <h4 className="block-title">采购单（{purchaseTotal} 条）</h4>
+                                                <h4 className="block-title">采购订单（{purchaseTotal} 条）</h4>
                                                 <button className="doc-view-orders-btn" onClick={() => handleViewDimension('purchase')}>
                                                   <EyeOutlined style={{ marginRight: 4 }} />查看
                                                 </button>
@@ -737,7 +1027,7 @@ const SalesDocumentSearch = () => {
                                                 <Table
                                                   rowKey="purchaseOrderNo" size="middle" bordered className="custom-result-table"
                                                   columns={[
-                                                    { title: '采购单号', dataIndex: 'purchaseOrderNo', key: 'purchaseOrderNo', width: 140 },
+                                                    { title: '采购订单号', dataIndex: 'purchaseOrderNo', key: 'purchaseOrderNo', width: 140 },
                                                     { title: '供应商', dataIndex: 'supplier', key: 'supplier', ellipsis: true },
                                                     { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true },
                                                   ]}
@@ -748,11 +1038,37 @@ const SalesDocumentSearch = () => {
                                             </div>
                                           )}
 
-                                          {/* 凭证维度 */}
+                                          {/* 凭证类单据维度 */}
+                                          {voucherTotal > 0 && (
+                                            <div className="result-block">
+                                              <div className="block-header">
+                                                <h4 className="block-title">凭证类单据（{voucherTotal} 条）</h4>
+                                                <button className="doc-view-orders-btn" onClick={() => handleViewDimension('voucher')}>
+                                                  <EyeOutlined style={{ marginRight: 4 }} />查看
+                                                </button>
+                                              </div>
+                                              <div className="table-wrapper">
+                                                <Table
+                                                  rowKey="voucher_key" size="middle" bordered className="custom-result-table"
+                                                  columns={[
+                                                    { title: '会计年度', dataIndex: 'gjahr', key: 'gjahr', width: 100 },
+                                                    { title: '凭证编号', dataIndex: 'belnr', key: 'belnr', width: 150 },
+                                                    { title: '公司代码', dataIndex: 'bukrs', key: 'bukrs', width: 100 },
+                                                    { title: '公司名称', dataIndex: 'company_name', key: 'company_name', ellipsis: true },
+                                                    { title: '凭证类型', dataIndex: 'blart', key: 'blart', width: 100 },
+                                                  ]}
+                                                  dataSource={vouchers}
+                                                  pagination={voucherTotal > 20 ? { pageSize: 20, showTotal: (total) => `共 ${total} 条`, size: 'small', showSizeChanger: false } : false}
+                                                />
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {/* 财务类单据维度 */}
                                           {documentTotal > 0 && (
                                             <div className="result-block">
                                               <div className="block-header">
-                                                <h4 className="block-title">凭证（{documentTotal} 份）</h4>
+                                                <h4 className="block-title">财务类单据（{documentTotal} 份）</h4>
                                                 <button className="doc-view-orders-btn" onClick={() => handleViewDimension('document')}>
                                                   <EyeOutlined style={{ marginRight: 4 }} />查看
                                                 </button>
@@ -1061,7 +1377,7 @@ const SalesDocumentSearch = () => {
             },
             {
               key: 'purchase',
-              label: `采购单 (${dimensionResults.purchase.total || 0})`,
+              label: `采购订单 (${dimensionResults.purchase.total || 0})`,
               children: (() => {
                 const dimension = 'purchase';
                 const filters = dimensionFilters[dimension];
@@ -1079,7 +1395,7 @@ const SalesDocumentSearch = () => {
                           全选当前页
                         </Checkbox>
                         {filters.selectedItems.length > 0 && (
-                          <span className="selected-count">已选 {filters.selectedItems.length} 个采购单</span>
+                          <span className="selected-count">已选 {filters.selectedItems.length} 个采购订单</span>
                         )}
                       </div>
                       <div className="results-header-right">
@@ -1130,7 +1446,7 @@ const SalesDocumentSearch = () => {
                     <div className="results-list">
                       <List
                         dataSource={paginated}
-                        locale={{ emptyText: '暂无匹配的采购单' }}
+                        locale={{ emptyText: '暂无匹配的采购订单' }}
                         renderItem={item => (
                           <div className="result-item-card">
                             <div className="result-item-header">
@@ -1201,7 +1517,7 @@ const SalesDocumentSearch = () => {
             },
             {
               key: 'document',
-              label: `凭证 (${dimensionResults.document.total || 0})`,
+              label: `财务类单据 (${dimensionResults.document.total || 0})`,
               children: (() => {
                 const dimension = 'document';
                 const filters = dimensionFilters[dimension];
@@ -1229,13 +1545,13 @@ const SalesDocumentSearch = () => {
                           全选当前页
                         </Checkbox>
                         {filters.selectedItems.length > 0 && (
-                          <span className="selected-count">已选 {filters.selectedItems.length} 份单据</span>
+                          <span className="selected-count">已选 {filters.selectedItems.length} 份财务类单据</span>
                         )}
                       </div>
                       <div className="results-header-right">
                         <Select
                           mode="multiple"
-                          placeholder="单据类型"
+                          placeholder="财务类类型"
                           value={filters.selectedDocTypes}
                           onChange={(values) => handleDimensionDocTypeChange(dimension, values)}
                           style={{ width: 200, marginRight: 12 }}
@@ -1272,7 +1588,7 @@ const SalesDocumentSearch = () => {
                     <div className="results-list">
                       <List
                         dataSource={paginated}
-                        locale={{ emptyText: '暂无匹配的单据' }}
+                        locale={{ emptyText: '暂无匹配的财务类单据' }}
                         renderItem={doc => {
                           const formatIcon = doc.fileFormat === 'pdf' ? <FilePdfOutlined className="doc-format-icon doc-format-pdf" />
                             : doc.fileFormat === 'docx' || doc.fileFormat === 'doc' ? <FileWordOutlined className="doc-format-icon doc-format-word" />
@@ -1360,7 +1676,160 @@ const SalesDocumentSearch = () => {
                 );
               })(),
             },
-          ]}
+            {
+              key: 'voucher',
+              label: `凭证类单据 (${dimensionResults.voucher?.total || 0})`,
+              children: (() => {
+                const dimension = 'voucher';
+                const filters = dimensionFilters[dimension];
+                const { authorizedTypes, unauthorizedTypes } = getDimensionDocTypes(dimension);
+                const filteredVouchers = getFilteredVouchers();
+                const paginated = getPaginatedData(dimension);
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <div className="results-header">
+                      <div className="results-header-left">
+                        <Checkbox
+                          checked={isDimensionAllSelected(dimension)}
+                          indeterminate={isDimensionIndeterminate(dimension)}
+                          onChange={(e) => handleDimensionSelectAll(dimension, e.target.checked)}
+                        >
+                          全选当前页
+                        </Checkbox>
+                        {filters.selectedItems.length > 0 && (
+                          <span className="selected-count">已选 {filters.selectedItems.length} 条凭证</span>
+                        )}
+                      </div>
+                      <div className="results-header-right">
+                        <Select
+                          mode="multiple"
+                          placeholder="附件类型"
+                          value={filters.selectedDocTypes}
+                          onChange={(values) => handleDimensionDocTypeChange(dimension, values)}
+                          style={{ width: 240, marginRight: 12 }}
+                          allowClear
+                          maxTagCount="responsive"
+                          popupClassName="document-type-select-dropdown"
+                        >
+                          <Option key="__ALL__" value="__ALL__">全部</Option>
+                          {authorizedTypes.length > 0 && (
+                            <OptGroup label={<span style={{color: "#52c41a", fontWeight: 500}}>有权限</span>} key="authorized">
+                              {authorizedTypes.map(type => (
+                                <Option key={type} value={type}>{type}</Option>
+                              ))}
+                            </OptGroup>
+                          )}
+                          {unauthorizedTypes.length > 0 && (
+                            <OptGroup label={<span style={{color: "#8c8c8c", fontWeight: 500}}>无权限</span>} key="unauthorized">
+                              {unauthorizedTypes.map(type => (
+                                <Option key={type} value={type}>{type}</Option>
+                              ))}
+                            </OptGroup>
+                          )}
+                        </Select>
+                        <Button
+                          type="primary"
+                          icon={<DownloadOutlined />}
+                          onClick={() => handleDimensionBatchDownload(dimension)}
+                          disabled={filters.selectedItems.length === 0}
+                        >
+                          下载附件
+                        </Button>
+                        <Button
+                          icon={<SyncOutlined />}
+                          onClick={() => updateDimensionFilter(dimension, {
+                            selectedDocTypes: ['__ALL__'], selectedItems: [], currentPage: 1,
+                          })}
+                        >
+                          重置
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="results-list">
+                      <List
+                        dataSource={paginated}
+                        locale={{ emptyText: '暂无匹配的凭证类单据' }}
+                        renderItem={voucher => {
+                          const detail = getVoucherDetail(voucher);
+                          const attachments = detail?.voucher_attachments || [];
+                          const filteredAttachments = getFilteredVoucherAttachments(voucher);
+
+                          return (
+                            <div className="result-item-card">
+                              <div className="result-item-header">
+                                <div className="result-item-title-group">
+                                  <Checkbox
+                                    checked={filters.selectedItems.includes(voucher.voucher_key)}
+                                    onChange={(e) => handleDimensionItemSelect(dimension, voucher.voucher_key, e.target.checked)}
+                                  />
+                                  <span className="result-order-no voucher-year-tag">{voucher.gjahr || '-'}</span>
+                                  <span className="result-item-title">{voucher.belnr || '-'}</span>
+                                </div>
+                                <div className="result-item-actions">
+                                  <Tooltip title="查看详情">
+                                    <Button
+                                      type="text"
+                                      icon={<EyeOutlined />}
+                                      onClick={() => { setVoucherDetailItem(voucher); setVoucherDetailVisible(true); }}
+                                    />
+                                  </Tooltip>
+                                  <Tooltip title="相关附件">
+                                    <Button
+                                      type="text"
+                                      icon={filters.expandedItems.includes(voucher.voucher_key) ? <UpOutlined /> : <DownOutlined />}
+                                      onClick={() => toggleDimensionExpand(dimension, voucher.voucher_key)}
+                                    />
+                                  </Tooltip>
+                                </div>
+                              </div>
+                              <div className="result-item-meta result-item-meta-tags">
+                                <Tooltip title="公司代码">
+                                  <Tag className="meta-tag">{voucher.bukrs || '-'}</Tag>
+                                </Tooltip>
+                                <Tooltip title="公司名称">
+                                  <Tag className="meta-tag">{voucher.company_name || '-'}</Tag>
+                                </Tooltip>
+                                <Tooltip title="凭证类型">
+                                  <Tag className="meta-tag">{voucher.blart || '-'}</Tag>
+                                </Tooltip>
+                                <Tooltip title="过账期间">
+                                  <Tag className="meta-tag">期间 {voucher.poper || '-'}</Tag>
+                                </Tooltip>
+                              </div>
+                              {filters.expandedItems.includes(voucher.voucher_key) && (
+                                <div className="result-item-details">
+                                  {filteredAttachments.map(attachment => renderVoucherAttachmentItem(attachment, voucher))}
+                                  {filteredAttachments.length === 0 && (
+                                    <div style={{ padding: '16px', textAlign: 'center', color: '#999' }}>
+                                      {attachments.length > 0 ? '当前筛选条件下暂无附件' : '当前凭证暂无附件'}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }}
+                      />
+                    </div>
+                    <div className="results-pagination">
+                      <Pagination
+                        current={filters.currentPage}
+                        total={filteredVouchers.length}
+                        pageSize={filters.pageSize}
+                        showSizeChanger={true}
+                        pageSizeOptions={['10', '20', '50', '100']}
+                        showTotal={(total) => `共 ${total} 条`}
+                        locale={{ items_per_page: '条/页' }}
+                        onChange={(page) => updateDimensionFilter(dimension, { currentPage: page })}
+                        onShowSizeChange={(current, size) => updateDimensionFilter(dimension, { pageSize: size, currentPage: 1 })}
+                      />
+                    </div>
+                  </div>
+                );
+              })(),
+            },
+          ].sort((a, b) => ['sales', 'purchase', 'voucher', 'document'].indexOf(a.key) - ['sales', 'purchase', 'voucher', 'document'].indexOf(b.key))}
         />
       </div>
       )}
@@ -1438,10 +1907,10 @@ const SalesDocumentSearch = () => {
         )}
       </Drawer>
 
-      {/* 采购单详情抽屉 (Task 6.4) */}
+      {/* 采购订单详情抽屉 (Task 6.4) */}
       <Drawer
         open={purchaseDetailVisible}
-        title={purchaseDetailItem ? `采购单详情 - ${purchaseDetailItem.purchaseOrderNo}` : '采购单详情'}
+        title={purchaseDetailItem ? `采购订单详情 - ${purchaseDetailItem.purchaseOrderNo}` : '采购订单详情'}
         width="70%"
         placement="right"
         onClose={() => setPurchaseDetailVisible(false)}
@@ -1661,6 +2130,105 @@ const SalesDocumentSearch = () => {
               </div>
             </div>
           </div>
+          );
+        })()}
+      </Drawer>
+
+      {/* 凭证类详情抽屉 */}
+      <Drawer
+        open={voucherDetailVisible}
+        title={voucherDetailItem ? `凭证号：${voucherDetailItem.belnr}` : '凭证详情'}
+        width="70%"
+        placement="right"
+        onClose={() => setVoucherDetailVisible(false)}
+        styles={{
+          body: { padding: 0, overflowY: 'auto', background: '#f7f8fa' },
+          header: { borderBottom: '1px solid #f0f0f0', padding: '12px 16px' },
+        }}
+        className="detail-drawer voucher-detail-drawer"
+      >
+        {voucherDetailItem && (() => {
+          const detail = getVoucherDetail(voucherDetailItem) || {};
+          const main = { ...voucherDetailItem, ...(detail.voucher_main || {}) };
+          const debitLines = (detail.debit_lines || []).map(line => normalizeVoucherLine(line, 'S'));
+          const creditLines = (detail.credit_lines || []).map(line => normalizeVoucherLine(line, 'H'));
+          const invoiceDetails = (detail.invoice_details || []).map(normalizeVoucherInvoice);
+          const paymentDetails = (detail.payment_details || []).map(normalizeVoucherPayment);
+
+          return (
+            <div className="detail-modal detail-drawer-content">
+              <div className="detail-block">
+                <div className="detail-block-title">凭证主表</div>
+                <div className="detail-block-content voucher-main-info">
+                  {VOUCHER_MAIN_FIELDS.map(([key, label]) => (
+                    <div className="detail-field-item" key={key}>
+                      <span className="detail-field-label">{label}</span>
+                      <span className="detail-field-value">{main[key] || '-'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="detail-block">
+                <div className="detail-block-title">凭证明细表（借方）</div>
+                <div className="detail-block-content detail-material-table">
+                  <Table
+                    rowKey={record => record.docln || record.zuonr || record.racct || record.sgtxt}
+                    columns={voucherLineColumns}
+                    dataSource={debitLines}
+                    pagination={false}
+                    size="small"
+                    scroll={{ x: 5000 }}
+                    locale={{ emptyText: '当前凭证暂无借方明细' }}
+                  />
+                </div>
+              </div>
+
+              <div className="detail-block">
+                <div className="detail-block-title">凭证明细表（贷方）</div>
+                <div className="detail-block-content detail-material-table">
+                  <Table
+                    rowKey={record => record.docln || record.zuonr || record.racct || record.sgtxt}
+                    columns={voucherLineColumns}
+                    dataSource={creditLines}
+                    pagination={false}
+                    size="small"
+                    scroll={{ x: 5000 }}
+                    locale={{ emptyText: '当前凭证暂无贷方明细' }}
+                  />
+                </div>
+              </div>
+
+              <div className="detail-block">
+                <div className="detail-block-title">发票明细表</div>
+                <div className="detail-block-content detail-material-table">
+                  <Table
+                    rowKey={record => record.invoice_no || `${record.invoice_date || ''}-${record.invoice_amount || ''}-${record.customer_name || record.supplier_name || ''}`}
+                    columns={voucherInvoiceColumns}
+                    dataSource={invoiceDetails}
+                    pagination={false}
+                    size="small"
+                    scroll={{ x: 760 }}
+                    locale={{ emptyText: '当前凭证暂无发票明细' }}
+                  />
+                </div>
+              </div>
+
+              <div className="detail-block">
+                <div className="detail-block-title">收付款明细表</div>
+                <div className="detail-block-content detail-material-table">
+                  <Table
+                    rowKey={record => record.receipt_no || `${record.payment_date || ''}-${record.amount || ''}-${record.payment_type || ''}`}
+                    columns={voucherPaymentColumns}
+                    dataSource={paymentDetails}
+                    pagination={false}
+                    size="small"
+                    scroll={{ x: 560 }}
+                    locale={{ emptyText: '当前凭证暂无收付款明细' }}
+                  />
+                </div>
+              </div>
+            </div>
           );
         })()}
       </Drawer>

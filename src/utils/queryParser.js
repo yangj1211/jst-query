@@ -5,7 +5,7 @@
  * @property {string} field
  * @property {'eq'|'gt'|'lt'|'gte'|'lte'|'contains'|'in'} operator
  * @property {string|number|string[]} value
- * @property {'order'|'document'} table
+ * @property {'order'|'document'|'voucher'|'fulltext'} table
  *
  * @typedef {Object} ParseResult
  * @property {QueryCondition[]} conditions
@@ -20,7 +20,7 @@ const KNOWN_DOC_TAGS = [
   '合同', '发票', '通电验收单', '运行证明', '中标通知书',
   '技术协议', '应收催收单', '竣工验收单', '拣配单', '代付协议',
   '产品退货单', '装箱清单', '出口报关单', '其他',
-  '银行回单', '承兑汇票收付回单', '报销发票',
+  '银行回单', '承兑汇票', '承兑汇票收付回单', '报销发票',
   // --- 采购单维度类型 ---
   '采购发票', '采购合同', '供应商出厂检验报告', '原材料外购直发签收单',
   '到货验收单', '预验收单', '最终验收单', '入库单', '资产验收报告',
@@ -29,9 +29,12 @@ const KNOWN_DOC_TAGS = [
   '诉讼文件', '综合财务分析指标', '财务报表主表（盖章）', '年度审计报告',
   'IT审计报告', '验资报告', '政府补助文件/政府项目专项审计报告',
   '信用评级', '资产评估报告', '纳税申报表', '完税凭证', '纳税信用等级证明',
-  '无违规证明', '凭证入账支持文件',
+  '无违规证明', '凭证入账支持文件', '审批文件', '入账支持文件',
   '采购框架协议、质量协议',
 ];
+
+const VOUCHER_KEYWORDS = ['凭证类', '会计凭证', '财务凭证', '凭证号'];
+const VOUCHER_ATTACHMENT_TAGS = ['银行回单', '承兑汇票', '审批文件', '入账支持文件', '凭证入账支持文件', '合同', '附件'];
 
 // 字段中文名到英文字段名的映射
 const FIELD_MAP = {
@@ -76,7 +79,7 @@ export function parseQuery(question) {
   const aggResult = parseAggregation(q);
   if (aggResult) {
     // 聚合查询也检测文件类型焦点
-    const docFocus = KNOWN_DOC_TAGS.filter(tag => q.includes(tag));
+    const docFocus = getMatchedDocTags(q);
     return {
       conditions: [],
       queryType: 'aggregation',
@@ -86,25 +89,28 @@ export function parseQuery(question) {
     };
   }
 
-  // 2. 解析订单号
+  // 2. 解析凭证类条件
+  parseVoucher(q, conditions, descParts);
+
+  // 3. 解析订单号
   parseOrderNo(q, conditions, descParts);
 
-  // 3. 解析客户名称（在文件类型之前，避免公司名被文件类型截断）
+  // 4. 解析客户名称（在文件类型之前，避免公司名被文件类型截断）
   parseCustomer(q, conditions, descParts);
 
-  // 4. 解析文件类型
+  // 5. 解析文件类型
   parseDocumentType(q, conditions, descParts);
 
-  // 5. 解析时间条件
+  // 6. 解析时间条件
   parseTimeCondition(q, conditions, descParts);
 
-  // 6. 解析金额条件
+  // 7. 解析金额条件
   parseAmountCondition(q, conditions, descParts);
 
-  // 7. 解析其他字段关键词
+  // 8. 解析其他字段关键词
   parseFieldKeywords(q, conditions, descParts);
 
-  // 8. 兜底：如果没有解析出任何条件，提取有意义的关键词
+  // 9. 兜底：如果没有解析出任何条件，提取有意义的关键词
   if (conditions.length === 0 && q.length > 0) {
     // 去掉常见的无意义词，提取核心关键词
     const stopWords = ['的', '相关', '有关', '所有', '全部', '哪些', '什么', '查询', '查找', '搜索', '检索', '请', '帮我', '找', '看看', '列出', '显示', '单据', '文件', '文档', '资料', '信息', '数据', '记录', '列表', '明细'];
@@ -118,7 +124,7 @@ export function parseQuery(question) {
   }
 
   // 检测查询焦点：用户关注的是什么类型的信息
-  const docFocus = KNOWN_DOC_TAGS.filter(tag => q.includes(tag));
+  const docFocus = getMatchedDocTags(q);
 
   return {
     conditions,
@@ -127,6 +133,63 @@ export function parseQuery(question) {
     description: descParts.join('，'),
     queryFocus: docFocus.length > 0 ? docFocus : null, // 用户关注的文件类型
   };
+}
+
+/** 解析凭证类条件 */
+function parseVoucher(q, conditions, descParts) {
+  const hasVoucherContext = VOUCHER_KEYWORDS.some(keyword => q.includes(keyword));
+  const matchedAttachmentTags = VOUCHER_ATTACHMENT_TAGS
+    .filter(tag => tag !== '附件' && q.includes(tag))
+    .map(tag => tag === '凭证入账支持文件' ? '入账支持文件' : tag);
+  const uniqueAttachmentTags = [...new Set(matchedAttachmentTags)];
+
+  if (hasVoucherContext && !conditions.some(c => c.table === 'voucher' && c.field === '__dimension')) {
+    conditions.push({ field: '__dimension', operator: 'eq', value: 'voucher', table: 'voucher' });
+    descParts.push('凭证类');
+  }
+
+  const voucherNoMatch = q.match(/凭证号\s*[:：]?\s*([A-Za-z0-9-]{6,20})/);
+  if (voucherNoMatch) {
+    conditions.push({ field: 'belnr', operator: 'eq', value: voucherNoMatch[1], table: 'voucher' });
+    descParts.push(`凭证号 = ${voucherNoMatch[1]}`);
+  }
+
+  const companyCodeMatch = q.match(/(?:公司代码|公司编码|公司code|公司)\s*[:：]?\s*(\d{4})/i);
+  if (companyCodeMatch) {
+    conditions.push({ field: 'bukrs', operator: 'eq', value: companyCodeMatch[1], table: 'voucher' });
+    descParts.push(`公司代码 = ${companyCodeMatch[1]}`);
+  }
+
+  const yearMatch = q.match(/(\d{4})\s*年/);
+  if (hasVoucherContext && yearMatch) {
+    conditions.push({ field: 'gjahr', operator: 'eq', value: yearMatch[1], table: 'voucher' });
+    descParts.push(`凭证年度 = ${yearMatch[1]}`);
+  }
+
+  uniqueAttachmentTags.forEach(tag => {
+    conditions.push({ field: 'attachment_type', operator: 'eq', value: tag, table: 'voucher' });
+    descParts.push(`凭证附件类型包含「${tag}」`);
+  });
+
+  if (/附件(?:上传|同步)?失败|失败附件/.test(q)) {
+    conditions.push({ field: 'attachment_status', operator: 'eq', value: 'failed', table: 'voucher' });
+    descParts.push('凭证附件状态 = 失败');
+  } else if (/空附件|无附件|没有附件/.test(q)) {
+    conditions.push({ field: 'has_attachment', operator: 'eq', value: false, table: 'voucher' });
+    descParts.push('凭证无附件');
+  } else if (/有附件|含附件|包含附件|带附件/.test(q)) {
+    conditions.push({ field: 'has_attachment', operator: 'eq', value: true, table: 'voucher' });
+    descParts.push('凭证有附件');
+  }
+}
+
+function getMatchedDocTags(q) {
+  const matched = KNOWN_DOC_TAGS
+    .filter(tag => q.includes(tag))
+    .sort((a, b) => b.length - a.length);
+  return matched.filter((tag, index) =>
+    !matched.slice(0, index).some(longerTag => longerTag.includes(tag))
+  );
 }
 
 /** 中文数字转阿拉伯数字 */
@@ -211,7 +274,7 @@ function parseOrderNo(q, conditions, descParts) {
 
 /** 解析文件类型 */
 function parseDocumentType(q, conditions, descParts) {
-  const matchedTags = KNOWN_DOC_TAGS.filter(tag => q.includes(tag));
+  const matchedTags = getMatchedDocTags(q);
   if (matchedTags.length > 0) {
     matchedTags.forEach(tag => {
       conditions.push({ field: 'tag', operator: 'eq', value: tag, table: 'document' });
