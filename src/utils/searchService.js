@@ -25,6 +25,14 @@ const FIELD_LABELS = {
   channelDesc: '分销渠道',
   holdingCompany: '控股方',
   tag: '文件类型',
+  belnr: '凭证号',
+  gjahr: '会计年度',
+  bukrs: '公司代码',
+  company_name: '公司名称',
+  blart: '凭证类型',
+  poper: '会计期间',
+  attachment_type: '凭证附件类型',
+  attachment_status: '凭证附件状态',
 };
 
 /** 默认订单列表表格列（订单号 + 常用字段） */
@@ -474,7 +482,7 @@ function mapConditionToPurchase(condition) {
 }
 
 /**
- * 执行采购单维度检索
+ * 执行采购订单维度检索
  */
 function executePurchaseSearch(parseResult, purchaseOrderTable, purchaseDocumentTable) {
   if (!purchaseOrderTable || purchaseOrderTable.length === 0) {
@@ -485,7 +493,7 @@ function executePurchaseSearch(parseResult, purchaseOrderTable, purchaseDocument
 
   // 聚合查询时采购维度返回空结果
   if (queryType === 'aggregation') {
-    return { orders: [], total: 0, summary: '聚合查询暂不支持采购单维度' };
+    return { orders: [], total: 0, summary: '聚合查询暂不支持采购订单维度' };
   }
 
   const attachPurchaseDocuments = (orderList) =>
@@ -534,7 +542,7 @@ function executePurchaseSearch(parseResult, purchaseOrderTable, purchaseDocument
     }
   }
 
-  // 用 document 条件过滤（tag 匹配采购单据的 tag）
+  // 用 document 条件过滤（tag 匹配采购订单单据的 tag）
   if (docConditions.length > 0 && purchaseDocumentTable && purchaseDocumentTable.length > 0) {
     const matchingOrderNos = new Set();
     purchaseDocumentTable.forEach(doc => {
@@ -675,13 +683,212 @@ function executeDocumentDimensionSearch(parseResult, standaloneDocumentTable) {
 }
 
 /**
+ * 标准化凭证数据输入，兼容数组或 { vouchers, details } 对象。
+ */
+function normalizeVoucherData(voucherData) {
+  if (Array.isArray(voucherData)) {
+    return { vouchers: voucherData, details: voucherData.details || voucherData.voucherDetails || {} };
+  }
+  if (!voucherData || typeof voucherData !== 'object') {
+    return { vouchers: [], details: {} };
+  }
+  return {
+    vouchers: voucherData.vouchers || voucherData.voucherList || voucherData.list || [],
+    details: voucherData.details || voucherData.voucherDetails || voucherData.detailMap || {},
+  };
+}
+
+function attachVoucherDetails(vouchers, details) {
+  return vouchers.map(voucher => {
+    const detail = details[voucher.voucher_key] || {};
+    const attachments = detail.voucher_attachments || [];
+    return {
+      ...voucher,
+      detail,
+      attachment_count: attachments.length,
+      attachment_types: [...new Set(attachments.map(item => item.attachment_type).filter(Boolean))],
+      has_failed_attachment: attachments.some(item => item.status === 'failed'),
+    };
+  });
+}
+
+function getVoucherAttachmentType(item) {
+  return item.attachment_type || item.doc_type || item.doc_sub_type || '';
+}
+
+function matchVoucherAttachmentType(itemType, expected) {
+  const source = String(itemType || '');
+  const target = String(expected || '');
+  if (!source || !target) return false;
+  return source === target || source.includes(target) || target.includes(source);
+}
+
+function getVoucherSearchText(voucher, detail) {
+  const texts = [
+    voucher.voucher_key,
+    voucher.belnr,
+    voucher.gjahr,
+    voucher.bukrs,
+    voucher.company_name,
+    voucher.blart,
+    voucher.poper,
+  ];
+
+  if (detail && typeof detail === 'object') {
+    const collect = value => {
+      if (value === undefined || value === null) return;
+      if (Array.isArray(value)) {
+        value.forEach(collect);
+      } else if (typeof value === 'object') {
+        Object.values(value).forEach(collect);
+      } else {
+        texts.push(String(value));
+      }
+    };
+    collect(detail);
+  }
+
+  return texts.filter(Boolean).join(' ');
+}
+
+function matchVoucherCondition(voucher, detail, condition) {
+  const { field, operator, value } = condition;
+  const attachments = (detail && detail.voucher_attachments) || [];
+
+  if (field === '__dimension') return true;
+
+  if (field === 'attachment_type') {
+    return attachments.some(item => {
+      const itemType = getVoucherAttachmentType(item);
+      if (operator === 'eq' || operator === 'contains') {
+        return matchVoucherAttachmentType(itemType, value);
+      }
+      return matchCondition({ attachment_type: itemType }, { field: 'attachment_type', operator, value });
+    });
+  }
+
+  if (field === 'attachment_status') {
+    return attachments.some(item => matchCondition({ attachment_status: item.status }, { field: 'attachment_status', operator, value }));
+  }
+
+  if (field === 'has_attachment') {
+    const hasAttachment = attachments.length > 0;
+    return hasAttachment === value || String(hasAttachment) === String(value);
+  }
+
+  return matchCondition(voucher, condition);
+}
+
+function buildVoucherSummary(resultVouchers, parseResult) {
+  const count = resultVouchers.length;
+  if (count === 0) {
+    return `根据查询条件（${parseResult.description || ''}），未找到匹配的凭证类单据。`;
+  }
+
+  const companySet = new Set(resultVouchers.map(v => v.company_name).filter(Boolean));
+  const attachmentTotal = resultVouchers.reduce((sum, v) => sum + (v.attachment_count || 0), 0);
+  const parts = [`共检索到 ${count} 条凭证类单据，包含 ${attachmentTotal} 份附件。`];
+
+  if (companySet.size > 0 && companySet.size <= 4) {
+    parts.push(`涉及公司：${Array.from(companySet).join('、')}。`);
+  } else if (companySet.size > 4) {
+    parts.push(`涉及 ${companySet.size} 家公司。`);
+  }
+
+  return parts.join('');
+}
+
+/**
+ * 执行凭证类维度检索
+ */
+function executeVoucherSearch(parseResult, voucherData) {
+  const { vouchers, details } = normalizeVoucherData(voucherData);
+  if (!vouchers || vouchers.length === 0) {
+    return { vouchers: [], total: 0, summary: '暂无数据' };
+  }
+
+  const { conditions, queryType } = parseResult;
+  if (queryType === 'aggregation') {
+    return { vouchers: [], total: 0, summary: '聚合查询暂不支持凭证类单据维度' };
+  }
+
+  if (!conditions || conditions.length === 0) {
+    const allVouchers = attachVoucherDetails(vouchers, details);
+    return {
+      vouchers: allVouchers,
+      total: allVouchers.length,
+      summary: `共有 ${allVouchers.length} 条凭证类单据。`,
+    };
+  }
+
+  const fulltextConditions = conditions.filter(c => c.table === 'fulltext');
+  const voucherConditions = conditions.filter(c => c.table === 'voucher');
+  const docConditions = conditions.filter(c => c.table === 'document' && c.field === 'tag');
+
+  let filtered = [...vouchers];
+  if (fulltextConditions.length > 0) {
+    const keyword = String(fulltextConditions[0].value);
+    filtered = filtered.filter(voucher => getVoucherSearchText(voucher, details[voucher.voucher_key]).includes(keyword));
+  }
+
+  if (voucherConditions.length > 0) {
+    filtered = filtered.filter(voucher =>
+      voucherConditions.every(cond => matchVoucherCondition(voucher, details[voucher.voucher_key], cond))
+    );
+  }
+
+  if (docConditions.length > 0) {
+    filtered = filtered.filter(voucher =>
+      docConditions.some(cond => matchVoucherCondition(
+        voucher,
+        details[voucher.voucher_key],
+        { field: 'attachment_type', operator: cond.operator, value: cond.value, table: 'voucher' }
+      ))
+    );
+  }
+
+  const resultVouchers = attachVoucherDetails(filtered, details);
+  return {
+    vouchers: resultVouchers,
+    total: resultVouchers.length,
+    summary: buildVoucherSummary(resultVouchers, parseResult),
+  };
+}
+
+function buildScopedParseResult(parseResult, tables) {
+  const conditions = parseResult.conditions || [];
+  if (conditions.length === 0) {
+    return parseResult;
+  }
+
+  const scopedConditions = conditions.filter(condition => tables.includes(condition.table));
+  return {
+    ...parseResult,
+    conditions: scopedConditions,
+    queryType: scopedConditions.length === 0 && parseResult.queryType !== 'aggregation' ? 'list' : parseResult.queryType,
+  };
+}
+
+function emptyDimensionResult(kind) {
+  if (kind === 'sales') return { orders: [], total: 0, summary: '未查询销售订单维度。' };
+  if (kind === 'purchase') return { orders: [], total: 0, summary: '未查询采购订单维度。' };
+  return { documents: [], total: 0, summary: '未查询单据维度。' };
+}
+
+function shouldSkipDimension(originalParseResult, scopedParseResult) {
+  const originalConditions = originalParseResult.conditions || [];
+  return originalConditions.length > 0 && scopedParseResult.conditions.length === 0 && originalParseResult.queryType !== 'aggregation';
+}
+
+/**
  * 生成综合摘要，包含各维度命中数量
  */
-function buildOverallSummary(salesResult, purchaseResult, documentResult) {
+function buildOverallSummary(salesResult, purchaseResult, documentResult, voucherResult) {
   const parts = [];
   const salesTotal = salesResult.total || 0;
   const purchaseTotal = purchaseResult.total || 0;
   const documentTotal = documentResult.total || 0;
+  const voucherTotal = voucherResult ? (voucherResult.total || 0) : 0;
 
   const dimensionParts = [];
   if (salesTotal > 0) {
@@ -690,17 +897,20 @@ function buildOverallSummary(salesResult, purchaseResult, documentResult) {
     dimensionParts.push(`销售订单 0 条`);
   }
   if (purchaseTotal > 0) {
-    dimensionParts.push(`采购单 ${purchaseTotal} 条`);
+    dimensionParts.push(`采购订单 ${purchaseTotal} 条`);
   } else {
-    dimensionParts.push(`采购单 0 条`);
+    dimensionParts.push(`采购订单 0 条`);
+  }
+  if (voucherResult) {
+    dimensionParts.push(`凭证类单据 ${voucherTotal} 条`);
   }
   if (documentTotal > 0) {
-    dimensionParts.push(`单据 ${documentTotal} 份`);
+    dimensionParts.push(`财务类单据 ${documentTotal} 份`);
   } else {
-    dimensionParts.push(`单据 0 份`);
+    dimensionParts.push(`财务类单据 0 份`);
   }
 
-  const totalHits = salesTotal + purchaseTotal + documentTotal;
+  const totalHits = salesTotal + purchaseTotal + documentTotal + voucherTotal;
   if (totalHits > 0) {
     parts.push(`共检索到${dimensionParts.join('，')}。`);
   } else {
@@ -716,27 +926,43 @@ function buildOverallSummary(salesResult, purchaseResult, documentResult) {
  * @param {Object[]} orderTable - 销售订单主表
  * @param {Object[]} documentTable - 销售单据关联表
  * @param {Object[]} purchaseOrderTable - 采购订单主表
- * @param {Object[]} purchaseDocumentTable - 采购单据关联表
+ * @param {Object[]} purchaseDocumentTable - 采购订单单据关联表
  * @param {Object[]} standaloneDocumentTable - 独立单据表
+ * @param {Object|Object[]} voucherData - 凭证类数据，可为 { vouchers, details } 或凭证列表数组
  * @returns {MultiDimensionResult}
  */
-export function executeMultiDimensionSearch(parseResult, orderTable, documentTable, purchaseOrderTable, purchaseDocumentTable, standaloneDocumentTable) {
-  // 1. 销售订单维度：复用现有 executeSearch
-  const salesResult = executeSearch(parseResult, orderTable || [], documentTable || []);
+export function executeMultiDimensionSearch(parseResult, orderTable, documentTable, purchaseOrderTable, purchaseDocumentTable, standaloneDocumentTable, voucherData) {
+  const salesParseResult = buildScopedParseResult(parseResult, ['order', 'document', 'fulltext']);
+  const purchaseParseResult = buildScopedParseResult(parseResult, ['order', 'document', 'fulltext']);
+  const documentParseResult = buildScopedParseResult(parseResult, ['order', 'document', 'fulltext']);
 
-  // 2. 采购单维度
-  const purchaseResult = executePurchaseSearch(parseResult, purchaseOrderTable, purchaseDocumentTable);
+  // 1. 销售订单维度：复用现有 executeSearch
+  const salesResult = shouldSkipDimension(parseResult, salesParseResult)
+    ? emptyDimensionResult('sales')
+    : executeSearch(salesParseResult, orderTable || [], documentTable || []);
+
+  // 2. 采购订单维度
+  const purchaseResult = shouldSkipDimension(parseResult, purchaseParseResult)
+    ? emptyDimensionResult('purchase')
+    : executePurchaseSearch(purchaseParseResult, purchaseOrderTable, purchaseDocumentTable);
 
   // 3. 单据本身维度
-  const documentResult = executeDocumentDimensionSearch(parseResult, standaloneDocumentTable);
+  const documentResult = shouldSkipDimension(parseResult, documentParseResult)
+    ? emptyDimensionResult('document')
+    : executeDocumentDimensionSearch(documentParseResult, standaloneDocumentTable);
 
-  // 4. 生成综合摘要
-  const overallSummary = buildOverallSummary(salesResult, purchaseResult, documentResult);
+  // 4. 凭证类维度
+  const voucherResult = executeVoucherSearch(parseResult, voucherData);
+
+  // 5. 生成综合摘要
+  const hasVoucherData = normalizeVoucherData(voucherData).vouchers.length > 0;
+  const overallSummary = buildOverallSummary(salesResult, purchaseResult, documentResult, hasVoucherData ? voucherResult : null);
 
   return {
     sales: salesResult,
     purchase: purchaseResult,
     document: documentResult,
+    voucher: voucherResult,
     overallSummary,
   };
 }
