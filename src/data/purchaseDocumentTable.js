@@ -1,8 +1,7 @@
 /**
  * 采购单据关联表（Purchase_Document_Table）
  * 通过 purchaseOrderNo 与 Purchase_Order_Table 建立一对多关联
- * 15种单据类型：资产验收报告、银行回单、承兑汇票收付回单、报销发票、
- * 应付账款函证相关单据-对账单、应付账款函证相关单据-应收询证函、采购发票、
+ * 13种单据类型：资产验收报告、银行回单、承兑汇票收付回单、报销发票、采购发票、
  * 采购合同、供应商出厂检验报告、原材料外购直发签收单、到货验收单、
  * 预验收单、通电验收单、最终验收单、入库单
  */
@@ -31,7 +30,6 @@ const purchaseDocumentTable = [
   { id: 'pdoc15', purchaseOrderNo: 'PO2019-0004', type: 'pdf', name: 'PO2019-0004采购订单及合同-南瑞继保测控装置.pdf', tag: '采购合同', tagColor: '#2f54eb', path: '/user/kass/采购文档/合同/2019/...' },
   { id: 'pdoc16', purchaseOrderNo: 'PO2019-0004', type: 'pdf', name: 'PO2019-0004供应商出厂检验报告-测控装置.pdf', tag: '供应商出厂检验报告', tagColor: '#13c2c2', path: '/user/kass/采购文档/检验报告/2019/...' },
   { id: 'pdoc17', purchaseOrderNo: 'PO2019-0004', type: 'pdf', name: 'PO2019-0004通电验收单-001.pdf', tag: '通电验收单', tagColor: '#08979c', path: '/user/kass/采购文档/验收单/2019/...' },
-  { id: 'pdoc18', purchaseOrderNo: 'PO2019-0004', type: 'pdf', name: 'PO2019-0004应付账款对账单-南瑞继保.pdf', tag: '应付账款函证相关单据-对账单', tagColor: '#531dab', path: '/user/kass/采购文档/对账单/2019/...' },
 
   // ========== 采购订单 PO2020-0005 西安西电 - 深圳12号线主变压器 ==========
   { id: 'pdoc19', purchaseOrderNo: 'PO2020-0005', type: 'pdf', name: 'PO2020-0005采购订单及合同-西电主变压器.pdf', tag: '采购合同', tagColor: '#2f54eb', path: '/user/kass/采购文档/合同/2020/...' },
@@ -56,7 +54,6 @@ const purchaseDocumentTable = [
   // ========== 采购订单 PO2022-0008 天津特变电工 - 青海格尔木光伏硅钢片 ==========
   { id: 'pdoc33', purchaseOrderNo: 'PO2022-0008', type: 'pdf', name: 'PO2022-0008采购订单及合同-特变电工硅钢片.pdf', tag: '采购合同', tagColor: '#2f54eb', path: '/user/kass/采购文档/合同/2022/...' },
   { id: 'pdoc34', purchaseOrderNo: 'PO2022-0008', type: 'pdf', name: 'PO2022-0008供应商出厂检验报告-硅钢片.pdf', tag: '供应商出厂检验报告', tagColor: '#13c2c2', path: '/user/kass/采购文档/检验报告/2022/...' },
-  { id: 'pdoc35', purchaseOrderNo: 'PO2022-0008', type: 'pdf', name: 'PO2022-0008应收询证函-特变电工.pdf', tag: '应付账款函证相关单据-应收询证函', tagColor: '#9254de', path: '/user/kass/采购文档/询证函/2022/...' },
 
   // ========== 采购订单 PO2023-0009 许继电气 - 南京7号线整流变压器 ==========
   { id: 'pdoc36', purchaseOrderNo: 'PO2023-0009', type: 'pdf', name: 'PO2023-0009采购订单及合同-许继电气整流变压器.pdf', tag: '采购合同', tagColor: '#2f54eb', path: '/user/kass/采购文档/合同/2023/...' },
@@ -69,14 +66,12 @@ const purchaseDocumentTable = [
   { id: 'pdoc41', purchaseOrderNo: 'PO2023-0010', type: 'pdf', name: 'PO2023-0010采购订单及合同-思源电气变压器.pdf', tag: '采购合同', tagColor: '#2f54eb', path: '/user/kass/采购文档/合同/2023/...' },
   { id: 'pdoc42', purchaseOrderNo: 'PO2023-0010', type: 'pdf', name: 'PO2023-0010到货验收单-001.pdf', tag: '到货验收单', tagColor: '#52c41a', path: '/user/kass/采购文档/验收单/2023/...' },
   { id: 'pdoc43', purchaseOrderNo: 'PO2023-0010', type: 'pdf', name: 'PO2023-0010入库单-001.pdf', tag: '入库单', tagColor: '#faad14', path: '/user/kass/采购文档/入库单/2023/...' },
-  { id: 'pdoc44', purchaseOrderNo: 'PO2023-0010', type: 'pdf', name: 'PO2023-0010应付账款对账单-思源电气.pdf', tag: '应付账款函证相关单据-对账单', tagColor: '#531dab', path: '/user/kass/采购文档/对账单/2023/...' },
 
   // ========== 采购订单 PO2024-0011 保定天威保变 - 中石化镇海散热器及套管 ==========
   { id: 'pdoc45', purchaseOrderNo: 'PO2024-0011', type: 'pdf', name: 'PO2024-0011采购订单及合同-天威保变散热器套管.pdf', tag: '采购合同', tagColor: '#2f54eb', path: '/user/kass/采购文档/合同/2024/...' },
   { id: 'pdoc46', purchaseOrderNo: 'PO2024-0011', type: 'pdf', name: 'PO2024-0011银行回单-付款.pdf', tag: '银行回单', tagColor: '#389e0d', path: '/user/kass/采购文档/银行回单/2024/...' },
   { id: 'pdoc47', purchaseOrderNo: 'PO2024-0011', type: 'image', name: 'PO2024-0011采购发票-001.jpg', tag: '采购发票', tagColor: '#eb2f96', path: '/user/kass/采购文档/发票/2024/...' },
   { id: 'pdoc48', purchaseOrderNo: 'PO2024-0011', type: 'pdf', name: 'PO2024-0011报销发票-验收出差费用.jpg', tag: '报销发票', tagColor: '#c41d7f', path: '/user/kass/采购文档/报销/2024/...' },
-  { id: 'pdoc49', purchaseOrderNo: 'PO2024-0011', type: 'pdf', name: 'PO2024-0011应收询证函-天威保变.pdf', tag: '应付账款函证相关单据-应收询证函', tagColor: '#9254de', path: '/user/kass/采购文档/询证函/2024/...' },
 
   // ========== 采购订单 PO2024-0012 山东电工电气 - 济南4号线整流变压器成套设备 ==========
   { id: 'pdoc50', purchaseOrderNo: 'PO2024-0012', type: 'pdf', name: 'PO2024-0012采购订单及合同-山东电工整流变压器.pdf', tag: '采购合同', tagColor: '#2f54eb', path: '/user/kass/采购文档/合同/2024/...' },

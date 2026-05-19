@@ -85,12 +85,11 @@ const docCategoryMeta = {
       { key: 'collectionPeriod', label: '征期时间', type: 'string' },
     ],
   },
-  // 12. 完税凭证：公司代码 → 属期年月 → 税种名 → 征期时间
+  // 12. 完税凭证：公司代码 → 属期年月 → 征期时间
   '完税凭证': {
     fields: [
       { key: 'companyCode', label: '公司代码', type: 'string' },
       { key: 'taxPeriod', label: '属期年月', type: 'string' },
-      { key: 'taxName', label: '税种名', type: 'string' },
       { key: 'collectionPeriod', label: '征期时间', type: 'string' },
     ],
   },
@@ -101,65 +100,11 @@ const docCategoryMeta = {
       { key: 'year', label: '年份', type: 'string' },
     ],
   },
-  // 14. 无欠税证明：公司代码 → 日期
-  '无欠税证明': {
+  // 14. 无违规证明：公司代码 → 日期
+  '无违规证明': {
     fields: [
       { key: 'companyCode', label: '公司代码', type: 'string' },
       { key: 'date', label: '日期', type: 'date' },
-    ],
-  },
-  // 15. 研发加计扣除报告：公司代码 → 年份 → 其他
-  '研发加计扣除报告': {
-    fields: [
-      { key: 'companyCode', label: '公司代码', type: 'string' },
-      { key: 'year', label: '年份', type: 'string' },
-      { key: 'other', label: '其他', type: 'string' },
-    ],
-  },
-  // 16. 同期资料鉴定报告：公司代码 → 年份 → 其他
-  '同期资料鉴定报告': {
-    fields: [
-      { key: 'companyCode', label: '公司代码', type: 'string' },
-      { key: 'year', label: '年份', type: 'string' },
-      { key: 'other', label: '其他', type: 'string' },
-    ],
-  },
-  // 17. 高新审计报告：公司代码 → 年份 → 科目
-  '高新审计报告': {
-    fields: [
-      { key: 'companyCode', label: '公司代码', type: 'string' },
-      { key: 'year', label: '年份', type: 'string' },
-      { key: 'subject', label: '科目', type: 'string' },
-    ],
-  },
-  // 18. 担保协议：公司代码 → 银行 → 开始日期 → 终止日期 → 金额
-  '担保协议': {
-    fields: [
-      { key: 'companyCode', label: '公司代码', type: 'string' },
-      { key: 'bank', label: '银行', type: 'string' },
-      { key: 'startDate', label: '开始日期', type: 'date' },
-      { key: 'endDate', label: '终止日期', type: 'date' },
-      { key: 'amount', label: '金额', type: 'number' },
-    ],
-  },
-  // 19. 授信协议：公司代码 → 银行 → 开始日期 → 终止日期 → 金额
-  '授信协议': {
-    fields: [
-      { key: 'companyCode', label: '公司代码', type: 'string' },
-      { key: 'bank', label: '银行', type: 'string' },
-      { key: 'startDate', label: '开始日期', type: 'date' },
-      { key: 'endDate', label: '终止日期', type: 'date' },
-      { key: 'amount', label: '金额', type: 'number' },
-    ],
-  },
-  // 20. 借款协议：公司代码 → 银行 → 计息起始日期 → 计息终止日期 → 金额
-  '借款协议': {
-    fields: [
-      { key: 'companyCode', label: '公司代码', type: 'string' },
-      { key: 'bank', label: '银行', type: 'string' },
-      { key: 'interestStartDate', label: '计息起始日期', type: 'date' },
-      { key: 'interestEndDate', label: '计息终止日期', type: 'date' },
-      { key: 'amount', label: '金额', type: 'number' },
     ],
   },
   // 21. 凭证入账支持文件：公司代码 → 凭证号
@@ -199,15 +144,8 @@ const docCategoryMeta = {
       { key: 'amount', label: '金额', type: 'number' },
     ],
   },
-  // 25. 应付账款函证相关单据-对账单：供应商代码 → 日期
-  '应付账款函证相关单据-对账单': {
-    fields: [
-      { key: 'supplierCode', label: '供应商代码', type: 'string' },
-      { key: 'date', label: '日期', type: 'date' },
-    ],
-  },
-  // 26. 应付账款函证相关单据-应收询证函：供应商代码 → 日期
-  '应付账款函证相关单据-应收询证函': {
+  // 25. 应付账款函证相关单据：供应商代码 → 日期
+  '应付账款函证相关单据': {
     fields: [
       { key: 'supplierCode', label: '供应商代码', type: 'string' },
       { key: 'date', label: '日期', type: 'date' },
