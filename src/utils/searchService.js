@@ -706,19 +706,32 @@ function attachVoucherDetails(vouchers, details) {
       ...voucher,
       detail,
       attachment_count: attachments.length,
-      attachment_types: [...new Set(attachments.map(item => item.attachment_type).filter(Boolean))],
+      attachment_types: [...new Set(attachments.map(getVoucherAttachmentType).filter(Boolean))],
       has_failed_attachment: attachments.some(item => item.status === 'failed'),
     };
   });
 }
 
 function getVoucherAttachmentType(item) {
-  return item.attachment_type || item.doc_type || item.doc_sub_type || '';
+  return normalizeVoucherAttachmentType(item.attachment_type || item.doc_type || item.doctype || item.doc_sub_type || '');
+}
+
+const VOUCHER_ATTACHMENT_TYPE_ALIASES = {
+  '凭证入账支持文件-合同': '凭证支持类合同',
+  '凭证入账支持文件-附件': '凭证支持类附件',
+  '凭证入账支持文件-审批文件': '审批文件',
+  凭证入账支持文件: '凭证支持类附件',
+  入账支持文件: '凭证支持类附件',
+  承兑汇票: '承兑汇票收付回单',
+};
+
+function normalizeVoucherAttachmentType(type) {
+  return VOUCHER_ATTACHMENT_TYPE_ALIASES[type] || type || '';
 }
 
 function matchVoucherAttachmentType(itemType, expected) {
-  const source = String(itemType || '');
-  const target = String(expected || '');
+  const source = String(normalizeVoucherAttachmentType(itemType));
+  const target = String(normalizeVoucherAttachmentType(expected));
   if (!source || !target) return false;
   return source === target || source.includes(target) || target.includes(source);
 }
@@ -726,6 +739,7 @@ function matchVoucherAttachmentType(itemType, expected) {
 function getVoucherSearchText(voucher, detail) {
   const texts = [
     voucher.voucher_key,
+    voucher.voucher_header_id,
     voucher.belnr,
     voucher.gjahr,
     voucher.bukrs,
