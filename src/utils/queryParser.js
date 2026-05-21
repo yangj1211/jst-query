@@ -29,12 +29,22 @@ const KNOWN_DOC_TAGS = [
   '诉讼文件', '综合财务分析指标', '财务报表主表（盖章）', '年度审计报告',
   'IT审计报告', '验资报告', '政府补助文件/政府项目专项审计报告',
   '信用评级', '资产评估报告', '纳税申报表', '完税凭证', '纳税信用等级证明',
-  '无违规证明', '凭证入账支持文件', '审批文件', '入账支持文件',
+  '无违规证明', '凭证入账支持文件', '凭证支持类合同', '凭证支持类附件',
+  '审批文件', '入账支持文件',
   '采购框架协议、质量协议',
 ];
 
 const VOUCHER_KEYWORDS = ['凭证类', '会计凭证', '财务凭证', '凭证号'];
-const VOUCHER_ATTACHMENT_TAGS = ['银行回单', '承兑汇票', '审批文件', '入账支持文件', '凭证入账支持文件', '合同', '附件'];
+const VOUCHER_ATTACHMENT_ALIASES = [
+  { value: '凭证支持类合同', keywords: ['凭证支持类合同', '凭证入账支持文件-合同'] },
+  { value: '凭证支持类附件', keywords: ['凭证支持类附件', '凭证入账支持文件-附件', '入账支持文件'], ignoreIfAny: ['凭证入账支持文件-合同', '凭证入账支持文件-审批文件'] },
+  { value: '凭证支持类附件', keywords: ['凭证入账支持文件'], ignoreIfAny: ['凭证入账支持文件-合同', '凭证入账支持文件-审批文件'] },
+  { value: '审批文件', keywords: ['审批文件', '凭证入账支持文件-审批文件'] },
+  { value: '银行回单', keywords: ['银行回单'] },
+  { value: '承兑汇票收付回单', keywords: ['承兑汇票收付回单', '承兑汇票'] },
+  { value: '凭证支持类合同', keywords: ['合同'], requiresVoucherContext: true },
+  { value: '凭证支持类附件', keywords: ['附件'], requiresVoucherContext: true },
+];
 
 // 字段中文名到英文字段名的映射
 const FIELD_MAP = {
@@ -138,9 +148,13 @@ export function parseQuery(question) {
 /** 解析凭证类条件 */
 function parseVoucher(q, conditions, descParts) {
   const hasVoucherContext = VOUCHER_KEYWORDS.some(keyword => q.includes(keyword));
-  const matchedAttachmentTags = VOUCHER_ATTACHMENT_TAGS
-    .filter(tag => tag !== '附件' && q.includes(tag))
-    .map(tag => tag === '凭证入账支持文件' ? '入账支持文件' : tag);
+  const matchedAttachmentTags = VOUCHER_ATTACHMENT_ALIASES
+    .filter(({ keywords, requiresVoucherContext, ignoreIfAny = [] }) =>
+      (!requiresVoucherContext || hasVoucherContext)
+      && !ignoreIfAny.some(keyword => q.includes(keyword))
+      && keywords.some(keyword => q.includes(keyword))
+    )
+    .map(({ value }) => value);
   const uniqueAttachmentTags = [...new Set(matchedAttachmentTags)];
 
   if (hasVoucherContext && !conditions.some(c => c.table === 'voucher' && c.field === '__dimension')) {

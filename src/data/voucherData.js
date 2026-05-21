@@ -1,24 +1,42 @@
 export const VOUCHER_ATTACHMENT_TYPES = {
   BANK_RECEIPT: '银行回单',
   ACCEPTANCE_BILL: '承兑汇票收付回单',
-  APPROVAL_FILE: '凭证入账支持文件-审批文件',
-  BOOKING_SUPPORT: '凭证入账支持文件-附件',
-  CONTRACT: '凭证入账支持文件-合同',
+  APPROVAL_FILE: '审批文件',
+  BOOKING_SUPPORT: '凭证支持类附件',
+  CONTRACT: '凭证支持类合同',
 };
 
 export const voucherAttachmentTypes = Object.values(VOUCHER_ATTACHMENT_TYPES);
 
 const sumLineAmount = (lines = []) => lines.reduce((sum, line) => sum + Number(line.amount || line.tsl || 0), 0);
 
+const buildVoucherHeaderId = (voucher = {}) => (
+  [voucher.belnr, voucher.bukrs, voucher.gjahr].filter(Boolean).join('-')
+);
+
+const getDefaultExpenseReimbursementNote = (main) => {
+  const scenario = main.header_text || '凭证事项';
+  if (main.blart === 'KZ') {
+    return `本次费用报销说明：${scenario}，已依据供应商付款申请、发票信息和银行付款凭据完成复核。报销内容与采购或项目结算事项一致，付款金额、收款方户名、银行账号及过账期间已核对，相关支持材料已按凭证附件归档。`;
+  }
+  if (main.blart === 'KR') {
+    return `本次费用报销说明：${scenario}，对应采购入库、供应商发票和应付暂估入账事项。费用归属部门、供应商信息、税额及金额口径已按审批资料核验，后续付款或冲销时需继续关联本凭证及附件。`;
+  }
+  return `本次费用报销说明：${scenario}，用于补充说明凭证入账背景、费用归属和附件依据。经核对，业务事由、公司主体、过账期间及金额口径与明细表一致，相关审批文件、合同或回单材料已纳入凭证支持附件。`;
+};
+
 const enrichVoucherMain = (main) => ({
-  ai_summary: main.header_text || '凭证入账及附件归档',
-  related_apply_doc_no: `AP-${main.gjahr}-${main.bukrs}-${main.belnr.slice(-4)}`,
-  related_other_doc_no: `REL-${main.bukrs}-${main.poper}-${main.belnr.slice(-4)}`,
-  payee_name: main.company_name,
-  payee_code: `PAYEE-${main.bukrs}`,
-  reimburser_name: '财务共享中心',
-  xref2_hd: `XREF-${main.gjahr}-${main.belnr}`,
   ...main,
+  voucher_header_id: main.voucher_header_id || buildVoucherHeaderId(main),
+  ai_summary: main.ai_summary || main.header_text || '凭证入账及附件归档',
+  related_apply_doc_no: main.related_apply_doc_no || `AP-${main.gjahr}-${main.bukrs}-${main.belnr.slice(-4)}`,
+  related_other_doc_no: main.related_other_doc_no || `REL-${main.bukrs}-${main.poper}-${main.belnr.slice(-4)}`,
+  payee_name: main.payee_name || main.company_name,
+  payee_code: main.payee_code || `PAYEE-${main.bukrs}`,
+  reimburser_name: main.reimburser_name || '财务共享中心',
+  xblnr: main.xblnr || `XBL-${main.gjahr}-${main.belnr}`,
+  xref2_hd: main.xref2_hd || `XREF-${main.gjahr}-${main.belnr}`,
+  expense_reimbursement_note: main.expense_reimbursement_note || getDefaultExpenseReimbursementNote(main),
 });
 
 const enrichVoucherLine = (line, main, index, direction) => ({
@@ -80,6 +98,8 @@ const enrichVoucherPayment = (payment, main, index, fallbackAmount) => ({
   amount: payment.amount || fallbackAmount || 0,
   currency: payment.currency || main.waers || 'CNY',
   ...payment,
+  account_code: payment.account_code || payment.racct || (payment.bill_no ? '112101' : '100201'),
+  account_name: payment.account_name || payment.account_desc || (payment.bill_no ? '应收票据' : '银行存款'),
 });
 
 export const voucherList = [
@@ -130,6 +150,10 @@ export const voucherList = [
   },
 ];
 
+voucherList.forEach((voucher) => {
+  voucher.voucher_header_id = voucher.voucher_header_id || buildVoucherHeaderId(voucher);
+});
+
 export const voucherDetails = {
   '1000-2024-1000001234': {
     voucher_main: {
@@ -159,8 +183,8 @@ export const voucherDetails = {
     ],
     voucher_attachments: [
       { attachment_id: 'vatt-001', attachment_type: VOUCHER_ATTACHMENT_TYPES.BANK_RECEIPT, file_name: '南京地铁7号线回款银行回单.pdf', file_format: 'pdf', status: 'normal', kass_path: '/kass/财务档案/凭证附件/2024/1000/1000001234/南京地铁7号线回款银行回单.pdf' },
-      { attachment_id: 'vatt-002', attachment_type: VOUCHER_ATTACHMENT_TYPES.BOOKING_SUPPORT, file_name: '南京地铁7号线入账支持文件.pdf', file_format: 'pdf', status: 'normal', kass_path: '/kass/财务档案/凭证附件/2024/1000/1000001234/南京地铁7号线入账支持文件.pdf' },
-      { attachment_id: 'vatt-003', attachment_type: VOUCHER_ATTACHMENT_TYPES.CONTRACT, file_name: '南京地铁7号线销售合同.pdf', file_format: 'pdf', status: 'normal', kass_path: '/kass/财务档案/凭证附件/2024/1000/1000001234/南京地铁7号线销售合同.pdf' },
+      { attachment_id: 'vatt-002', attachment_type: VOUCHER_ATTACHMENT_TYPES.BOOKING_SUPPORT, file_name: '南京地铁7号线凭证支持类附件.pdf', file_format: 'pdf', status: 'normal', kass_path: '/kass/财务档案/凭证附件/2024/1000/1000001234/南京地铁7号线凭证支持类附件.pdf' },
+      { attachment_id: 'vatt-003', attachment_type: VOUCHER_ATTACHMENT_TYPES.CONTRACT, file_name: '南京地铁7号线凭证支持类合同.pdf', file_format: 'pdf', status: 'normal', kass_path: '/kass/财务档案/凭证附件/2024/1000/1000001234/南京地铁7号线凭证支持类合同.pdf' },
     ],
   },
   '1000-2024-1000001235': {
@@ -244,7 +268,7 @@ export const voucherDetails = {
     invoice_details: [],
     payment_details: [],
     voucher_attachments: [
-      { attachment_id: 'vatt-006', attachment_type: VOUCHER_ATTACHMENT_TYPES.BOOKING_SUPPORT, file_name: '年末费用重分类入账支持文件.pdf', file_format: 'pdf', status: 'failed', error_message: 'KASS文件同步失败，等待重新抓取', kass_path: '/kass/财务档案/凭证附件/2023/1000/1000001234/年末费用重分类入账支持文件.pdf' },
+      { attachment_id: 'vatt-006', attachment_type: VOUCHER_ATTACHMENT_TYPES.BOOKING_SUPPORT, file_name: '年末费用重分类凭证支持类附件.pdf', file_format: 'pdf', status: 'failed', error_message: 'KASS文件同步失败，等待重新抓取', kass_path: '/kass/财务档案/凭证附件/2023/1000/1000001234/年末费用重分类凭证支持类附件.pdf' },
     ],
   },
   '3000-2024-1000002233': {

@@ -49,9 +49,9 @@ const { Option, OptGroup } = Select;
 const EMPTY_VOUCHER_RESULT = { vouchers: [], total: 0, summary: '暂无凭证类数据' };
 
 const VOUCHER_ATTACHMENT_TYPES = [
-  '凭证入账支持文件-合同',
-  '凭证入账支持文件-附件',
-  '凭证入账支持文件-审批文件',
+  '凭证支持类合同',
+  '凭证支持类附件',
+  '审批文件',
   '银行回单',
   '承兑汇票收付回单',
 ];
@@ -65,21 +65,38 @@ const getVoucherAttachmentTypeOptions = () => (
 const AUTHORIZED_VOUCHER_ATTACHMENT_TYPES = [
   '银行回单',
   '承兑汇票收付回单',
-  '凭证入账支持文件-附件',
+  '凭证支持类附件',
 ];
+
+const VOUCHER_ATTACHMENT_TYPE_ALIASES = {
+  '凭证入账支持文件-合同': '凭证支持类合同',
+  '凭证入账支持文件-附件': '凭证支持类附件',
+  '凭证入账支持文件-审批文件': '审批文件',
+  凭证入账支持文件: '凭证支持类附件',
+  入账支持文件: '凭证支持类附件',
+  承兑汇票: '承兑汇票收付回单',
+};
+
+const normalizeVoucherAttachmentType = (type) => (
+  VOUCHER_ATTACHMENT_TYPE_ALIASES[type] || type || '其他'
+);
 
 const getVoucherDetail = (voucher) => {
   if (!voucher) return null;
   return voucherDetails?.[voucher.voucher_key] || voucher.detail || null;
 };
 
+const getVoucherHeaderId = (voucher) => (
+  voucher?.voucher_header_id || [voucher?.belnr, voucher?.bukrs, voucher?.gjahr].filter(Boolean).join('-') || '-'
+);
+
 const getVoucherAttachmentType = (attachment) => (
-  attachment?.doc_type || attachment?.doc_sub_type || attachment?.attachment_type || '其他'
+  normalizeVoucherAttachmentType(attachment?.doc_type || attachment?.doctype || attachment?.doc_sub_type || attachment?.attachment_type)
 );
 
 const isVoucherAttachmentTypeMatch = (sourceType, selectedType) => {
-  const source = String(sourceType || '');
-  const selected = String(selectedType || '');
+  const source = String(normalizeVoucherAttachmentType(sourceType));
+  const selected = String(normalizeVoucherAttachmentType(selectedType));
   if (!source || !selected) return false;
   return source === selected || source.includes(selected) || selected.includes(source);
 };
@@ -87,9 +104,9 @@ const isVoucherAttachmentTypeMatch = (sourceType, selectedType) => {
 const getVoucherAttachmentTagColor = (type) => {
   if (type === '银行回单') return 'green';
   if (type === '承兑汇票收付回单' || type === '承兑汇票') return 'gold';
-  if (type === '凭证入账支持文件-审批文件') return 'purple';
-  if (type === '凭证入账支持文件-附件') return 'blue';
-  if (type === '凭证入账支持文件-合同') return 'cyan';
+  if (type === '审批文件') return 'purple';
+  if (type === '凭证支持类附件') return 'blue';
+  if (type === '凭证支持类合同') return 'cyan';
   return 'default';
 };
 
@@ -124,51 +141,56 @@ const normalizeVoucherPayment = (payment) => ({
   payment_date: payment.payment_date || payment.paymentDate,
   receipt_no: payment.receipt_no || payment.receiptNo || payment.payment_no || payment.bill_no,
   payment_type: payment.payment_type || payment.paymentType || (payment.bill_no ? '承兑' : '电汇'),
+  account_code: payment.account_code || payment.racct || (payment.bill_no ? '112101' : '100201'),
+  account_name: payment.account_name || payment.account_desc || (payment.bill_no ? '应收票据' : '银行存款'),
 });
 
 const VOUCHER_MAIN_FIELDS = [
-  ['gjahr', '会计年度'],
-  ['poper', '过账期间'],
-  ['bukrs', '公司代码'],
-  ['company_name', '公司名称'],
   ['belnr', '凭证编号'],
-  ['blart', '凭证类型'],
+  ['bukrs', '公司代码'],
+  ['gjahr', '会计年度'],
+  ['company_name', '公司名称'],
   ['bldat', '凭证日期'],
-  ['budat', '过账日期'],
-  ['waers', '币种'],
-  ['header_text', '凭证抬头文本'],
-  ['ai_summary', 'AI事由概述'],
-  ['related_apply_doc_no', '关联申请单据号'],
-  ['related_other_doc_no', '关联其他单据号'],
-  ['payee_name', '收款人户名'],
   ['payee_code', '收款人代码'],
+  ['budat', '过账日期'],
+  ['payee_name', '收款人户名'],
   ['reimburser_name', '报销人名称'],
-  ['xref2_hd', '参考代码2'],
+  ['xblnr', '参照'],
+  ['header_text', '凭证抬头文本'],
+  ['related_apply_doc_no', '关联申请单据号'],
+  ['ai_summary', 'AI事由概述'],
+  ['xref2_hd', '外部单据号'],
+  ['expense_reimbursement_note', '费用报销说明'],
+  ['related_other_doc_no', '关联其他单据号'],
 ];
 
-const voucherLineColumns = [
-  { title: '借贷方向', dataIndex: 'drcrk', key: 'drcrk', width: 90, fixed: 'left' },
-  { title: '行项目', dataIndex: 'docln', key: 'docln', width: 90, fixed: 'left' },
+const VOUCHER_MAIN_LONG_TEXT_FIELDS = new Set(['ai_summary', 'expense_reimbursement_note']);
+
+const createVoucherLineColumns = (directionTitle) => [
+  { title: directionTitle, dataIndex: 'drcrk', key: 'drcrk', width: 76, fixed: 'left' },
   { title: '科目', dataIndex: 'racct', key: 'racct', width: 110, fixed: 'left' },
-  { title: '科目名称', dataIndex: 'account_name', key: 'account_name', width: 150, ellipsis: true },
-  { title: '利润中心代码', dataIndex: 'prctr', key: 'prctr', width: 120 },
-  { title: '利润中心名称', dataIndex: 'profit_center_name', key: 'profit_center_name', width: 140, ellipsis: true },
-  { title: '功能范围', dataIndex: 'rfarea', key: 'rfarea', width: 100 },
+  { title: '科目名称描述', dataIndex: 'account_name', key: 'account_name', width: 150, fixed: 'left', ellipsis: true },
+  { title: '本币金额', dataIndex: 'tsl', key: 'tsl', width: 120, fixed: 'left', align: 'right' },
+  { title: '本币货币', dataIndex: 'rtcur', key: 'rtcur', width: 90, fixed: 'left' },
+  { title: '总账金额', dataIndex: 'wsl', key: 'wsl', width: 120, fixed: 'left', align: 'right' },
+  { title: '总账货币', dataIndex: 'rwcur', key: 'rwcur', width: 90, fixed: 'left' },
+  { title: '客户代码', dataIndex: 'kunnr', key: 'kunnr', width: 120 },
+  { title: '客户名称描述', dataIndex: 'customer_name', key: 'customer_name', width: 160, ellipsis: true },
+  { title: '供应商代码', dataIndex: 'lifnr', key: 'lifnr', width: 120 },
+  { title: '供应商名称描述', dataIndex: 'supplier_name', key: 'supplier_name', width: 160, ellipsis: true },
+  { title: '文本', dataIndex: 'sgtxt', key: 'sgtxt', width: 180, ellipsis: true },
+  { title: '部门编号', dataIndex: 'department_code', key: 'department_code', width: 110 },
+  { title: '部门名称', dataIndex: 'department_name', key: 'department_name', width: 140, ellipsis: true },
   { title: '成本中心代码', dataIndex: 'rcntr', key: 'rcntr', width: 120 },
   { title: '成本中心名称', dataIndex: 'cost_center_name', key: 'cost_center_name', width: 140, ellipsis: true },
-  { title: '部门名称', dataIndex: 'department_name', key: 'department_name', width: 140, ellipsis: true },
-  { title: '部门编号', dataIndex: 'department_code', key: 'department_code', width: 110 },
-  { title: '凭证日期', dataIndex: 'bldat', key: 'bldat', width: 110 },
-  { title: '过账日期', dataIndex: 'budat', key: 'budat', width: 110 },
-  { title: '本币金额', dataIndex: 'tsl', key: 'tsl', width: 120, align: 'right' },
-  { title: '本币货币', dataIndex: 'rtcur', key: 'rtcur', width: 90 },
-  { title: '总账金额', dataIndex: 'wsl', key: 'wsl', width: 120, align: 'right' },
-  { title: '总账货币', dataIndex: 'rwcur', key: 'rwcur', width: 90 },
-  { title: '文本', dataIndex: 'sgtxt', key: 'sgtxt', width: 180, ellipsis: true },
-  { title: '凭证抬头文本', dataIndex: 'bktxt', key: 'bktxt', width: 180, ellipsis: true },
+  { title: '利润中心代码', dataIndex: 'prctr', key: 'prctr', width: 120 },
+  { title: '利润中心名称', dataIndex: 'profit_center_name', key: 'profit_center_name', width: 140, ellipsis: true },
+  { title: '销售凭证', dataIndex: 'kdauf', key: 'kdauf', width: 120 },
+  { title: '采购凭证', dataIndex: 'ebeln', key: 'ebeln', width: 120 },
+  { title: '采购凭证行项目', dataIndex: 'ebelp', key: 'ebelp', width: 140 },
   { title: '采购订单文本', dataIndex: 'txz01', key: 'txz01', width: 180, ellipsis: true },
+  { title: '功能范围', dataIndex: 'rfarea', key: 'rfarea', width: 100 },
   { title: '参考代码1', dataIndex: 'xref1_hd', key: 'xref1_hd', width: 140 },
-  { title: '参照', dataIndex: 'xblnr', key: 'xblnr', width: 140 },
   { title: '现金流量码', dataIndex: 'rstgr', key: 'rstgr', width: 120 },
   { title: '内部订单号', dataIndex: 'aufnr', key: 'aufnr', width: 130 },
   { title: '内部订单描述', dataIndex: 'internal_order_desc', key: 'internal_order_desc', width: 160, ellipsis: true },
@@ -177,18 +199,12 @@ const voucherLineColumns = [
   { title: '售后个案编号', dataIndex: 'after_sales_case_no', key: 'after_sales_case_no', width: 130 },
   { title: '分配', dataIndex: 'zuonr', key: 'zuonr', width: 130 },
   { title: '申请事由', dataIndex: 'apply_reason', key: 'apply_reason', width: 180, ellipsis: true },
-  { title: '客户代码', dataIndex: 'kunnr', key: 'kunnr', width: 120 },
-  { title: '客户名称描述', dataIndex: 'customer_name', key: 'customer_name', width: 160, ellipsis: true },
-  { title: '销售凭证', dataIndex: 'kdauf', key: 'kdauf', width: 120 },
   { title: '物料', dataIndex: 'matnr', key: 'matnr', width: 120 },
-  { title: '物料描述', dataIndex: 'maktx', key: 'maktx', width: 160, ellipsis: true },
-  { title: '采购凭证', dataIndex: 'ebeln', key: 'ebeln', width: 120 },
-  { title: '采购凭证行项目', dataIndex: 'ebelp', key: 'ebelp', width: 140 },
-  { title: '供应商代码', dataIndex: 'lifnr', key: 'lifnr', width: 120 },
-  { title: '供应商名称描述', dataIndex: 'supplier_name', key: 'supplier_name', width: 160, ellipsis: true },
+  { title: '物料：描述', dataIndex: 'maktx', key: 'maktx', width: 160, ellipsis: true },
   { title: '删除标识', dataIndex: 'xreversal', key: 'xreversal', width: 100 },
   { title: '贸易伙伴', dataIndex: 'rassc', key: 'rassc', width: 110 },
   { title: '预算科目', dataIndex: 'budget_subject', key: 'budget_subject', width: 150, ellipsis: true },
+  { title: '行项目', dataIndex: 'docln', key: 'docln', width: 90 },
 ];
 
 const voucherInvoiceColumns = [
@@ -205,6 +221,8 @@ const voucherPaymentColumns = [
   { title: '金额', dataIndex: 'amount', key: 'amount', width: 120, align: 'right' },
   { title: '回单编号', dataIndex: 'receipt_no', key: 'receipt_no', width: 160 },
   { title: '收付款类型', dataIndex: 'payment_type', key: 'payment_type', width: 130 },
+  { title: '科目', dataIndex: 'account_code', key: 'account_code', width: 120 },
+  { title: '科目名称描述', dataIndex: 'account_name', key: 'account_name', width: 150, ellipsis: true },
 ];
 
 // 有权限的文件类型列表（按维度区分）
@@ -331,7 +349,12 @@ const SalesDocumentSearch = () => {
         }
       });
     }
-    const all = Array.from(typesSet).sort();
+    const all = dimension === 'voucher'
+      ? [
+        ...getVoucherAttachmentTypeOptions().filter(type => typesSet.has(type)),
+        ...Array.from(typesSet).filter(type => !getVoucherAttachmentTypeOptions().includes(type)).sort(),
+      ]
+      : Array.from(typesSet).sort();
     const dimAuthorized = authorizedDocumentTypes[dimension] || [];
     const authorized = all.filter(t => dimAuthorized.includes(t));
     const unauthorized = all.filter(t => !dimAuthorized.includes(t));
@@ -1752,19 +1775,21 @@ const SalesDocumentSearch = () => {
                         locale={{ emptyText: '暂无匹配的凭证类单据' }}
                         renderItem={voucher => {
                           const detail = getVoucherDetail(voucher);
+                          const voucherMain = detail?.voucher_main || {};
+                          const aiSummary = voucherMain.ai_summary || voucher.header_text || '暂无AI事由概述';
                           const attachments = detail?.voucher_attachments || [];
                           const filteredAttachments = getFilteredVoucherAttachments(voucher);
 
                           return (
                             <div className="result-item-card">
                               <div className="result-item-header">
-                                <div className="result-item-title-group">
+                                <div className="result-item-title-group voucher-title-group">
                                   <Checkbox
                                     checked={filters.selectedItems.includes(voucher.voucher_key)}
                                     onChange={(e) => handleDimensionItemSelect(dimension, voucher.voucher_key, e.target.checked)}
                                   />
-                                  <span className="result-order-no voucher-year-tag">{voucher.gjahr || '-'}</span>
-                                  <span className="result-item-title">{voucher.belnr || '-'}</span>
+                                  <span className="result-order-no voucher-header-id-tag">{getVoucherHeaderId(voucher)}</span>
+                                  <span className="result-item-title voucher-company-title">{voucher.company_name || '-'}</span>
                                 </div>
                                 <div className="result-item-actions">
                                   <Tooltip title="查看详情">
@@ -1783,18 +1808,9 @@ const SalesDocumentSearch = () => {
                                   </Tooltip>
                                 </div>
                               </div>
-                              <div className="result-item-meta result-item-meta-tags">
-                                <Tooltip title="公司代码">
-                                  <Tag className="meta-tag">{voucher.bukrs || '-'}</Tag>
-                                </Tooltip>
-                                <Tooltip title="公司名称">
-                                  <Tag className="meta-tag">{voucher.company_name || '-'}</Tag>
-                                </Tooltip>
-                                <Tooltip title="凭证类型">
-                                  <Tag className="meta-tag">{voucher.blart || '-'}</Tag>
-                                </Tooltip>
-                                <Tooltip title="过账期间">
-                                  <Tag className="meta-tag">期间 {voucher.poper || '-'}</Tag>
+                              <div className="voucher-card-summary-row">
+                                <Tooltip title={aiSummary} placement="topLeft">
+                                  <span className="voucher-card-ai-summary">{aiSummary}</span>
                                 </Tooltip>
                               </div>
                               {filters.expandedItems.includes(voucher.voucher_key) && (
@@ -2160,12 +2176,15 @@ const SalesDocumentSearch = () => {
               <div className="detail-block">
                 <div className="detail-block-title">凭证主表</div>
                 <div className="detail-block-content voucher-main-info">
-                  {VOUCHER_MAIN_FIELDS.map(([key, label]) => (
-                    <div className="detail-field-item" key={key}>
-                      <span className="detail-field-label">{label}</span>
-                      <span className="detail-field-value">{main[key] || '-'}</span>
-                    </div>
-                  ))}
+                  {VOUCHER_MAIN_FIELDS.map(([key, label]) => {
+                    const isLongText = VOUCHER_MAIN_LONG_TEXT_FIELDS.has(key);
+                    return (
+                      <div className={`detail-field-item${isLongText ? ' voucher-main-long-text' : ''}`} key={key}>
+                        <span className="detail-field-label">{label}</span>
+                        <span className="detail-field-value">{main[key] || '-'}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -2174,7 +2193,7 @@ const SalesDocumentSearch = () => {
                 <div className="detail-block-content detail-material-table">
                   <Table
                     rowKey={record => record.docln || record.zuonr || record.racct || record.sgtxt}
-                    columns={voucherLineColumns}
+                    columns={createVoucherLineColumns('借方')}
                     dataSource={debitLines}
                     pagination={false}
                     size="small"
@@ -2189,7 +2208,7 @@ const SalesDocumentSearch = () => {
                 <div className="detail-block-content detail-material-table">
                   <Table
                     rowKey={record => record.docln || record.zuonr || record.racct || record.sgtxt}
-                    columns={voucherLineColumns}
+                    columns={createVoucherLineColumns('贷方')}
                     dataSource={creditLines}
                     pagination={false}
                     size="small"
@@ -2223,7 +2242,7 @@ const SalesDocumentSearch = () => {
                     dataSource={paymentDetails}
                     pagination={false}
                     size="small"
-                    scroll={{ x: 560 }}
+                    scroll={{ x: 800 }}
                     locale={{ emptyText: '当前凭证暂无收付款明细' }}
                   />
                 </div>
