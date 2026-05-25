@@ -1,86 +1,52 @@
 import React, { useMemo } from 'react';
-import { Tabs, Table, Tag } from 'antd';
+import { Tabs, Table } from 'antd';
 import purchaseOrderRelations from '../data/purchaseOrderRelations';
 import './OrderRelationsPanel.css';
 
 /**
  * 采购订单关联单号面板
- * 5个tab：送货单号(srm)、销售单号(EKKN.vbeln)、交货单号(ZTMM0008K.vbeln)、
- *         报关单号(ZTMM0008K.bg_number)、批次号(MSEG.charg)
- * 交货单号与报关单号、批次号存在关联关系
+ * 页签固定按：销售单号、交货单号、送货单号、会计凭证号、物料凭证号。
  */
 const PurchaseRelationsPanel = ({ purchaseOrderNo }) => {
   const relations = useMemo(() => {
     return purchaseOrderRelations[purchaseOrderNo] || {
-      deliveryNotes: [], salesOrders: [], shipmentNotes: [],
-      customsNumbers: [], batchNumbers: [],
-      shipmentCustomsMap: {}, shipmentBatchMap: {},
+      salesOrders: [],
+      shipmentNotes: [],
+      deliveryNotes: [],
+      accountingDocs: [],
+      materialDocs: [],
     };
   }, [purchaseOrderNo]);
 
-  // 送货单号（来自srm）
-  const deliveryData = useMemo(() => {
-    return relations.deliveryNotes.map((dn, idx) => ({ key: idx, deliveryNo: dn }));
-  }, [relations]);
-
-  // 销售单号（来自EKKN.vbeln）
+  // 销售单号（标准字段 sales_order_no）
   const salesData = useMemo(() => {
     return relations.salesOrders.map((so, idx) => ({ key: idx, salesOrderNo: so }));
   }, [relations]);
 
-  // 交货单号（来自ZTMM0008K.vbeln），关联报关单号和批次号
+  // 交货单号（标准字段 delivery_order_no）
   const shipmentData = useMemo(() => {
     return relations.shipmentNotes.map((sn, idx) => ({
       key: idx,
       shipmentNo: sn,
-      customs: relations.shipmentCustomsMap[sn] || [],
-      batches: relations.shipmentBatchMap[sn] || [],
     }));
   }, [relations]);
 
-  // 报关单号（来自ZTMM0008K.bg_number），反向关联交货单号
-  const customsData = useMemo(() => {
-    const customsToShipment = {};
-    Object.entries(relations.shipmentCustomsMap).forEach(([sn, customs]) => {
-      customs.forEach((cn) => {
-        if (!customsToShipment[cn]) customsToShipment[cn] = [];
-        customsToShipment[cn].push(sn);
-      });
-    });
-    return relations.customsNumbers.map((cn, idx) => ({
-      key: idx, customsNo: cn, shipments: customsToShipment[cn] || [],
-    }));
+  // 送货单号（标准字段 shipping_note_no）
+  const deliveryData = useMemo(() => {
+    return relations.deliveryNotes.map((dn, idx) => ({ key: idx, deliveryNo: dn }));
   }, [relations]);
 
-  // 批次号（来自MSEG.charg），反向关联交货单号
-  const batchData = useMemo(() => {
-    const batchToShipment = {};
-    Object.entries(relations.shipmentBatchMap).forEach(([sn, batches]) => {
-      batches.forEach((bn) => {
-        if (!batchToShipment[bn]) batchToShipment[bn] = [];
-        batchToShipment[bn].push(sn);
-      });
-    });
-    return relations.batchNumbers.map((bn, idx) => ({
-      key: idx, batchNo: bn, shipments: batchToShipment[bn] || [],
-    }));
+  // 会计凭证号（标准字段 accounting_doc_no）
+  const accountingData = useMemo(() => {
+    return (relations.accountingDocs || []).map((docNo, idx) => ({ key: idx, accountingDocNo: docNo }));
+  }, [relations]);
+
+  // 物料凭证号（标准字段 material_doc_no）
+  const materialData = useMemo(() => {
+    return (relations.materialDocs || []).map((docNo, idx) => ({ key: idx, materialDocNo: docNo }));
   }, [relations]);
 
   const tabItems = [
-    {
-      key: 'delivery',
-      label: `送货单号（${relations.deliveryNotes.length}）`,
-      children: (
-        <Table
-          columns={[
-            { title: '送货单号', dataIndex: 'deliveryNo', key: 'deliveryNo' },
-          ]}
-          dataSource={deliveryData}
-          pagination={deliveryData.length > 10 ? { pageSize: 10, size: 'small' } : false}
-          size="small" bordered locale={{ emptyText: '暂无送货单' }}
-        />
-      ),
-    },
     {
       key: 'sales',
       label: `销售单号（${relations.salesOrders.length}）`,
@@ -102,8 +68,6 @@ const PurchaseRelationsPanel = ({ purchaseOrderNo }) => {
         <Table
           columns={[
             { title: '交货单号', dataIndex: 'shipmentNo', key: 'shipmentNo' },
-            { title: '关联报关单号', dataIndex: 'customs', key: 'customs', render: (customs) => customs.length > 0 ? customs.map(c => <Tag key={c} color="orange">{c}</Tag>) : '-' },
-            { title: '关联批次号', dataIndex: 'batches', key: 'batches', render: (batches) => batches.length > 0 ? batches.map(b => <Tag key={b} color="green">{b}</Tag>) : '-' },
           ]}
           dataSource={shipmentData}
           pagination={shipmentData.length > 10 ? { pageSize: 10, size: 'small' } : false}
@@ -112,32 +76,44 @@ const PurchaseRelationsPanel = ({ purchaseOrderNo }) => {
       ),
     },
     {
-      key: 'customs',
-      label: `报关单号（${relations.customsNumbers.length}）`,
+      key: 'delivery',
+      label: `送货单号（${relations.deliveryNotes.length}）`,
       children: (
         <Table
           columns={[
-            { title: '报关单号', dataIndex: 'customsNo', key: 'customsNo' },
-            { title: '关联交货单号', dataIndex: 'shipments', key: 'shipments', render: (shipments) => shipments.length > 0 ? shipments.map(s => <Tag key={s} color="blue">{s}</Tag>) : '-' },
+            { title: '送货单号', dataIndex: 'deliveryNo', key: 'deliveryNo' },
           ]}
-          dataSource={customsData}
-          pagination={customsData.length > 10 ? { pageSize: 10, size: 'small' } : false}
-          size="small" bordered locale={{ emptyText: '暂无报关单' }}
+          dataSource={deliveryData}
+          pagination={deliveryData.length > 10 ? { pageSize: 10, size: 'small' } : false}
+          size="small" bordered locale={{ emptyText: '暂无送货单' }}
         />
       ),
     },
     {
-      key: 'batch',
-      label: `批次号（${relations.batchNumbers.length}）`,
+      key: 'accounting',
+      label: `会计凭证号（${accountingData.length}）`,
       children: (
         <Table
           columns={[
-            { title: '批次号', dataIndex: 'batchNo', key: 'batchNo' },
-            { title: '关联交货单号', dataIndex: 'shipments', key: 'shipments', render: (shipments) => shipments.length > 0 ? shipments.map(s => <Tag key={s} color="blue">{s}</Tag>) : '-' },
+            { title: '会计凭证号', dataIndex: 'accountingDocNo', key: 'accountingDocNo' },
           ]}
-          dataSource={batchData}
-          pagination={batchData.length > 10 ? { pageSize: 10, size: 'small' } : false}
-          size="small" bordered locale={{ emptyText: '暂无批次号' }}
+          dataSource={accountingData}
+          pagination={accountingData.length > 10 ? { pageSize: 10, size: 'small' } : false}
+          size="small" bordered locale={{ emptyText: '暂无会计凭证号' }}
+        />
+      ),
+    },
+    {
+      key: 'material',
+      label: `物料凭证号（${materialData.length}）`,
+      children: (
+        <Table
+          columns={[
+            { title: '物料凭证号', dataIndex: 'materialDocNo', key: 'materialDocNo' },
+          ]}
+          dataSource={materialData}
+          pagination={materialData.length > 10 ? { pageSize: 10, size: 'small' } : false}
+          size="small" bordered locale={{ emptyText: '暂无物料凭证号' }}
         />
       ),
     },
