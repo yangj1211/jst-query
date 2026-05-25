@@ -1,11 +1,13 @@
+import { purchaseInvoiceData, purchasePaymentData, purchaseReceiptData } from './purchaseDetailData';
+
 /**
  * 采购订单关联单号数据
  * 字段来源：
- * - 送货单号：以采购订单号为维度，查询srm下的送货单号
- * - 销售单号：以ebeln为维度，查询EKKN.vbeln
- * - 交货单号：以ebeln为维度，查询ZTMM0008K.vbeln
- * - 报关单号：以ebeln为维度，查询ZTMM0008K.bg_number（与交货单号关联）
- * - 批次号：以ebeln为维度，查询MSEG.charg（与交货单号关联）
+ * - 销售单号：doc_relation / sales_order_no
+ * - 交货单号：doc_relation / delivery_order_no
+ * - 送货单号：采购附件关系表 / shipping_note_no
+ * - 会计凭证号：采购附件关系表 / accounting_doc_no
+ * - 物料凭证号：采购附件关系表 / material_doc_no
  */
 const purchaseOrderRelations = {
   'PO2018-0001': {
@@ -169,5 +171,27 @@ const purchaseOrderRelations = {
     shipmentBatchMap: {},
   },
 };
+
+const uniqueValues = (values = []) => Array.from(new Set(values.filter(Boolean)));
+
+Object.entries(purchaseOrderRelations).forEach(([purchaseOrderNo, relations]) => {
+  const invoiceAccountingDocs = (purchaseInvoiceData[purchaseOrderNo] || []).map(item => item.accountingDoc);
+  const paymentAccountingDocs = (purchasePaymentData[purchaseOrderNo] || []).map(item => item.voucherNo);
+  const materialDocs = (purchaseReceiptData[purchaseOrderNo] || []).map(item => item.materialDoc);
+
+  relations.salesOrders = uniqueValues(relations.salesOrders);
+  relations.shipmentNotes = uniqueValues(relations.shipmentNotes);
+  relations.deliveryNotes = uniqueValues(relations.deliveryNotes);
+  relations.accountingDocs = uniqueValues(
+    relations.accountingDocs && relations.accountingDocs.length > 0
+      ? relations.accountingDocs
+      : [...invoiceAccountingDocs, ...paymentAccountingDocs]
+  );
+  relations.materialDocs = uniqueValues(
+    relations.materialDocs && relations.materialDocs.length > 0
+      ? relations.materialDocs
+      : materialDocs
+  );
+});
 
 export default purchaseOrderRelations;

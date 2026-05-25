@@ -9,6 +9,7 @@ const OrderRelationsPanel = ({ orderNo }) => {
       deliveryNotes: [],
       batchNumbers: [],
       returnOrders: [],
+      accountingDocs: [],
       deliveryBatchMap: {},
       deliveryCustomsMap: {},
     };
@@ -42,6 +43,13 @@ const OrderRelationsPanel = ({ orderNo }) => {
     return relations.returnOrders.map((ro, idx) => ({
       key: idx,
       returnNo: ro,
+    }));
+  }, [relations]);
+
+  const accountingData = useMemo(() => {
+    return (relations.accountingDocs || []).map((docNo, idx) => ({
+      key: idx,
+      accountingDocNo: docNo,
     }));
   }, [relations]);
 
@@ -128,6 +136,22 @@ const OrderRelationsPanel = ({ orderNo }) => {
           size="small"
           bordered
           locale={{ emptyText: '暂无报关单' }}
+        />
+      ),
+    },
+    {
+      key: 'accounting',
+      label: `会计凭证号（${accountingData.length}）`,
+      children: (
+        <Table
+          columns={[
+            { title: '会计凭证号', dataIndex: 'accountingDocNo', key: 'accountingDocNo' },
+          ]}
+          dataSource={accountingData}
+          pagination={accountingData.length > 10 ? { pageSize: 10, size: 'small' } : false}
+          size="small"
+          bordered
+          locale={{ emptyText: '暂无会计凭证号' }}
         />
       ),
     },

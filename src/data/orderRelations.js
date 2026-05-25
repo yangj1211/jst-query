@@ -11,6 +11,7 @@
  * - 销售订单 → 多个交货单（一对多）
  * - 交货单 → 多个批次号（一对多，多对多）
  * - 交货单 ↔ 报关单（多对多）
+ * - 销售订单 → 多个会计凭证号（doc_relation）
  * - 销售订单 → 多个批次号（直接关系）
  * - 销售订单 → 多个退货单（一对多）
  */
@@ -283,5 +284,21 @@ const orderRelations = {
     deliveryCustomsMap: {},
   },
 };
+
+const uniqueValues = (values = []) => Array.from(new Set(values.filter(Boolean)));
+
+const buildAccountingDocs = (orderNo) => {
+  const year = String(orderNo).slice(0, 4) || '0000';
+  const suffix = String(orderNo).slice(-4) || orderNo;
+  return [`BELNR-${year}-${suffix}-01`];
+};
+
+Object.entries(orderRelations).forEach(([orderNo, relations]) => {
+  relations.accountingDocs = uniqueValues(
+    relations.accountingDocs && relations.accountingDocs.length > 0
+      ? relations.accountingDocs
+      : buildAccountingDocs(orderNo)
+  );
+});
 
 export default orderRelations;
